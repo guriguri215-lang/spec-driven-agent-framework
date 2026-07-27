@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/project-manifest.schema.json",
+  "title": "Project Manifest",
+  "type": "object",
+  "required": ["schema_version", "project_id", "title", "source_spec", "platforms", "ui", "network_policy", "api_required"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "project_id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+    "title": {"type": "string", "minLength": 1},
+    "release_level": {"type": "string"},
+    "source_spec": {
+      "type": "object",
+      "required": ["filename", "sha256", "imported_at"],
+      "properties": {
+        "filename": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"},
+        "imported_at": {"type": "string", "format": "date-time"}
+      },
+      "additionalProperties": false
+    },
+    "platforms": {
+      "type": "object",
+      "required": ["required", "optional"],
+      "properties": {
+        "required": {"type": "array", "items": {"type": "string"}},
+        "optional": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "ui": {
+      "type": "object",
+      "required": ["present"],
+      "properties": {"present": {"type": "boolean"}},
+      "additionalProperties": false
+    },
+    "network_policy": {"enum": ["default-deny", "restricted", "allowed"]},
+    "api_required": {"type": "boolean"}
+  },
+  "additionalProperties": false
+}

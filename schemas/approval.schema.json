@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/approval.schema.json",
+  "title": "Approval Record",
+  "type": "object",
+  "required": ["approval_id", "approval_type", "action", "scope", "risk", "status", "rationale", "reversible", "approved_by"],
+  "properties": {
+    "approval_id": {"type": "string", "pattern": "^APR-[0-9]{4}$"},
+    "approval_type": {"enum": ["owner", "technical_sandbox"]},
+    "action": {"type": "string", "minLength": 1},
+    "scope": {"type": "object"},
+    "risk": {"enum": ["low", "medium", "high", "prohibited"]},
+    "status": {"enum": ["pending", "approved", "rejected", "expired", "not_required"]},
+    "rationale": {"type": "string"},
+    "reversible": {"type": "boolean"},
+    "approved_by": {"type": ["string", "null"]}
+  },
+  "additionalProperties": false
+}

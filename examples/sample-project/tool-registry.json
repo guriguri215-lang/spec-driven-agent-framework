@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "tools": [
+    {
+      "name": "python",
+      "capability": "Run the offline core and local quality checks.",
+      "command": ["python", "--version"],
+      "platforms": ["windows", "linux", "macos"],
+      "normal_scope": ["repository files", "temporary test files"],
+      "network": {
+        "required": false,
+        "destinations": []
+      },
+      "sandbox_status": "AVAILABLE",
+      "technical_approval": "may_be_required",
+      "owner_approval": "not_required",
+      "risk": "low"
+    },
+    {
+      "name": "codex-external-cli",
+      "capability": "Launch a nested external Codex CLI process.",
+      "command": null,
+      "platforms": ["windows", "linux", "macos"],
+      "normal_scope": [],
+      "network": {
+        "required": false,
+        "destinations": []
+      },
+      "sandbox_status": "NOT_CHECKED",
+      "technical_approval": "not_required",
+      "owner_approval": "prohibited",
+      "risk": "medium"
+    }
+  ]
+}

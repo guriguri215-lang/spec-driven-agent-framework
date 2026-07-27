@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "milestone": "{{ milestone }}",
+  "status": "{{ status }}",
+  "git": {
+    "branch": "{{ branch }}",
+    "head": "{{ head }}",
+    "worktree": "{{ worktree }}"
+  },
+  "source_spec_sha256": "{{ source_spec_sha256 }}",
+  "completed": [],
+  "unresolved": [],
+  "known_issues": [],
+  "next_action": "{{ next_action }}",
+  "primary_folder": "repo/"
+}

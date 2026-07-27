@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/tool-registry.schema.json",
+  "title": "Tool Registry",
+  "type": "object",
+  "required": ["schema_version", "tools"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "capability", "command", "platforms", "normal_scope", "network", "sandbox_status", "technical_approval", "owner_approval", "risk"],
+        "properties": {
+          "name": {"type": "string"},
+          "capability": {"type": "string"},
+          "command": {"type": ["array", "null"], "items": {"type": "string"}},
+          "platforms": {"type": "array", "items": {"type": "string"}},
+          "normal_scope": {"type": "array", "items": {"type": "string"}},
+          "network": {"type": "object"},
+          "sandbox_status": {"enum": ["AVAILABLE", "UNAVAILABLE", "PERMISSION_DENIED", "NOT_CHECKED"]},
+          "technical_approval": {"enum": ["not_required", "may_be_required", "required"]},
+          "owner_approval": {"enum": ["not_required", "required", "prohibited"]},
+          "risk": {"enum": ["low", "medium", "high", "prohibited"]}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

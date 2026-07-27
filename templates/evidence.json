@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "evidence_id": "{{ evidence_id }}",
+  "claim_ids": ["{{ claim_id }}"],
+  "type": "{{ evidence_type }}",
+  "status": "{{ status }}",
+  "command": "{{ command }}",
+  "environment": {},
+  "commit": null,
+  "artifacts": [],
+  "recorded_at": "{{ recorded_at }}"
+}

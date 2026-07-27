@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "project_id": "example-project",
+  "title": "Example Project",
+  "release_level": "prototype",
+  "source_spec": {
+    "filename": "sample-specification.md",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "imported_at": "2026-07-27T12:00:00Z"
+  },
+  "platforms": {
+    "required": ["windows"],
+    "optional": ["linux", "macos"]
+  },
+  "ui": {
+    "present": false
+  },
+  "network_policy": "default-deny",
+  "api_required": false
+}

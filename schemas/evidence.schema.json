@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/evidence.schema.json",
+  "title": "Evidence Record",
+  "type": "object",
+  "required": ["schema_version", "evidence_id", "claim_ids", "type", "status", "command", "environment", "commit", "artifacts", "recorded_at"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "evidence_id": {"type": "string", "pattern": "^EV-[0-9]{4}$"},
+    "claim_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "type": {"enum": ["TEST", "STATIC_ANALYSIS", "TYPE_CHECK", "BENCHMARK", "VISUAL", "MANUAL_REVIEW", "SOURCE_REVIEW", "UNVERIFIED"]},
+    "status": {"enum": ["PASS", "FAIL", "NOT_VERIFIED"]},
+    "command": {"type": "string"},
+    "environment": {"type": "object"},
+    "commit": {"type": ["string", "null"]},
+    "artifacts": {"type": "array", "items": {"type": "string"}},
+    "recorded_at": {"type": "string", "format": "date-time"}
+  },
+  "additionalProperties": false
+}

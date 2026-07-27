@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "execution_id": "EXE-M0-CODEX-001",
+  "task_id": "M0-bootstrap",
+  "command": "codex --version",
+  "required_for_milestone": false,
+  "normal_attempt": {
+    "status": "PERMISSION_DENIED",
+    "exit_code": 1,
+    "denial_class": "EXTERNAL_NESTED_CLI_ACCESS_DENIED"
+  },
+  "permission_request": {
+    "approval_type": "technical_sandbox",
+    "scope": "single command",
+    "owner_decision": "approved_once",
+    "retry_status": "PERMISSION_DENIED"
+  },
+  "final_classification": "PERMISSION_DENIED_NONBLOCKING; do not retry",
+  "recorded_at": "2026-07-27T12:00:00Z"
+}

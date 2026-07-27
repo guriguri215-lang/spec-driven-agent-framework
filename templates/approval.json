@@ -1,0 +1,11 @@
+{
+  "approval_id": "{{ approval_id }}",
+  "approval_type": "{{ approval_type }}",
+  "action": "{{ action }}",
+  "scope": {},
+  "risk": "{{ risk }}",
+  "status": "pending",
+  "rationale": "{{ rationale }}",
+  "reversible": false,
+  "approved_by": null
+}

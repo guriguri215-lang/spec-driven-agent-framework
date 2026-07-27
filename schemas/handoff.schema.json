@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/handoff.schema.json",
+  "title": "Handoff",
+  "type": "object",
+  "required": ["schema_version", "milestone", "status", "git", "source_spec_sha256", "completed", "unresolved", "known_issues", "next_action", "primary_folder"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "milestone": {"type": "string"},
+    "status": {"enum": ["planned", "ready", "running", "blocked", "verification", "completed", "rejected", "superseded"]},
+    "git": {"type": "object"},
+    "source_spec_sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"},
+    "completed": {"type": "array", "items": {"type": "string"}},
+    "unresolved": {"type": "array", "items": {"type": "string"}},
+    "known_issues": {"type": "array", "items": {"type": "string"}},
+    "next_action": {"type": "string"},
+    "primary_folder": {"type": "string"}
+  },
+  "additionalProperties": false
+}

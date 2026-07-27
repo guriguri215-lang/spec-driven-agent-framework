@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "milestone": "M0",
+  "status": "verification",
+  "git": {
+    "branch": "main",
+    "head": null,
+    "worktree": "pending final commit"
+  },
+  "source_spec_sha256": "F28E02029768F80816001BD98DA43739F4BA33C1197710E02B1E20786EAD188B",
+  "completed": [
+    "Bootstrap architecture",
+    "CLI vertical slice"
+  ],
+  "unresolved": [
+    "Repository name",
+    "License",
+    "GitHub visibility"
+  ],
+  "known_issues": [],
+  "next_action": "Run the M1 Requirements and Planning MVP Goal after Owner review.",
+  "primary_folder": "repo/"
+}

@@ -1,0 +1,14 @@
+{
+  "approval_id": "APR-0001",
+  "approval_type": "owner",
+  "action": "Create and push a public GitHub repository",
+  "scope": {
+    "repository_name": "pending",
+    "visibility": "pending"
+  },
+  "risk": "high",
+  "status": "pending",
+  "rationale": "Publication is outside M0 and requires an explicit Owner decision.",
+  "reversible": false,
+  "approved_by": null
+}

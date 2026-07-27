@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "evidence_id": "EV-0001",
+  "claim_ids": ["AC-FR-EXAMPLE-001-01"],
+  "type": "TEST",
+  "status": "PASS",
+  "command": "python -m pytest tests/test_validation.py",
+  "environment": {
+    "os": "windows",
+    "python": "3.12"
+  },
+  "commit": null,
+  "artifacts": [],
+  "recorded_at": "2026-07-27T12:00:00Z"
+}

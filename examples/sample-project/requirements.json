@@ -1,0 +1,23 @@
+[
+  {
+    "id": "FR-EXAMPLE-001",
+    "title": "Validate a project identifier",
+    "type": "functional",
+    "priority": "must",
+    "status": "baselined",
+    "source": {
+      "document": "sample-specification.md",
+      "section": "Requirement"
+    },
+    "statement": "The command shall reject a manifest with a missing project identifier.",
+    "acceptance_criteria": [
+      {
+        "id": "AC-FR-EXAMPLE-001-01",
+        "statement": "A missing project identifier produces a non-zero exit code and an English error message."
+      }
+    ],
+    "verification": ["test"],
+    "assumptions": [],
+    "open_questions": []
+  }
+]

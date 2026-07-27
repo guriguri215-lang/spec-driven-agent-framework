@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/agent-registry.schema.json",
+  "title": "Agent Registry",
+  "type": "object",
+  "required": ["schema_version", "agents"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "agents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["role", "responsibilities", "inputs", "outputs", "tools", "prohibited_actions"],
+        "properties": {
+          "role": {"type": "string"},
+          "responsibilities": {"type": "array", "items": {"type": "string"}},
+          "inputs": {"type": "array", "items": {"type": "string"}},
+          "outputs": {"type": "array", "items": {"type": "string"}},
+          "tools": {"type": "array", "items": {"type": "string"}},
+          "prohibited_actions": {"type": "array", "items": {"type": "string"}}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

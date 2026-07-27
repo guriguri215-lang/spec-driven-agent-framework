@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "project_id": "{{ project_id }}",
+  "title": "{{ title }}",
+  "release_level": "{{ release_level }}",
+  "source_spec": {
+    "filename": "{{ source_filename }}",
+    "sha256": "{{ source_sha256 }}",
+    "imported_at": "{{ imported_at }}"
+  },
+  "platforms": {
+    "required": ["windows"],
+    "optional": ["linux", "macos"]
+  },
+  "ui": {
+    "present": false
+  },
+  "network_policy": "default-deny",
+  "api_required": false
+}

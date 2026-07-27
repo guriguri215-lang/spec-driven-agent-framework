@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/execution-attempt.schema.json",
+  "title": "Execution Attempt",
+  "type": "object",
+  "required": ["schema_version", "execution_id", "task_id", "command", "required_for_milestone", "normal_attempt", "permission_request", "final_classification", "recorded_at"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "execution_id": {"type": "string"},
+    "task_id": {"type": "string"},
+    "command": {"type": "string"},
+    "required_for_milestone": {"type": "boolean"},
+    "normal_attempt": {
+      "type": "object",
+      "required": ["status", "exit_code", "denial_class"],
+      "properties": {
+        "status": {"enum": ["PASS", "FAIL", "PERMISSION_DENIED", "NOT_CHECKED"]},
+        "exit_code": {"type": ["integer", "null"]},
+        "denial_class": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "permission_request": {"type": ["object", "null"]},
+    "final_classification": {"type": "string"},
+    "recorded_at": {"type": "string", "format": "date-time"}
+  },
+  "additionalProperties": false
+}

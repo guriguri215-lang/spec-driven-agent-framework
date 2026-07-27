@@ -1,0 +1,58 @@
+name: Continuous integration
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.12", "3.13"]
+    env:
+      PYTHONPATH: src
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements-dev.lock
+      - name: Install pinned development tools
+        run: python -m pip install --disable-pip-version-check -r requirements-dev.lock
+      - name: Install project without dependency resolution
+        run: python -m pip install --no-build-isolation --no-deps -e .
+      - name: Run tests
+        run: python -m pytest
+      - name: Run lint
+        run: python -m ruff check src tests scripts
+      - name: Run type check
+        run: python -m mypy src tests scripts
+      - name: Measure total branch coverage
+        run: |
+          python -m coverage run -m pytest
+          python -m coverage report --fail-under=80
+      - name: Check core coverage
+        run: python -m coverage report --include="src/sdaqf/domain/*,src/sdaqf/application/gates.py" --fail-under=90
+      - name: Audit workspace boundary
+        run: python scripts/check_workspace_boundary.py --repo .
+      - name: Audit publication candidate
+        run: python scripts/audit_repository.py --root .
+      - name: Run CLI smoke checks
+        shell: bash
+        run: |
+          sdaqf --help
+          python -m sdaqf doctor --current-session-active --json
+          python -m sdaqf init cli-smoke-project --dry-run --json
+          python -m sdaqf validate examples/sample-project --json
+          python -m sdaqf status examples/sample-project --json
+          python -m sdaqf goal-template M1

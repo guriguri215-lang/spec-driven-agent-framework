@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "agents": [
+    {
+      "role": "Requirements Analyst",
+      "responsibilities": [
+        "Extract stable requirements and acceptance criteria",
+        "Record assumptions and unresolved conflicts"
+      ],
+      "inputs": ["Approved source specification"],
+      "outputs": ["Structured requirement proposal"],
+      "tools": ["Read-only filesystem"],
+      "prohibited_actions": ["Modify source files", "Publish data"]
+    },
+    {
+      "role": "Independent Reviewer",
+      "responsibilities": [
+        "Find requirement gaps and counterexamples",
+        "Review security and publication boundaries"
+      ],
+      "inputs": ["Reviewed diff", "Acceptance criteria", "Evidence"],
+      "outputs": ["Structured findings"],
+      "tools": ["Read-only filesystem", "Test result reader"],
+      "prohibited_actions": ["Commit changes", "Change quality gates"]
+    }
+  ]
+}
