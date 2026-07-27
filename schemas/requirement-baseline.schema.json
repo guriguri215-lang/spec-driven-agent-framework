@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/requirement-baseline.schema.json",
+  "title": "Requirement Baseline",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "baseline_id",
+    "source",
+    "requirements",
+    "source_acceptance_criteria",
+    "diagnostics",
+    "approval_state"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "baseline_id": {
+      "type": "string",
+      "pattern": "^RB-[0-9A-F]{16}$"
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "filename",
+        "path",
+        "sha256",
+        "size_bytes",
+        "modified_at",
+        "imported_at"
+      ],
+      "properties": {
+        "filename": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{64}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "modified_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "imported_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "requirements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "requirement-record.schema.json"
+      }
+    },
+    "source_acceptance_criteria": {
+      "type": "array",
+      "items": {
+        "$ref": "requirement-record.schema.json#/$defs/acceptanceCriterion"
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "severity",
+          "requirement_ids",
+          "message",
+          "line_start",
+          "line_end",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^DIAG-[0-9A-F]{12}$"
+          },
+          "kind": {
+            "enum": [
+              "ambiguity",
+              "contradiction",
+              "duplicate-identifier",
+              "duplicate-statement",
+              "missing-assumption",
+              "unverifiable"
+            ]
+          },
+          "severity": {
+            "enum": [
+              "info",
+              "warning",
+              "blocker"
+            ]
+          },
+          "requirement_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9-]*$"
+            }
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          },
+          "line_start": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "line_end": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "status": {
+            "enum": [
+              "open",
+              "resolved",
+              "accepted"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "approval_state": {
+      "type": "object",
+      "required": [
+        "required",
+        "granted"
+      ],
+      "properties": {
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "granted": {
+          "type": "array",
+          "maxItems": 0,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

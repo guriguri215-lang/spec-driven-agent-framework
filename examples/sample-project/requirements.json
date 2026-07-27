@@ -7,17 +7,30 @@
     "status": "baselined",
     "source": {
       "document": "sample-specification.md",
-      "section": "Requirement"
+      "section": "Example Project Specification > Requirement",
+      "line_start": 7,
+      "line_end": 8,
+      "excerpt": "`FR-EXAMPLE-001`: The command must reject a manifest with a missing project\nidentifier.",
+      "derivation_basis": "Preserved from the explicit source identifier."
     },
     "statement": "The command shall reject a manifest with a missing project identifier.",
     "acceptance_criteria": [
       {
         "id": "AC-FR-EXAMPLE-001-01",
-        "statement": "A missing project identifier produces a non-zero exit code and an English error message."
+        "statement": "A missing project identifier produces a non-zero exit code and an English error message.",
+        "verification_methods": ["test"]
       }
     ],
-    "verification": ["test"],
+    "verification_methods": ["test"],
     "assumptions": [],
-    "open_questions": []
+    "open_questions": [],
+    "trace_links": {
+      "design": [],
+      "code": [],
+      "tests": ["tests/test_validation.py"],
+      "evidence": [],
+      "releases": []
+    },
+    "identifier_source": "explicit"
   }
 ]

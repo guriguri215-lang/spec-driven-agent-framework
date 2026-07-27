@@ -1,6 +1,6 @@
 # Release Contract
 
-M0 produces a local bootstrap commit, not a public release.
+M1 produces a local requirements-planning commit, not a public release.
 
 ## Required local gates
 
@@ -10,13 +10,15 @@ python -m ruff check src tests scripts
 python -m mypy src tests scripts
 python -m coverage run -m pytest
 python -m coverage report --fail-under=80
-python -m coverage report --include=src/sdaqf/domain/*,src/sdaqf/application/gates.py --fail-under=90
+python -m coverage report --include=src/sdaqf/domain/*,src/sdaqf/application/gates.py,src/sdaqf/application/approvals.py,src/sdaqf/application/baselines.py,src/sdaqf/application/comparison.py,src/sdaqf/application/planning.py,src/sdaqf/application/requirements.py,src/sdaqf/application/requirements_gate.py --fail-under=90
 python scripts/check_workspace_boundary.py --repo .
 python scripts/audit_repository.py --root . --workspace-parent ..
 ```
 
-Run CLI smoke checks for `doctor`, `init`, `validate`, `status`, and
-`goal-template`.
+Run CLI smoke checks for the preserved `doctor`, `init`, `validate`, `status`,
+and `goal-template` commands plus `ingest`, `compare`, `roadmap`, `exec-plan`,
+`goal`, `prompt`, and `gate requirements`. The M1 primary smoke must ingest
+`docs/specification.md` and pass Gate G1 without a network connection.
 
 ## Local commit gate
 

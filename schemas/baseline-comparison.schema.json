@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/baseline-comparison.schema.json",
+  "title": "Requirement Baseline Comparison",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "previous_baseline_id",
+    "current_baseline_id",
+    "changes",
+    "unresolved_approvals"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "previous_baseline_id": {
+      "type": "string",
+      "pattern": "^RB-[0-9A-F]{16}$"
+    },
+    "current_baseline_id": {
+      "type": "string",
+      "pattern": "^RB-[0-9A-F]{16}$"
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "requirement_id",
+          "kind",
+          "previous",
+          "current",
+          "approval_required",
+          "approval_status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^CHG-[0-9A-F]{12}$"
+          },
+          "requirement_id": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9-]*$"
+          },
+          "kind": {
+            "enum": [
+              "added",
+              "removed",
+              "statement-changed",
+              "priority-changed",
+              "type-changed",
+              "acceptance-changed",
+              "verification-changed",
+              "interpretation-changed"
+            ]
+          },
+          "previous": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "current": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "approval_required": {
+            "type": "boolean"
+          },
+          "approval_status": {
+            "enum": [
+              "not-required",
+              "required",
+              "approved"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "unresolved_approvals": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^CHG-[0-9A-F]{12}$"
+      }
+    }
+  },
+  "additionalProperties": false
+}

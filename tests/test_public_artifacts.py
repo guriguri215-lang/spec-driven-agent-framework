@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 
@@ -19,6 +20,8 @@ def test_required_public_documents_exist_and_are_nonempty() -> None:
         "docs/architecture.md",
         "docs/roadmap.md",
         "docs/release-contract.md",
+        "docs/evidence/M1-verification.md",
+        "docs/exec-plans/active/M1-requirements-planning.md",
         "docs/guides/codex-local-permissions.md",
         "docs/handoffs/M1-goal.md",
     )
@@ -29,7 +32,8 @@ def test_required_public_documents_exist_and_are_nonempty() -> None:
 
     readme = (root / "README.md").read_text(encoding="utf-8")
     assert "Implemented in M0" in readme
-    assert "Not implemented in M0" in readme
+    assert "Implemented in M1" in readme
+    assert "Not implemented through M1" in readme
     assert not (root / "LICENSE").exists()
 
 
@@ -60,6 +64,25 @@ def test_every_json_schema_and_sample_is_valid_json() -> None:
     assert json_files
     for path in json_files:
         assert json.loads(path.read_text(encoding="utf-8")) is not None
+
+
+def test_requirement_schema_rejects_unsafe_source_documents() -> None:
+    schema = json.loads(
+        (repository_root() / "schemas" / "requirement-record.schema.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    pattern = schema["properties"]["source"]["properties"]["document"]["pattern"]
+
+    assert re.fullmatch(pattern, "specification.md")
+    for unsafe in (
+        "C:\\" + "Users\\person\\spec.md",
+        "../spec.md",
+        "..",
+        "line\nbreak.md",
+        "nul\0name.md",
+    ):
+        assert re.fullmatch(pattern, unsafe) is None
 
 
 def test_project_codex_config_contains_no_machine_policy() -> None:

@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -95,6 +96,24 @@ def test_write_new_file_refuses_overwrite(
 
     with pytest.raises(FileExistsError, match="existing"):
         _write_new_file(path, "new")
+
+
+def test_write_new_file_leaves_no_partial_output_when_publish_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    output = tmp_path / "output.md"
+
+    def denied_link(source: object, destination: object) -> None:
+        raise PermissionError("denied")
+
+    monkeypatch.setattr(os, "link", denied_link)
+    with pytest.raises(PermissionError, match="denied"):
+        _write_new_file(output, "complete content")
+
+    assert not output.exists()
+    assert tuple(tmp_path.iterdir()) == ()
 
 
 def test_cli_rejects_writes_outside_working_directory(

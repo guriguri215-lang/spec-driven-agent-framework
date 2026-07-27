@@ -8,7 +8,7 @@ from sdaqf.application.validation import ProjectValidator
 
 
 class StatusService:
-    """Describe an M0 project without exposing an absolute path."""
+    """Describe a local project without exposing an absolute path."""
 
     def __init__(self, validator: ProjectValidator) -> None:
         self._validator = validator
@@ -21,6 +21,8 @@ class StatusService:
             "project": project_dir.name,
             "state": "ready" if report.valid else "blocked",
             "validation": report.to_dict(),
-            "implemented_scope": "M0 Bootstrap Foundation",
-            "next_milestone": "M1 Requirements and Planning MVP",
+            "implemented_scope": (
+                "M0 Bootstrap Foundation and M1 Requirements and Planning MVP"
+            ),
+            "next_milestone": "M2 Agent, Skill, and Tool Orchestration",
         }

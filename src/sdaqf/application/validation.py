@@ -1,4 +1,4 @@
-"""Small deterministic validators for M0 sample contracts."""
+"""Small deterministic validators for the repository sample contracts."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ class ValidationReport:
 
 
 class ProjectValidator:
-    """Validate the initial manifest and requirement sample shapes."""
+    """Validate the project manifest and supporting sample shapes."""
 
     _FILES = (
         "manifest.json",
@@ -47,7 +47,7 @@ class ProjectValidator:
     )
 
     def validate(self, project_dir: Path) -> ValidationReport:
-        """Validate every required M0 sample without following unsafe paths."""
+        """Validate every required sample without following unsafe paths."""
 
         errors: list[str] = []
         checked: list[str] = []
