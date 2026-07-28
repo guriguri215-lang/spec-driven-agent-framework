@@ -21,7 +21,9 @@ def test_required_public_documents_exist_and_are_nonempty() -> None:
         "docs/roadmap.md",
         "docs/release-contract.md",
         "docs/evidence/M1-verification.md",
+        "docs/evidence/M2-verification.md",
         "docs/exec-plans/active/M1-requirements-planning.md",
+        "docs/exec-plans/active/M2-agent-skill-tool-orchestration.md",
         "docs/guides/codex-local-permissions.md",
         "docs/handoffs/M1-goal.md",
     )
@@ -33,7 +35,8 @@ def test_required_public_documents_exist_and_are_nonempty() -> None:
     readme = (root / "README.md").read_text(encoding="utf-8")
     assert "Implemented in M0" in readme
     assert "Implemented in M1" in readme
-    assert "Not implemented through M1" in readme
+    assert "Implemented in M2" in readme
+    assert "Not implemented through M2" in readme
     assert not (root / "LICENSE").exists()
 
 
@@ -70,6 +73,51 @@ def test_every_json_schema_and_sample_is_valid_json() -> None:
     assert json_files
     for path in json_files:
         assert json.loads(path.read_text(encoding="utf-8")) is not None
+
+
+def test_m2_schema_and_sample_top_level_contracts_match() -> None:
+    root = repository_root()
+    pairs = (
+        ("agent-registry-v2.schema.json", "agent-registry.json"),
+        ("tool-registry-v2.schema.json", "tool-registry.json"),
+        ("orchestration-request.schema.json", "orchestration-request.json"),
+        ("worktree-plan.schema.json", "worktree-plan.json"),
+        ("agent-result.schema.json", "reviewer-result.json"),
+        ("template-registry.schema.json", "template-registry.json"),
+        ("execution-checkpoint.schema.json", "execution-checkpoint.json"),
+        ("execution-checkpoint.schema.json", "completed-checkpoint.json"),
+    )
+
+    for schema_name, sample_name in pairs:
+        schema = json.loads(
+            (root / "schemas" / schema_name).read_text(encoding="utf-8")
+        )
+        sample = json.loads(
+            (root / "examples" / "m2-orchestration" / sample_name).read_text(
+                encoding="utf-8"
+            )
+        )
+        assert set(schema["required"]) <= set(sample), sample_name
+        expected_version = schema["properties"]["schema_version"]["const"]
+        assert sample["schema_version"] == expected_version, sample_name
+
+
+def test_release_contract_and_ci_share_m2_gate_commands() -> None:
+    root = repository_root()
+    release = (root / "docs" / "release-contract.md").read_text(encoding="utf-8")
+    workflow = (root / ".github" / "workflows" / "ci.yml").read_text(
+        encoding="utf-8"
+    )
+
+    for command in (
+        "scripts/run_cli_smoke.py",
+        "scripts/audit_dependencies.py --root .",
+        "src/sdaqf/application/orchestration.py",
+        "src/sdaqf/application/checkpoints.py",
+        "--fail-under=90",
+    ):
+        assert command in release
+        assert command in workflow
 
 
 def test_requirement_schema_rejects_unsafe_source_documents() -> None:

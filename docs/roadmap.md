@@ -19,10 +19,15 @@ natural-language understanding.
 
 ## M2: Agent, Skill, and Tool Orchestration
 
-Status: not implemented.
+Status: implemented by the current milestone.
 
-Add agent selection, native subagent integration, fallback prompts, tool
-registry execution, skill lifecycle management, and isolated worktrees.
+Provide strict agent and tool registries, deterministic budgeted role
+selection, native Subagent host contracts and safe fallback prompts,
+read-parallel and isolated-write planning boundaries, logically independent
+review, structured result and disagreement contracts, Skill and template
+lifecycle validation, safe local tool probes, bounded retry, and atomic
+checkpoint recovery. Worktree creation and integration remain caller-owned Git
+operations.
 
 ## M3: Evidence, UI/UX, and Release QA
 

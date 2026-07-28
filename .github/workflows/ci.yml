@@ -41,8 +41,16 @@ jobs:
         run: |
           python -m coverage run -m pytest
           python -m coverage report --fail-under=80
-      - name: Check core coverage
-        run: python -m coverage report --include="src/sdaqf/domain/*,src/sdaqf/application/gates.py" --fail-under=90
+      - name: Check M1 critical coverage
+        run: >-
+          python -m coverage report
+          --include="src/sdaqf/domain/models.py,src/sdaqf/domain/requirements.py,src/sdaqf/application/gates.py,src/sdaqf/application/approvals.py,src/sdaqf/application/baselines.py,src/sdaqf/application/comparison.py,src/sdaqf/application/planning.py,src/sdaqf/application/requirements.py,src/sdaqf/application/requirements_gate.py"
+          --fail-under=90
+      - name: Check M2 critical coverage
+        run: >-
+          python -m coverage report
+          --include="src/sdaqf/domain/orchestration.py,src/sdaqf/domain/tooling.py,src/sdaqf/adapters/process.py,src/sdaqf/application/orchestration.py,src/sdaqf/application/skills.py,src/sdaqf/application/tooling.py,src/sdaqf/application/checkpoints.py"
+          --fail-under=90
       - name: Audit workspace boundary
         run: >-
           python scripts/check_workspace_boundary.py
@@ -50,13 +58,10 @@ jobs:
           --expected-origin-url
           https://github.com/guriguri215-lang/spec-driven-agent-framework.git
       - name: Audit publication candidate
-        run: python scripts/audit_repository.py --root .
+        run: python scripts/audit_repository.py --root . --workspace-parent ..
+      - name: Audit dependency and license records
+        run: python scripts/audit_dependencies.py --root .
+      - name: Check installed dependency consistency
+        run: python -m pip check
       - name: Run CLI smoke checks
-        shell: bash
-        run: |
-          sdaqf --help
-          python -m sdaqf doctor --current-session-active --json
-          python -m sdaqf init cli-smoke-project --dry-run --json
-          python -m sdaqf validate examples/sample-project --json
-          python -m sdaqf status examples/sample-project --json
-          python -m sdaqf goal-template M1
+        run: python scripts/run_cli_smoke.py

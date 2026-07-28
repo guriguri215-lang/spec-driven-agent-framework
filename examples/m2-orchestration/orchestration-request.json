@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "request_id": "ORQ-M2-SMOKE",
+  "problem_type": "implementation",
+  "scale": "medium",
+  "risk": "medium",
+  "parallelism": "sequential",
+  "requested_roles": ["implementer"],
+  "native_subagents_available": false,
+  "independent_session_available": true,
+  "budget": {
+    "max_agents": 3,
+    "max_concurrency": 2,
+    "max_reasoning_effort": "high"
+  }
+}

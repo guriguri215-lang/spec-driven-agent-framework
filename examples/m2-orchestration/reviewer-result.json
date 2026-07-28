@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "agent_id": "AGT-REVIEWER-1",
+  "role_id": "independent-reviewer",
+  "status": "completed",
+  "summary": "Reviewed the bounded result without modifying the worktree.",
+  "findings": [
+    {
+      "finding_id": "FND-BOUNDARY-1",
+      "severity": "medium",
+      "statement": "A path overlap counterexample must be rejected.",
+      "specification_refs": ["FR-AGT-006", "FR-AGT-007"],
+      "evidence_refs": ["tests/test_worktree_isolation.py"],
+      "evidence_strength": "counterexample",
+      "counterexample": "An owned parent path and child path overlap across writers."
+    }
+  ],
+  "changed_paths": [],
+  "reviewed_agent_ids": ["AGT-IMPLEMENTER-1"],
+  "self_approved": false
+}

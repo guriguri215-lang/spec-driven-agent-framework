@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from scripts.audit_dependencies import audit_dependencies
 from scripts.audit_repository import audit, candidate_files
 from scripts.check_workspace_boundary import (
     check_boundary,
@@ -188,3 +189,32 @@ def test_boundary_rejects_additional_fetch_or_push_destinations(
     )
 
     assert expected_error in errors
+
+
+def test_dependency_audit_accepts_repository_contract() -> None:
+    root = Path(__file__).resolve().parents[1]
+
+    assert audit_dependencies(root) == ()
+
+
+def test_dependency_audit_rejects_runtime_and_unpinned_dependencies(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\ndependencies = ["requests"]\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "requirements-dev.lock").write_text(
+        "pytest>=9\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "docs" / "dependencies.md").write_text(
+        "# License record\n",
+        encoding="utf-8",
+    )
+
+    errors = audit_dependencies(tmp_path)
+
+    assert "Runtime dependencies must remain empty." in errors
+    assert any("exact version pin" in error for error in errors)

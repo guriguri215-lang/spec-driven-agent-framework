@@ -13,15 +13,43 @@ from pathlib import Path
 from sdaqf.adapters.process import SubprocessRunner
 from sdaqf.application.approvals import ApprovalContractError, ApprovalLoader
 from sdaqf.application.baselines import BaselineContractError, load_baseline
+from sdaqf.application.checkpoints import (
+    CheckpointContractError,
+    CheckpointStore,
+    validate_resume,
+)
 from sdaqf.application.comparison import BaselineComparator, BaselineDiff
 from sdaqf.application.doctor import DoctorService
 from sdaqf.application.goals import GoalTemplateService
+from sdaqf.application.orchestration import (
+    AgentOrchestrator,
+    OrchestrationContractError,
+    load_agent_registry,
+    load_agent_result,
+    load_orchestration_request,
+    load_worktree_plan,
+    validate_agent_tool_references,
+)
 from sdaqf.application.planning import PlanningService, PromptMode, PromptService
 from sdaqf.application.requirements import SpecificationError, SpecificationIngestor
 from sdaqf.application.requirements_gate import RequirementsGateService
+from sdaqf.application.skills import (
+    SkillContractError,
+    evaluate_templates,
+    load_template_registry,
+    validate_skills,
+)
 from sdaqf.application.status import StatusService
+from sdaqf.application.tooling import (
+    ExecutionApprovalConsumptionStore,
+    ExecutionApprovalLoader,
+    ToolContractError,
+    ToolService,
+    load_tool_registry,
+)
 from sdaqf.application.validation import ProjectValidator
 from sdaqf.application.workspace import WorkspaceInitializer
+from sdaqf.domain.tooling import ExecutionContext, ToolObservationStatus
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -145,6 +173,105 @@ def build_parser() -> argparse.ArgumentParser:
     requirements_gate.add_argument(
         "--json", action="store_true", help="Emit machine-readable JSON."
     )
+
+    agents = subparsers.add_parser(
+        "agents",
+        help="Validate and plan bounded agent orchestration.",
+    )
+    agent_commands = agents.add_subparsers(dest="agent_command", required=True)
+    agents_validate = agent_commands.add_parser(
+        "validate",
+        help="Validate Agent and Tool Registry references.",
+    )
+    agents_validate.add_argument("registry", type=Path)
+    agents_validate.add_argument("--tools", type=Path, required=True)
+    agents_validate.add_argument("--json", action="store_true")
+    agents_plan = agent_commands.add_parser(
+        "plan",
+        help="Create a deterministic orchestration plan.",
+    )
+    agents_plan.add_argument("request", type=Path)
+    agents_plan.add_argument("--registry", type=Path, required=True)
+    agents_plan.add_argument("--tools", type=Path, required=True)
+    agents_plan.add_argument("--worktree-plan", type=Path)
+    agents_plan.add_argument("--json", action="store_true")
+    agents_result = agent_commands.add_parser(
+        "validate-result",
+        help="Validate one structured agent result.",
+    )
+    agents_result.add_argument("result", type=Path)
+    agents_result.add_argument("--registry", type=Path, required=True)
+    agents_result.add_argument("--json", action="store_true")
+
+    skills = subparsers.add_parser(
+        "skills",
+        help="Validate repository Skill and template lifecycle.",
+    )
+    skill_commands = skills.add_subparsers(dest="skill_command", required=True)
+    skills_validate = skill_commands.add_parser(
+        "validate",
+        help="Validate Skills and template compatibility.",
+    )
+    skills_validate.add_argument("root", type=Path)
+    skills_validate.add_argument("--templates", type=Path, required=True)
+    skills_validate.add_argument("--framework-version", default="0.1.0")
+    skills_validate.add_argument("--available", action="append", default=[])
+    skills_validate.add_argument("--condition", action="append", default=[])
+    skills_validate.add_argument("--select-skill", action="append", default=[])
+    skills_validate.add_argument("--select-template", action="append", default=[])
+    skills_validate.add_argument("--json", action="store_true")
+
+    tools = subparsers.add_parser(
+        "tools",
+        help="Validate and safely probe registered local tools.",
+    )
+    tool_commands = tools.add_subparsers(dest="tool_command", required=True)
+    tools_validate = tool_commands.add_parser(
+        "validate",
+        help="Validate a Tool Registry.",
+    )
+    tools_validate.add_argument("registry", type=Path)
+    tools_validate.add_argument("--json", action="store_true")
+    tools_check = tool_commands.add_parser(
+        "check",
+        help="Execute one registered bounded version probe.",
+    )
+    tools_check.add_argument("registry", type=Path)
+    tools_check.add_argument("--name", required=True)
+    tools_check.add_argument(
+        "--approval",
+        action="append",
+        default=[],
+        type=Path,
+        metavar="FILE",
+        help="Validated single-execution tool approval JSON; repeat as needed.",
+    )
+    tools_check.add_argument("--json", action="store_true")
+
+    checkpoint = subparsers.add_parser(
+        "checkpoint",
+        help="Validate or resume an execution checkpoint.",
+    )
+    checkpoint_commands = checkpoint.add_subparsers(
+        dest="checkpoint_command",
+        required=True,
+    )
+    checkpoint_validate = checkpoint_commands.add_parser(
+        "validate",
+        help="Validate a checkpoint with backup recovery.",
+    )
+    checkpoint_validate.add_argument("file", type=Path)
+    checkpoint_validate.add_argument("--json", action="store_true")
+    checkpoint_resume = checkpoint_commands.add_parser(
+        "resume",
+        help="Validate exact resume context.",
+    )
+    checkpoint_resume.add_argument("file", type=Path)
+    checkpoint_resume.add_argument("--plan-version", required=True)
+    checkpoint_resume.add_argument("--specification-digest", required=True)
+    checkpoint_resume.add_argument("--git-head", required=True)
+    checkpoint_resume.add_argument("--worktree-digest", required=True)
+    checkpoint_resume.add_argument("--json", action="store_true")
 
     return parser
 
@@ -333,6 +460,141 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 2
         _emit(result.to_dict(), as_json=args.json)
         return 0 if result.passed else 2
+
+    if args.command == "agents":
+        try:
+            agent_registry = load_agent_registry(args.registry)
+            if args.agent_command in {"validate", "plan"}:
+                tool_registry = load_tool_registry(args.tools)
+                validate_agent_tool_references(agent_registry, tool_registry)
+            if args.agent_command == "validate":
+                _emit(
+                    {
+                        "schema_version": agent_registry.schema_version,
+                        "agents": len(agent_registry.agents),
+                        "tool_references": "valid",
+                    },
+                    as_json=args.json,
+                )
+                return 0
+            if args.agent_command == "plan":
+                request = load_orchestration_request(args.request)
+                worktree = (
+                    None
+                    if args.worktree_plan is None
+                    else load_worktree_plan(args.worktree_plan)
+                )
+                orchestration_plan = AgentOrchestrator().plan(
+                    agent_registry,
+                    request,
+                    worktree_plan=worktree,
+                )
+                _emit(orchestration_plan.to_dict(), as_json=args.json)
+                return 0
+            agent_result = load_agent_result(args.result, agent_registry)
+            _emit(
+                {
+                    "agent_id": agent_result.agent_id,
+                    "role_id": agent_result.role_id,
+                    "status": agent_result.status.value,
+                    "findings": len(agent_result.findings),
+                },
+                as_json=args.json,
+            )
+            return 0
+        except (OrchestrationContractError, ToolContractError):
+            print("ERROR: agent orchestration input is invalid.", file=sys.stderr)
+            return 2
+
+    if args.command == "skills" and args.skill_command == "validate":
+        try:
+            skill_records = validate_skills(
+                args.root,
+                selected=tuple(args.select_skill),
+            )
+            templates = load_template_registry(args.templates)
+            template_records = evaluate_templates(
+                templates,
+                framework_version=args.framework_version,
+                available_dependencies=tuple(args.available),
+                active_conditions=tuple(args.condition),
+                selected=tuple(args.select_template),
+            )
+        except SkillContractError:
+            print("ERROR: Skill or template lifecycle is invalid.", file=sys.stderr)
+            return 2
+        _emit(
+            {
+                "skills": [item.to_dict() for item in skill_records],
+                "templates": [item.to_dict() for item in template_records],
+            },
+            as_json=args.json,
+        )
+        return 0
+
+    if args.command == "tools":
+        try:
+            registry = load_tool_registry(args.registry)
+            if args.tool_command == "validate":
+                _emit(
+                    {
+                        "schema_version": registry.schema_version,
+                        "tools": [item.name for item in registry.tools],
+                    },
+                    as_json=args.json,
+                )
+                return 0
+            tool = registry.by_name(args.name)
+            if tool is None:
+                raise ToolContractError("Unknown tool.")
+            observation = ToolService(
+                SubprocessRunner(timeout_seconds=5, output_limit=4_096),
+                consumption_store=ExecutionApprovalConsumptionStore.for_registry(
+                    args.registry
+                ),
+            ).check(
+                tool,
+                approvals=tuple(
+                    ExecutionApprovalLoader().load(path)
+                    for path in args.approval
+                ),
+            )
+        except ToolContractError:
+            print("ERROR: Tool Registry or tool name is invalid.", file=sys.stderr)
+            return 2
+        _emit(observation.to_dict(), as_json=args.json)
+        return (
+            0
+            if observation.status is ToolObservationStatus.AVAILABLE
+            or (
+                tool.optional
+                and observation.status
+                in {
+                    ToolObservationStatus.UNAVAILABLE,
+                    ToolObservationStatus.NOT_CHECKED,
+                }
+            )
+            else 2
+        )
+
+    if args.command == "checkpoint":
+        try:
+            stored = CheckpointStore(Path.cwd()).load(args.file)
+            if args.checkpoint_command == "resume":
+                validate_resume(
+                    stored,
+                    ExecutionContext(
+                        plan_version=args.plan_version,
+                        specification_digest=args.specification_digest,
+                        git_head=args.git_head,
+                        worktree_digest=args.worktree_digest,
+                    ),
+                )
+            _emit(stored.to_dict(), as_json=args.json)
+            return 0
+        except CheckpointContractError:
+            print("ERROR: execution checkpoint is invalid.", file=sys.stderr)
+            return 2
 
     raise AssertionError("argparse accepted an unknown command")
 

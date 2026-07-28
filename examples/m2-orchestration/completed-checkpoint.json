@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "checkpoint_id": "CHK-0123456789ABCDEF",
+  "tool_name": "python",
+  "command_digest": "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF",
+  "context": {
+    "plan_version": "1.0",
+    "specification_digest": "89340E628F631CEE6A020C7F1008446ECDB9D0470E7CD56B856F91BB9B10D2D5",
+    "git_head": "eff9e3abfa6aff3e22d71b23140e838cd222832a",
+    "worktree_digest": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+  },
+  "state": "completed",
+  "attempts": 1,
+  "last_failure": "NONE",
+  "state_change_token": null,
+  "observation": {
+    "tool_name": "python",
+    "status": "AVAILABLE",
+    "failure_class": "NONE",
+    "detail": "Safe bounded version probe succeeded.",
+    "version": "3.12.13",
+    "exit_code": 0,
+    "stdout": "Python 3.12.13",
+    "stderr": "",
+    "stdout_truncated": false,
+    "stderr_truncated": false,
+    "duration_ms": 17,
+    "execution_mode": "normal",
+    "approval_ids": []
+  }
+}

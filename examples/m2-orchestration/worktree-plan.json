@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "base_commit": "eff9e3abfa6aff3e22d71b23140e838cd222832a",
+  "integrator_role": "integrator",
+  "assignments": [
+    {
+      "role_id": "implementer",
+      "worktree": "worktrees/implementation",
+      "owned_paths": ["src/sdaqf"]
+    },
+    {
+      "role_id": "test-implementer",
+      "worktree": "worktrees/tests",
+      "owned_paths": ["tests"]
+    }
+  ]
+}

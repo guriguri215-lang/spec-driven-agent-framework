@@ -2,9 +2,9 @@
 
 ## Runtime
 
-M0 and M1 have no third-party runtime dependency. The application uses only
-Python 3.12 standard-library modules. M1 adds no package to the development
-lock.
+M0, M1, and M2 have no third-party runtime dependency. The application uses
+only Python 3.12 standard-library modules. M2 adds no package to the
+development lock.
 
 ## Development lock
 

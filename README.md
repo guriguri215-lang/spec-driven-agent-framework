@@ -1,10 +1,10 @@
 # SDAQF
 
 SDAQF is a specification-driven development and quality-assurance framework for
-Codex-assisted projects. This repository contains the M0 Bootstrap Foundation
-and M1 Requirements and Planning MVP: an offline-first Python CLI,
-deterministic requirement contracts, safety guidance, reusable agent skills,
-and local quality gates.
+Codex-assisted projects. This repository contains the M0 Bootstrap Foundation,
+M1 Requirements and Planning MVP, and M2 Agent, Skill, and Tool Orchestration:
+an offline-first Python CLI, deterministic requirement and orchestration
+contracts, safety guidance, reusable agent skills, and local quality gates.
 
 The authoritative source for this bootstrap was a private Japanese
 specification. The public English baseline records its source digest without
@@ -45,12 +45,35 @@ copying private workspace state.
 - `ingest`, `compare`, `roadmap`, `exec-plan`, `goal`, `prompt`, and
   `gate requirements` CLI commands.
 
+## Implemented in M2
+
+- Strict versioned Agent and Tool Registries with cross-reference validation.
+- Deterministic role selection by problem type, scale, risk, and parallelism,
+  bounded by agent count, concurrency, and reasoning effort.
+- Host-native Subagent planning with independent-session and sequential
+  fallback prompts; the package does not launch a nested Codex process.
+- Read-only parallelization boundaries and explicit isolated-write plans with
+  distinct worktrees, non-overlapping ownership, one base commit, and an
+  integrator.
+- Logical implementer/reviewer separation, bounded structured summaries, and
+  evidence-based disagreement resolution.
+- Repository Skill and template lifecycle validation.
+- Safe resolved-executable tool probes with exact argument arrays, no shell, a
+  sanitized environment, timeout, exit status, duration, and truly bounded
+  stdout and stderr.
+- Strict versioned single-execution approvals with distinct Owner and technical
+  sandbox provenance, exact command/path/network/risk scope, expiry checks,
+  and a persistent atomic consumption claim before process start; denial
+  classification, optional-tool isolation, bounded retry, atomic checkpoints,
+  corruption recovery, and strict resume identity.
+- `agents`, `skills`, `tools`, and `checkpoint` CLI command groups.
+
 The pinned development dependency and license record is in
 `docs/dependencies.md`.
 
-## Not implemented through M1
+## Not implemented through M2
 
-- Multi-agent orchestration or worktree management.
+- Automatic Git worktree creation, deletion, or integration.
 - Automated UI/UX browser validation.
 - Full evidence-ledger or release automation.
 - Solver, OpenAI API, or Agents SDK integrations.
@@ -86,14 +109,19 @@ python -m sdaqf roadmap baseline.json M1 --output roadmap.md
 python -m sdaqf exec-plan baseline.json M1 --output exec-plan.md
 python -m sdaqf goal baseline.json M1 --output goal.md
 python -m sdaqf prompt baseline.json M1 --output prompt.md
+python -m sdaqf agents validate examples/m2-orchestration/agent-registry.json --tools examples/m2-orchestration/tool-registry.json --json
+python -m sdaqf agents plan examples/m2-orchestration/orchestration-request.json --registry examples/m2-orchestration/agent-registry.json --tools examples/m2-orchestration/tool-registry.json --json
+python -m sdaqf skills validate .agents/skills --templates examples/m2-orchestration/template-registry.json --framework-version 0.1.0 --available independent-review --json
+python -m sdaqf tools check examples/m2-orchestration/tool-registry.json --name git --json
+python -m sdaqf checkpoint validate examples/m2-orchestration/execution-checkpoint.json --json
 ```
 
 ## Safety boundaries
 
-The repository remains local-only through M1. Do not add a remote or publish
-any artifact without a separate Owner approval. A technical sandbox approval
-never authorizes publication, destructive Git operations, credential access,
-or machine-wide configuration changes.
+The runtime remains offline-first through M2. Private remote operations and any
+publication require an exact Owner-approved target and scope. A technical
+sandbox approval never authorizes publication, destructive Git operations,
+credential access, or machine-wide configuration changes.
 
 ## License status
 

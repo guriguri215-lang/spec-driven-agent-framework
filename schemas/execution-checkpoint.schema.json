@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/execution-checkpoint.schema.json",
+  "title": "Execution Checkpoint",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "checkpoint_id",
+    "tool_name",
+    "command_digest",
+    "context",
+    "state",
+    "attempts",
+    "last_failure",
+    "state_change_token",
+    "observation"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "checkpoint_id": {"type": "string", "pattern": "^CHK-[0-9A-F]{16}$"},
+    "tool_name": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$"},
+    "command_digest": {"type": "string", "pattern": "^[0-9A-F]{64}$"},
+    "context": {
+      "type": "object",
+      "required": ["plan_version", "specification_digest", "git_head", "worktree_digest"],
+      "properties": {
+        "plan_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+(?:\\.[0-9]+)?$"},
+        "specification_digest": {"type": "string", "pattern": "^[0-9A-F]{64}$"},
+        "git_head": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "worktree_digest": {"type": "string", "pattern": "^[0-9A-F]{64}$"}
+      },
+      "additionalProperties": false
+    },
+    "state": {
+      "enum": ["planned", "ready", "running", "blocked", "verification", "completed", "rejected", "superseded"]
+    },
+    "attempts": {"type": "integer", "minimum": 0, "maximum": 2},
+    "last_failure": {
+      "enum": [
+        "NONE",
+        "VALIDATION_FAILURE",
+        "TOOL_UNAVAILABLE",
+        "UNSUPPORTED_VERSION",
+        "PROCESS_TIMEOUT",
+        "NON_ZERO_EXIT",
+        "PERMISSION_DENIAL",
+        "SANDBOX_DENIAL",
+        "NETWORK_DENIAL",
+        "AUTHENTICATION_FAILURE",
+        "AUTHORIZATION_FAILURE",
+        "TEST_FAILURE",
+        "WORKFLOW_FAILURE",
+        "EXTERNAL_SERVICE_FAILURE",
+        "UNKNOWN_FAILURE"
+      ]
+    },
+    "state_change_token": {"type": ["string", "null"], "maxLength": 4096},
+    "observation": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "required": [
+            "tool_name",
+            "status",
+            "failure_class",
+            "detail",
+            "version",
+            "exit_code",
+            "stdout",
+            "stderr",
+            "stdout_truncated",
+            "stderr_truncated",
+            "duration_ms",
+            "execution_mode",
+            "approval_ids"
+          ],
+          "properties": {
+            "tool_name": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$"},
+            "status": {
+              "enum": [
+                "AVAILABLE",
+                "UNAVAILABLE",
+                "PERMISSION_DENIED",
+                "NOT_CHECKED",
+                "UNSUPPORTED_VERSION",
+                "TIMEOUT",
+                "NON_ZERO_EXIT",
+                "BLOCKED"
+              ]
+            },
+            "failure_class": {
+              "enum": [
+                "NONE",
+                "VALIDATION_FAILURE",
+                "TOOL_UNAVAILABLE",
+                "UNSUPPORTED_VERSION",
+                "PROCESS_TIMEOUT",
+                "NON_ZERO_EXIT",
+                "PERMISSION_DENIAL",
+                "SANDBOX_DENIAL",
+                "NETWORK_DENIAL",
+                "AUTHENTICATION_FAILURE",
+                "AUTHORIZATION_FAILURE",
+                "TEST_FAILURE",
+                "WORKFLOW_FAILURE",
+                "EXTERNAL_SERVICE_FAILURE",
+                "UNKNOWN_FAILURE"
+              ]
+            },
+            "detail": {"type": "string", "minLength": 1, "maxLength": 4096},
+            "version": {"type": ["string", "null"], "maxLength": 4096},
+            "exit_code": {"type": ["integer", "null"]},
+            "stdout": {"type": "string", "maxLength": 8192},
+            "stderr": {"type": "string", "maxLength": 8192},
+            "stdout_truncated": {"type": "boolean"},
+            "stderr_truncated": {"type": "boolean"},
+            "duration_ms": {
+              "type": ["integer", "null"],
+              "minimum": 0,
+              "maximum": 86400000
+            },
+            "execution_mode": {
+              "enum": ["normal", "approved", "denied", "not_executed"]
+            },
+            "approval_ids": {
+              "type": "array",
+              "maxItems": 16,
+              "uniqueItems": true,
+              "items": {"type": "string", "minLength": 1, "maxLength": 4096}
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "additionalProperties": false
+}

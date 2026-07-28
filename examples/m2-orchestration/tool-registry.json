@@ -1,0 +1,53 @@
+{
+  "schema_version": "2.0",
+  "tools": [
+    {
+      "name": "git",
+      "capability": "Inspect repository state through registered safe probes.",
+      "version_command": ["git", "--version"],
+      "version_pattern": "git version ([0-9]+\\.[0-9]+(?:\\.[0-9]+)?)",
+      "minimum_version": "2.40",
+      "platforms": ["windows", "linux", "macos"],
+      "normal_scope": ["src", "tests"],
+      "protected_paths": [".git"],
+      "network": {"required": false, "destinations": []},
+      "optional": false,
+      "risk": "low",
+      "technical_approval": "not_required",
+      "owner_approval": "not_required",
+      "max_attempts": 2
+    },
+    {
+      "name": "python",
+      "capability": "Run the offline core and local quality probes.",
+      "version_command": ["python", "--version"],
+      "version_pattern": "Python ([0-9]+\\.[0-9]+(?:\\.[0-9]+)?)",
+      "minimum_version": "3.12",
+      "platforms": ["windows", "linux", "macos"],
+      "normal_scope": ["src", "tests", "scripts"],
+      "protected_paths": [".git"],
+      "network": {"required": false, "destinations": []},
+      "optional": false,
+      "risk": "low",
+      "technical_approval": "not_required",
+      "owner_approval": "not_required",
+      "max_attempts": 2
+    },
+    {
+      "name": "z3",
+      "capability": "Provide an optional local SMT solver.",
+      "version_command": ["z3", "--version"],
+      "version_pattern": "Z3 version ([0-9]+\\.[0-9]+(?:\\.[0-9]+)?)",
+      "minimum_version": null,
+      "platforms": ["windows", "linux", "macos"],
+      "normal_scope": ["examples"],
+      "protected_paths": [".git"],
+      "network": {"required": false, "destinations": []},
+      "optional": true,
+      "risk": "low",
+      "technical_approval": "not_required",
+      "owner_approval": "not_required",
+      "max_attempts": 1
+    }
+  ]
+}

@@ -17,3 +17,11 @@ All notable changes will be documented in this file.
   Requirements Gate.
 - Product Roadmap, living ExecPlan, Goal prompt, and Standard prompt generation.
 - M1 negative, boundary, regression, and primary CLI test coverage.
+- M2 versioned Agent and Tool Registries, deterministic budgeted role
+  selection, native Subagent host contracts, safe fallbacks, isolated-write
+  plans, structured results, and evidence-based disagreement resolution.
+- Skill and template lifecycle validation, safe bounded tool probes, strict
+  versioned single-execution approvals with provenance, expiry, and exact
+  conditions, persistent atomic consumption claims, retry control, atomic
+  checkpoint recovery, M2 schemas, samples, CLI commands, audits, and
+  cross-platform smoke coverage.

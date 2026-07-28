@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "request_id": "ORQ-M2-WRITE",
+  "problem_type": "implementation",
+  "scale": "large",
+  "risk": "high",
+  "parallelism": "write_parallel",
+  "requested_roles": ["implementer", "test-implementer"],
+  "native_subagents_available": true,
+  "independent_session_available": true,
+  "budget": {
+    "max_agents": 4,
+    "max_concurrency": 2,
+    "max_reasoning_effort": "high"
+  }
+}

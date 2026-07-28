@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "templates": [
+    {
+      "template_id": "m2-agent-result",
+      "target": "schemas/agent-result.schema.json",
+      "compatible_version": "0.1.0",
+      "dependencies": ["independent-review"],
+      "provenance": "repository-authored",
+      "license_status": "not-selected",
+      "prohibited_conditions": ["public-release"],
+      "validated_on": "2026-07-28"
+    }
+  ]
+}

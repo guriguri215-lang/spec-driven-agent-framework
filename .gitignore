@@ -8,6 +8,10 @@ __pycache__/
 .coverage
 coverage.xml
 htmlcov/
+.local/
+.sdaqf/execution-approval-consumption.json
+.sdaqf/execution-approval-consumption.lock
+.sdaqf/.execution-approval-consumption.json.*.tmp
 build/
 dist/
 *.egg-info/
