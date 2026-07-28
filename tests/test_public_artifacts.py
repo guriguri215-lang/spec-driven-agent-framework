@@ -37,6 +37,12 @@ def test_required_public_documents_exist_and_are_nonempty() -> None:
     assert not (root / "LICENSE").exists()
 
 
+def test_git_checkout_preserves_canonical_lf_bytes() -> None:
+    attributes = (repository_root() / ".gitattributes").read_text(encoding="utf-8")
+
+    assert attributes == "* text=auto eol=lf\n"
+
+
 def test_repository_skills_have_required_structure() -> None:
     skills = sorted((repository_root() / ".agents" / "skills").glob("*/SKILL.md"))
 

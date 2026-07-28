@@ -85,3 +85,106 @@ def test_boundary_default_parent_is_based_on_resolved_repo(
     monkeypatch.chdir(root)
 
     assert resolve_workspace_parent(Path("."), None) == tmp_path.resolve()
+
+
+def test_boundary_accepts_only_the_expected_origin(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = tmp_path / "repo"
+    (root / ".git").mkdir(parents=True)
+
+    def fake_git_output(repo: Path, *args: str) -> str:
+        responses = {
+            ("rev-parse", "--show-toplevel"): str(root),
+            ("branch", "--show-current"): "main",
+            ("remote",): "origin",
+            ("ls-files", "--stage"): "",
+            (
+                "remote",
+                "get-url",
+                "--all",
+                "origin",
+            ): "https://github.com/example/project.git",
+            (
+                "remote",
+                "get-url",
+                "--push",
+                "--all",
+                "origin",
+            ): "https://github.com/example/project.git",
+        }
+        return responses[args]
+
+    monkeypatch.setattr(
+        "scripts.check_workspace_boundary.git_output",
+        fake_git_output,
+    )
+
+    assert (
+        check_boundary(
+            root,
+            tmp_path,
+            "https://github.com/example/project",
+        )
+        == ()
+    )
+    assert check_boundary(
+        root,
+        tmp_path,
+        "https://github.com/example/other.git",
+    ) == (
+        "The origin fetch URL must be the approved repository only.",
+        "The origin push URL must be the approved repository only.",
+    )
+
+
+@pytest.mark.parametrize(
+    ("fetch_urls", "push_urls", "expected_error"),
+    (
+        (
+            "https://github.com/example/project.git\n"
+            "https://github.com/example/mirror.git",
+            "https://github.com/example/project.git",
+            "The origin fetch URL must be the approved repository only.",
+        ),
+        (
+            "https://github.com/example/project.git",
+            "https://github.com/example/other.git",
+            "The origin push URL must be the approved repository only.",
+        ),
+    ),
+)
+def test_boundary_rejects_additional_fetch_or_push_destinations(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    fetch_urls: str,
+    push_urls: str,
+    expected_error: str,
+) -> None:
+    root = tmp_path / "repo"
+    (root / ".git").mkdir(parents=True)
+
+    def fake_git_output(repo: Path, *args: str) -> str:
+        responses = {
+            ("rev-parse", "--show-toplevel"): str(root),
+            ("branch", "--show-current"): "main",
+            ("remote",): "origin",
+            ("ls-files", "--stage"): "",
+            ("remote", "get-url", "--all", "origin"): fetch_urls,
+            ("remote", "get-url", "--push", "--all", "origin"): push_urls,
+        }
+        return responses[args]
+
+    monkeypatch.setattr(
+        "scripts.check_workspace_boundary.git_output",
+        fake_git_output,
+    )
+
+    errors = check_boundary(
+        root,
+        tmp_path,
+        "https://github.com/example/project.git",
+    )
+
+    assert expected_error in errors

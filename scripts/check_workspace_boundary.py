@@ -16,8 +16,8 @@ def is_link_or_reparse(path: Path) -> bool:
     if path.is_symlink():
         return True
     try:
-        attributes = path.lstat().st_file_attributes
-    except (AttributeError, FileNotFoundError):
+        attributes = getattr(path.lstat(), "st_file_attributes", 0)
+    except FileNotFoundError:
         return False
     return bool(attributes & _REPARSE_POINT)
 
@@ -45,7 +45,15 @@ def resolve_workspace_parent(repo: Path, explicit: Path | None) -> Path:
     return explicit.resolve() if explicit is not None else repo.resolve().parent
 
 
-def check_boundary(repo: Path, workspace_parent: Path | None = None) -> tuple[str, ...]:
+def _normalized_remote_url(url: str) -> str:
+    return url.rstrip("/").removesuffix(".git")
+
+
+def check_boundary(
+    repo: Path,
+    workspace_parent: Path | None = None,
+    expected_origin_url: str | None = None,
+) -> tuple[str, ...]:
     """Return boundary violations without modifying either directory."""
 
     errors: list[str] = []
@@ -72,8 +80,43 @@ def check_boundary(repo: Path, workspace_parent: Path | None = None) -> tuple[st
         errors.append("Git root does not match the repository directory.")
     if branch != "main":
         errors.append("The current branch must be main.")
-    if remotes:
-        errors.append("M0 must not configure a Git remote.")
+    remote_names = tuple(remotes.splitlines()) if remotes else ()
+    if expected_origin_url is None:
+        if remote_names:
+            errors.append("M0 must not configure a Git remote.")
+    elif remote_names != ("origin",):
+        errors.append("The only configured remote must be origin.")
+    else:
+        expected_url = _normalized_remote_url(expected_origin_url)
+        fetch_urls = tuple(
+            _normalized_remote_url(url)
+            for url in git_output(
+                resolved_repo,
+                "remote",
+                "get-url",
+                "--all",
+                "origin",
+            ).splitlines()
+        )
+        push_urls = tuple(
+            _normalized_remote_url(url)
+            for url in git_output(
+                resolved_repo,
+                "remote",
+                "get-url",
+                "--push",
+                "--all",
+                "origin",
+            ).splitlines()
+        )
+        if fetch_urls != (expected_url,):
+            errors.append(
+                "The origin fetch URL must be the approved repository only."
+            )
+        if push_urls != (expected_url,):
+            errors.append(
+                "The origin push URL must be the approved repository only."
+            )
     if any(line.startswith("120000 ") for line in index.splitlines()):
         errors.append("Tracked symbolic links are not allowed in M0.")
     tracked_names = {
@@ -93,8 +136,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=Path, required=True)
     parser.add_argument("--workspace-parent", type=Path)
+    parser.add_argument("--expected-origin-url")
     args = parser.parse_args()
-    errors = check_boundary(args.repo, args.workspace_parent)
+    errors = check_boundary(
+        args.repo,
+        args.workspace_parent,
+        args.expected_origin_url,
+    )
     if errors:
         for error in errors:
             print(f"FAIL: {error}")

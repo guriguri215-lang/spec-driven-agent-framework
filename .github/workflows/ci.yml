@@ -44,7 +44,11 @@ jobs:
       - name: Check core coverage
         run: python -m coverage report --include="src/sdaqf/domain/*,src/sdaqf/application/gates.py" --fail-under=90
       - name: Audit workspace boundary
-        run: python scripts/check_workspace_boundary.py --repo .
+        run: >-
+          python scripts/check_workspace_boundary.py
+          --repo .
+          --expected-origin-url
+          https://github.com/guriguri215-lang/spec-driven-agent-framework.git
       - name: Audit publication candidate
         run: python scripts/audit_repository.py --root .
       - name: Run CLI smoke checks
