@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0",
+  "project_id": "ui-example",
+  "ui_present": true,
+  "candidate": {
+    "source_spec_sha256": "F28E02029768F80816001BD98DA43739F4BA33C1197710E02B1E20786EAD188B",
+    "git_head": "9421661343809d95affbcd5a97d0d7fca3b7f690",
+    "repository_digest": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
+  },
+  "design_brief": {
+    "users": ["Owner"],
+    "primary_flows": ["Review release evidence"],
+    "states": ["loading", "empty", "error", "permission-denied", "offline"],
+    "target_devices": ["desktop"],
+    "design_research": ["Approved specification and platform guidance."],
+    "third_party_asset_policy": "none-used",
+    "third_party_asset_provenance": []
+  },
+  "observations": [
+    {
+      "attempt": 1,
+      "observed_at": "2026-07-29T00:34:00+09:00",
+      "observer_id": "OBS-HOST-1",
+      "provenance": "host-browser",
+      "platform": "windows",
+      "browser": "Chromium",
+      "command": ["browser", "validate", "ui-example"],
+      "flows_passed": ["Review release evidence"],
+      "states_passed": ["loading", "empty", "error", "permission-denied", "offline"],
+      "devices_passed": ["desktop"],
+      "viewports": ["1280x720", "1920x1080"],
+      "keyboard": false,
+      "focus_order": false,
+      "readability": false,
+      "contrast": false,
+      "information_structure": false,
+      "efficiency": false,
+      "offline": false,
+      "recovery": false,
+      "screenshots": [],
+      "trace": {
+        "path": "examples/m3-quality/evidence/ui/browser-trace.json",
+        "sha256": "2422ACAB73E0A3B6317648AD05506B017AEF18BD21D5AC516A98C074B5130E49"
+      },
+      "visual_regression": "NOT_APPLICABLE",
+      "visual_regression_reason": "No prior approved visual baseline exists.",
+      "status": "FAIL",
+      "failures": ["No real browser screenshot was recorded."]
+    }
+  ]
+}

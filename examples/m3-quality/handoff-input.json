@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "milestone": "M3",
+  "status": "verification",
+  "completed": ["Claim-Evidence Ledger"],
+  "incomplete": ["Exact-commit cross-platform verification"],
+  "evidence_ids": ["EV-DIFF-0001", "EV-INSTALL-0001"],
+  "open_decisions": ["Project license"],
+  "known_problems": [],
+  "recommended_next": "Review M3 evidence before any commit or external action.",
+  "primary_folder": "repo/",
+  "approval_stops": ["Stop before commit, push, publication, or license selection."],
+  "next_prompt_context": {
+    "role": "Repository evidence reviewer",
+    "references": [
+      "docs/specification.md",
+      "docs/exec-plans/active/M3-evidence-ui-release-qa.md"
+    ],
+    "change_scope": ["Review M3 evidence and local Gate results."],
+    "exclusions": ["Do not perform external GitHub actions."],
+    "completion_criteria": ["Report evidence gaps and unresolved material findings."],
+    "stop_conditions": ["Stop for an approval boundary or specification mismatch."]
+  }
+}

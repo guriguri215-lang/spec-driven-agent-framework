@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "project_id": "example-project",
+  "ui_present": false,
+  "candidate": {
+    "source_spec_sha256": "2532014F5DD6072AA8D52D4DCF3106288D392769A779719CA3952511D98392A4",
+    "git_head": "9421661343809d95affbcd5a97d0d7fca3b7f690",
+    "repository_digest": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
+  },
+  "design_brief": null,
+  "observations": []
+}

@@ -31,11 +31,13 @@ operations.
 
 ## M3: Evidence, UI/UX, and Release QA
 
-Status: not implemented.
+Status: implemented by the current milestone.
 
-Add the full claim-evidence ledger, gate engine, browser validation loop,
-security/dependency/license audit, release candidate audit, and automated
-handoffs.
+Add a strict claim-evidence ledger, non-compensating Gates G2 through G4,
+manifest-based UI classification, bounded recorded host-browser validation,
+security/dependency/license and release-candidate audits, and deterministic
+automated handoffs. Browser launch remains a host capability and publication
+remains Gate G5.
 
 ## M4: Public Beta Hardening
 

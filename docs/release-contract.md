@@ -1,6 +1,8 @@
 # Release Contract
 
-M2 produces an inspected private-repository commit, not a public release.
+M3 produces an inspected local release-quality candidate, not a commit, push,
+or public release. Commit and every external action remain separately
+Owner-gated.
 
 ## Required local gates
 
@@ -15,6 +17,7 @@ python -m coverage run -m pytest
 python -m coverage report --fail-under=80
 python -m coverage report --include="src/sdaqf/domain/models.py,src/sdaqf/domain/requirements.py,src/sdaqf/application/gates.py,src/sdaqf/application/approvals.py,src/sdaqf/application/baselines.py,src/sdaqf/application/comparison.py,src/sdaqf/application/planning.py,src/sdaqf/application/requirements.py,src/sdaqf/application/requirements_gate.py" --fail-under=90
 python -m coverage report --include="src/sdaqf/domain/orchestration.py,src/sdaqf/domain/tooling.py,src/sdaqf/adapters/process.py,src/sdaqf/application/orchestration.py,src/sdaqf/application/skills.py,src/sdaqf/application/tooling.py,src/sdaqf/application/checkpoints.py" --fail-under=90
+python -m coverage report --include="src/sdaqf/domain/quality.py,src/sdaqf/application/contracts.py,src/sdaqf/application/evidence.py,src/sdaqf/application/quality_gates.py,src/sdaqf/application/ui_validation.py,src/sdaqf/application/release_qa.py,src/sdaqf/application/handoffs.py" --fail-under=90
 python scripts/run_cli_smoke.py
 python scripts/check_workspace_boundary.py --repo . --expected-origin-url https://github.com/guriguri215-lang/spec-driven-agent-framework.git
 python scripts/audit_repository.py --root . --workspace-parent ..
@@ -29,25 +32,42 @@ Baseline counts and digest, and Gate G1. `scripts/run_cli_smoke.py` runs the
 preserved `doctor`, `init`, `validate`, `status`, and `goal-template` commands;
 the M1 `ingest`, `compare`, `roadmap`, `exec-plan`, `goal`, `prompt`, and
 `gate requirements` commands; and the M2 `agents`, `skills`, `tools`, and
-`checkpoint` primary paths. It performs the canonical ingest and Gate G1
-offline in a temporary repository-local directory.
+`checkpoint` primary paths. It also exercises M3 evidence validation, Gates G2
+and G3, non-UI classification, handoff create/resume, a positive G4 path in a
+temporary clean Git repository, and an explicit dirty-candidate negative path.
+The positive G4 fixture performs an actual `python -I -m pip --isolated`,
+no-index, no-build-isolation, no-dependency target installation and executes
+the installed module from that fresh target. It materializes only Git
+publication files into a fresh owned source tree and includes ignored failing
+`setup.py` and `pip.py` injections to prove that ignored worktree input is
+neither built nor allowed to shadow the installer. Host
+Git hooks, signing, attributes, excludes, file monitoring, and template input
+are disabled for the owned fixture. The smoke also performs the canonical
+ingest and Gate G1 offline in a temporary repository-local directory.
 
-The repository audit is the secret, personal-path, English/CJK,
-symlink/reparse, size, private-state, and project-license audit. The dependency
-audit verifies the empty runtime dependency set, exact development pins,
-documented license metadata, and absence of a project `LICENSE`. `pip check`
-verifies the installed dependency set.
+The repository audit uses Git's complete cached-plus-untracked publication set.
+It checks secrets, email and personal paths in text and binary metadata,
+English/CJK content, links and reparse ancestors, size, private/generated
+state, and nested project-license filenames. The dependency audit verifies the
+empty runtime dependency set, exact development pins, documented license
+metadata, and absence of project-license filenames or metadata. `pip check`
+verifies the installed dependency set. Gate G4 additionally requires all
+declared release documents to be regular, unlinked, non-empty UTF-8 files and
+members of the Git publication set, and requires README installation and
+known-limitations sections.
 
 ## Continuous integration parity
 
 Every Windows/Linux and Python 3.12/3.13 matrix job runs pytest, Ruff, strict
 mypy, total and M1/M2 critical branch coverage, both repository audits, the Git
 workspace boundary, installed dependency consistency, and the exact CLI smoke
-script. CI uses only immutable pinned GitHub Action commits and installs no
-runtime dependency.
+script. The M3 critical threshold is an additional local Gate in this
+milestone; changing the GitHub workflow is outside M3 authorization. CI uses
+only immutable pinned GitHub Action commits and installs no runtime dependency.
 
-Windows is verified locally. Linux and Python 3.13 are verified by the matrix.
-macOS remains `NOT VERIFIED`.
+Windows is verified locally for the current M3 candidate. Linux, Python 3.13,
+the remote matrix, and macOS remain `NOT VERIFIED` until a separately
+Owner-approved commit, push, and exact-SHA Actions observation.
 
 ## Local commit gate
 
@@ -60,8 +80,9 @@ macOS remains `NOT VERIFIED`.
 - No secret, personal path, private state, link, generated cache, coverage
   output, temporary file, project license, or non-English GitHub-facing
   artifact is staged.
-- Runtime approval-consumption records and locks under `.sdaqf/` remain
-  repository-local ignored state and are never staged.
+- Runtime approval-consumption, M3 evidence, review, UI, trace, and handoff
+  records under `.sdaqf/` remain repository-local ignored state and are never
+  staged.
 - The branch is `main`.
 - The only remote is the approved `origin`; every fetch and push URL is the
   approved private repository.

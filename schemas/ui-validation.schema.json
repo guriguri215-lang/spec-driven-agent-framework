@@ -1,0 +1,284 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/ui-validation.schema.json",
+  "title": "UI and Browser Validation",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "project_id",
+    "ui_present",
+    "candidate",
+    "design_brief",
+    "observations"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "project_id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "ui_present": {"type": "boolean"},
+    "candidate": {"$ref": "#/$defs/candidate"},
+    "design_brief": {
+      "oneOf": [
+        {"type": "null"},
+        {"$ref": "#/$defs/designBrief"}
+      ]
+    },
+    "observations": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {"$ref": "#/$defs/observation"}
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"ui_present": {"const": true}}},
+      "then": {
+        "properties": {
+          "design_brief": {"$ref": "#/$defs/designBrief"},
+          "observations": {"minItems": 1}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"ui_present": {"const": false}}},
+      "then": {
+        "properties": {
+          "design_brief": {"const": null},
+          "observations": {"maxItems": 0}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "strings": {
+      "type": "array",
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1, "maxLength": 500}
+    },
+    "nonemptyStrings": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1, "maxLength": 500}
+    },
+    "candidate": {
+      "type": "object",
+      "required": [
+        "source_spec_sha256",
+        "git_head",
+        "repository_digest"
+      ],
+      "properties": {
+        "source_spec_sha256": {"type": "string", "pattern": "^[0-9A-F]{64}$"},
+        "git_head": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "repository_digest": {"type": "string", "pattern": "^[0-9A-F]{64}$"}
+      },
+      "additionalProperties": false
+    },
+    "artifact": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "maxLength": 240,
+          "pattern": "^(?!/)(?!.*//)(?!.*(?:^|/)\\.(?:/|$))(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\.(?:/|$))(?!.*/$)(?!.*(?:^|/)~)(?!.*(?:^|/)(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:[.]|/|$))[A-Za-z0-9._/-]+$"
+        },
+        "sha256": {"type": "string", "pattern": "^[0-9A-F]{64}$"}
+      },
+      "additionalProperties": false
+    },
+    "designBrief": {
+      "type": "object",
+      "required": [
+        "users",
+        "primary_flows",
+        "states",
+        "target_devices",
+        "design_research",
+        "third_party_asset_policy",
+        "third_party_asset_provenance"
+      ],
+      "properties": {
+        "users": {"$ref": "#/$defs/nonemptyStrings"},
+        "primary_flows": {"$ref": "#/$defs/nonemptyStrings"},
+        "states": {"$ref": "#/$defs/nonemptyStrings"},
+        "target_devices": {"$ref": "#/$defs/nonemptyStrings"},
+        "design_research": {"$ref": "#/$defs/nonemptyStrings"},
+        "third_party_asset_policy": {"enum": ["none-used", "authorized"]},
+        "third_party_asset_provenance": {"$ref": "#/$defs/strings"}
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "properties": {
+            "states": {"contains": {"const": "loading"}}
+          }
+        },
+        {
+          "properties": {
+            "states": {"contains": {"const": "empty"}}
+          }
+        },
+        {
+          "properties": {
+            "states": {"contains": {"const": "error"}}
+          }
+        },
+        {
+          "properties": {
+            "states": {"contains": {"const": "permission-denied"}}
+          }
+        },
+        {
+          "properties": {
+            "states": {"contains": {"const": "offline"}}
+          }
+        },
+        {
+          "if": {
+            "properties": {"third_party_asset_policy": {"const": "none-used"}}
+          },
+          "then": {
+            "properties": {"third_party_asset_provenance": {"maxItems": 0}}
+          }
+        },
+        {
+          "if": {
+            "properties": {"third_party_asset_policy": {"const": "authorized"}}
+          },
+          "then": {
+            "properties": {"third_party_asset_provenance": {"minItems": 1}}
+          }
+        }
+      ]
+    },
+    "observation": {
+      "type": "object",
+      "required": [
+        "attempt",
+        "observed_at",
+        "observer_id",
+        "provenance",
+        "platform",
+        "browser",
+        "command",
+        "flows_passed",
+        "states_passed",
+        "devices_passed",
+        "viewports",
+        "keyboard",
+        "focus_order",
+        "readability",
+        "contrast",
+        "information_structure",
+        "efficiency",
+        "offline",
+        "recovery",
+        "screenshots",
+        "trace",
+        "visual_regression",
+        "visual_regression_reason",
+        "status",
+        "failures"
+      ],
+      "properties": {
+        "attempt": {"type": "integer", "minimum": 1, "maximum": 3},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "observer_id": {
+          "type": "string",
+          "pattern": "^OBS-[A-Z0-9][A-Z0-9-]{0,63}$"
+        },
+        "provenance": {"enum": ["host-browser", "target-platform"]},
+        "platform": {"type": "string", "minLength": 1, "maxLength": 100},
+        "browser": {
+          "enum": [
+            "Chromium",
+            "Chrome",
+            "Edge",
+            "Firefox",
+            "Safari",
+            "WebKit"
+          ]
+        },
+        "command": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {"type": "string", "minLength": 1, "maxLength": 240}
+        },
+        "flows_passed": {"$ref": "#/$defs/strings"},
+        "states_passed": {"$ref": "#/$defs/strings"},
+        "devices_passed": {"$ref": "#/$defs/strings"},
+        "viewports": {"$ref": "#/$defs/strings"},
+        "keyboard": {"type": "boolean"},
+        "focus_order": {"type": "boolean"},
+        "readability": {"type": "boolean"},
+        "contrast": {"type": "boolean"},
+        "information_structure": {"type": "boolean"},
+        "efficiency": {"type": "boolean"},
+        "offline": {"type": "boolean"},
+        "recovery": {"type": "boolean"},
+        "screenshots": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/artifact"}
+        },
+        "trace": {"$ref": "#/$defs/artifact"},
+        "visual_regression": {"enum": ["PASS", "NOT_APPLICABLE"]},
+        "visual_regression_reason": {"type": ["string", "null"], "maxLength": 500},
+        "status": {"enum": ["PASS", "FAIL"]},
+        "failures": {"$ref": "#/$defs/strings"}
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "PASS"}}},
+          "then": {
+            "properties": {
+              "keyboard": {"const": true},
+              "focus_order": {"const": true},
+              "readability": {"const": true},
+              "contrast": {"const": true},
+              "information_structure": {"const": true},
+              "efficiency": {"const": true},
+              "offline": {"const": true},
+              "recovery": {"const": true},
+              "flows_passed": {"minItems": 1},
+              "states_passed": {"minItems": 1},
+              "devices_passed": {"minItems": 1},
+              "viewports": {"minItems": 1},
+              "screenshots": {"minItems": 1},
+              "failures": {"maxItems": 0}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"status": {"const": "FAIL"}}},
+          "then": {"properties": {"failures": {"minItems": 1}}}
+        },
+        {
+          "if": {"properties": {"visual_regression": {"const": "PASS"}}},
+          "then": {"properties": {"visual_regression_reason": {"const": null}}}
+        },
+        {
+          "if": {
+            "properties": {"visual_regression": {"const": "NOT_APPLICABLE"}}
+          },
+          "then": {
+            "properties": {
+              "visual_regression_reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "additionalProperties": false
+}

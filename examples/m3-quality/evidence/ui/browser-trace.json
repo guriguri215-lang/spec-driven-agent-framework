@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "candidate": {
+    "source_spec_sha256": "F28E02029768F80816001BD98DA43739F4BA33C1197710E02B1E20786EAD188B",
+    "git_head": "9421661343809d95affbcd5a97d0d7fca3b7f690",
+    "repository_digest": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
+  },
+  "observation": {
+    "observed_at": "2026-07-29T00:34:00+09:00",
+    "observer_id": "OBS-HOST-1",
+    "provenance": "host-browser",
+    "platform": "windows",
+    "browser": "Chromium",
+    "command": ["browser", "validate", "ui-example"],
+    "flows_passed": ["Review release evidence"],
+    "states_passed": ["loading", "empty", "error", "permission-denied", "offline"],
+    "devices_passed": ["desktop"],
+    "viewports": ["1280x720", "1920x1080"],
+    "keyboard": false,
+    "focus_order": false,
+    "readability": false,
+    "contrast": false,
+    "information_structure": false,
+    "efficiency": false,
+    "offline": false,
+    "recovery": false,
+    "visual_regression": "NOT_APPLICABLE",
+    "visual_regression_reason": "No prior approved visual baseline exists.",
+    "status": "FAIL",
+    "failures": ["No real browser screenshot was recorded."]
+  },
+  "screenshots": [],
+  "execution": {
+    "runner_id": "RUN-SAMPLE-1",
+    "executable": "chromium",
+    "browser_version": "not-recorded",
+    "returncode": 1,
+    "duration_ms": 0,
+    "stdout_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+    "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+    "network_mode": "offline"
+  }
+}

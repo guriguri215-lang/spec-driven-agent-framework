@@ -22,7 +22,9 @@ rendering, project status, bounded specification ingestion, baseline contract
 loading, requirement comparison, planning and prompt rendering, and Gate
 evaluation. M2 adds strict registry and result loading, deterministic role
 selection, worktree-plan validation, Skill and template lifecycle evaluation,
-tool capability observation, retry control, and atomic checkpoint recovery.
+tool capability observation, retry control, and atomic checkpoint recovery. M3
+adds strict evidence, independent-review, UI-observation, release-candidate,
+and handoff loading; atomic evidence addition; and Gates G2 through G4.
 
 `sdaqf.adapters` contains bounded subprocess and local filesystem behavior.
 
@@ -34,7 +36,10 @@ versioned requirement-record, requirement-baseline, and baseline-comparison
 contracts. Runtime adoption uses small standard-library validators so the
 offline core retains no production dependency. M2 adds versioned agent, tool,
 tool-execution approval, orchestration request, worktree, structured result,
-template, and checkpoint contracts.
+template, and checkpoint contracts. M3 adds separate versioned Claim-Evidence
+Ledger, evidence-addition, review, finding-acceptance, UI validation,
+release-candidate, handoff-input, and automated-handoff contracts without
+changing the M1 or M2 versions.
 
 ## M1 requirements pipeline
 
@@ -117,6 +122,68 @@ backup, temporary artifacts are cleaned on failure, and resume rejects changes
 to plan version, specification digest, Git HEAD, or worktree digest. A failed
 command receives at most one retry, only for an eligible classified failure
 and a new recorded state-change token.
+
+## M3 evidence and release-quality pipeline
+
+The Claim-Evidence Ledger binds one requirement baseline and source digest to
+sorted unique claims and evidence. Claims record requirement and acceptance
+references, implementation state, criticality, and confidence. Evidence records
+retain type, result, a structured argument array, non-empty environment, exact
+commit and repository digest, content-hashed safe relative artifacts, and
+timestamp. The loader rejects duplicate JSON keys, links,
+oversized input, unsafe paths, secret-shaped content, unknown references,
+unsupported versions, contradictory unverified state, and missing passing diff
+review evidence. Evidence addition validates the complete old and new contract,
+requires the same candidate identity, holds an exclusive repository-local lock,
+and uses a repository-bounded atomic replacement.
+
+Gate G2 checks baseline identity, traceability, complete Must-acceptance
+mapping, applicable passing tests, explicit unverified evidence, and a separate
+conformance source beyond tests and the named diff review. Critical Must,
+security, data-loss, and disclosure failures are hard blockers. Gate G3
+requires completed read-only review by a distinct identity, an immutable
+baseline/source/HEAD/repository identity and reviewed path set, coverage of
+regression, security, and maintainability, resolution of High and Medium
+findings, and resolution or exact expiring Owner acceptance of a Critical
+finding. Critical-finding acceptance also binds the exact finding digest and
+candidate identity.
+
+UI classification comes from the validated manifest. A non-UI project rejects
+fabricated Design Brief or browser evidence. A UI project requires a bounded
+Design Brief and no more than three ordered host observations. The offline core
+does not install or launch a browser; it validates provenance, timestamp,
+structured command, a supported real browser matched to its executable and
+numeric version, target-platform flows, required states, devices, viewports,
+keyboard, focus, readability, contrast, information structure, efficiency,
+content-hashed regular PNG screenshots, a content-bound execution trace,
+visual-regression disposition, offline behavior, recovery, and truthful
+failure/retry state. PNG adoption checks dimensions, color layout, chunk type
+and order, CRCs, bounded decompression, exact scanlines, and filter bytes.
+
+Gate G4 composes passing G2, G3, and applicable UI results with exact-commit
+installation evidence, verified Must claims, local repository and dependency
+audits, explicit unselected project-license state, required non-empty UTF-8
+documentation with installation and known-limitations sections, exact rollback
+guidance, and a bounded read-only Git observation. Installation proof uses an
+exact `python -I -m pip --isolated` command with no index, build isolation, or dependency
+resolution. It copies only Git's cached-plus-untracked publication files into a
+fresh owned `<install-target>-source` tree, installs only that tree, removes
+owned build outputs, compares every source byte and path to the current
+publication set, and runs an isolated installed-module execution probe.
+Ignored worktree files, ambient imports, pre-existing targets, extra source
+inputs, and missing publication documents fail closed. The publication audit
+uses the same complete Git candidate set, so nested project-license names,
+binary metadata disclosures, links, and reparse ancestors cannot hide inside
+the candidate. Gate G4 does not perform or authorize Gate G5 publication.
+
+Every M3 Gate, UI validation, and handoff command hashes the actual regular,
+unlinked specification supplied on the command line and requires it to be in
+the Git publication set. Automated handoff generation records exact Git,
+baseline, source, and repository identity observed directly from the current
+root, work state, ledger-backed evidence, decisions, problems, next work,
+approval stops, and deterministic prompt context. Completed handoffs cannot
+retain incomplete work, open decisions, or known problems. Resume rejects any
+identity mismatch, and generated prompts are never executed automatically.
 
 ## Trust boundaries
 

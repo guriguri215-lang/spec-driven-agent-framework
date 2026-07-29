@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/automated-handoff.schema.json",
+  "title": "Automated Handoff",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "milestone",
+    "status",
+    "git",
+    "baseline_id",
+    "source_spec_sha256",
+    "repository_digest",
+    "completed",
+    "incomplete",
+    "evidence_ids",
+    "open_decisions",
+    "known_problems",
+    "recommended_next",
+    "primary_folder",
+    "approval_stops",
+    "next_prompt_context",
+    "next_prompt"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "milestone": {
+      "$ref": "handoff-input.schema.json#/properties/milestone"
+    },
+    "status": {
+      "$ref": "handoff-input.schema.json#/properties/status"
+    },
+    "git": {
+      "type": "object",
+      "required": ["branch", "head", "worktree"],
+      "properties": {
+        "branch": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]{0,199}$"
+        },
+        "head": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "worktree": {"enum": ["clean", "dirty"]}
+      },
+      "additionalProperties": false
+    },
+    "baseline_id": {"type": "string", "pattern": "^RB-[0-9A-F]{16}$"},
+    "source_spec_sha256": {
+      "type": "string",
+      "pattern": "^[0-9A-F]{64}$"
+    },
+    "repository_digest": {
+      "type": "string",
+      "pattern": "^[0-9A-F]{64}$"
+    },
+    "completed": {
+      "$ref": "handoff-input.schema.json#/properties/completed"
+    },
+    "incomplete": {
+      "$ref": "handoff-input.schema.json#/properties/incomplete"
+    },
+    "evidence_ids": {
+      "$ref": "handoff-input.schema.json#/properties/evidence_ids"
+    },
+    "open_decisions": {
+      "$ref": "handoff-input.schema.json#/properties/open_decisions"
+    },
+    "known_problems": {
+      "$ref": "handoff-input.schema.json#/properties/known_problems"
+    },
+    "recommended_next": {
+      "$ref": "handoff-input.schema.json#/properties/recommended_next"
+    },
+    "primary_folder": {
+      "$ref": "handoff-input.schema.json#/properties/primary_folder"
+    },
+    "approval_stops": {
+      "$ref": "handoff-input.schema.json#/properties/approval_stops"
+    },
+    "next_prompt_context": {
+      "$ref": "handoff-input.schema.json#/properties/next_prompt_context"
+    },
+    "next_prompt": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8000
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "completed"}}},
+      "then": {
+        "properties": {
+          "incomplete": {"maxItems": 0},
+          "open_decisions": {"maxItems": 0},
+          "known_problems": {"maxItems": 0}
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

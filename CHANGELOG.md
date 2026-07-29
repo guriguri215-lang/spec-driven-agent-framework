@@ -25,3 +25,8 @@ All notable changes will be documented in this file.
   conditions, persistent atomic consumption claims, retry control, atomic
   checkpoint recovery, M2 schemas, samples, CLI commands, audits, and
   cross-platform smoke coverage.
+- M3 versioned Claim-Evidence Ledger, atomic evidence addition, Gates G2 through
+  G4, independent-review and exact finding-acceptance contracts, UI
+  classification and recorded browser validation, local release audits,
+  deterministic automated handoffs, schemas, samples, CLI commands, and
+  negative, boundary, failure-injection, and regression tests.

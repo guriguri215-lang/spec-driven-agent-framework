@@ -22,7 +22,9 @@ class StatusService:
             "state": "ready" if report.valid else "blocked",
             "validation": report.to_dict(),
             "implemented_scope": (
-                "M0 Bootstrap Foundation and M1 Requirements and Planning MVP"
+                "M0 Bootstrap Foundation, M1 Requirements and Planning MVP, "
+                "M2 Agent, Skill, and Tool Orchestration, and "
+                "M3 Evidence, UI/UX, and Release QA"
             ),
-            "next_milestone": "M2 Agent, Skill, and Tool Orchestration",
+            "next_milestone": "M4 Public Beta Hardening",
         }

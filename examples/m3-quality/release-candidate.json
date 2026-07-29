@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "install_evidence_id": "EV-INSTALL-0001",
+  "execution_module": "sdaqf",
+  "install_target": ".sdaqf/install-target",
+  "rollback_guidance": "Remove only the owned .sdaqf/install-target and .sdaqf/install-target-source directories.",
+  "documentation_paths": [
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "README.md",
+    "SECURITY.md",
+    "docs/release-contract.md"
+  ],
+  "license_status": "not-selected"
+}

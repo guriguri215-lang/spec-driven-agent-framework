@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "evidence_id": "EV-STATIC-0001",
+  "claim_ids": ["CLM-FR-EXAMPLE-001"],
+  "type": "STATIC_ANALYSIS",
+  "status": "PASS",
+  "command": ["python", "-m", "ruff", "check", "src", "tests", "scripts"],
+  "environment": {
+    "os": "windows",
+    "python": "3.12"
+  },
+  "commit": "9421661343809d95affbcd5a97d0d7fca3b7f690",
+  "repository_digest": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+  "artifacts": [
+    {
+      "path": "docs/evidence/M2-verification.md",
+      "sha256": "852EA7766D7B25935251CF70008D798D0F17798954054D3752FBC7B2F667B91E"
+    }
+  ],
+  "recorded_at": "2026-07-29T00:32:00+09:00"
+}

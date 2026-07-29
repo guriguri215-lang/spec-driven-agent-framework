@@ -2,9 +2,11 @@
 
 SDAQF is a specification-driven development and quality-assurance framework for
 Codex-assisted projects. This repository contains the M0 Bootstrap Foundation,
-M1 Requirements and Planning MVP, and M2 Agent, Skill, and Tool Orchestration:
-an offline-first Python CLI, deterministic requirement and orchestration
-contracts, safety guidance, reusable agent skills, and local quality gates.
+M1 Requirements and Planning MVP, M2 Agent, Skill, and Tool Orchestration, and
+M3 Evidence, UI/UX, and Release QA: an offline-first Python CLI, deterministic
+requirement, orchestration, evidence, review, UI-observation, release, and
+handoff contracts, safety guidance, reusable agent skills, and local quality
+gates.
 
 The authoritative source for this bootstrap was a private Japanese
 specification. The public English baseline records its source digest without
@@ -68,27 +70,62 @@ copying private workspace state.
   corruption recovery, and strict resume identity.
 - `agents`, `skills`, `tools`, and `checkpoint` CLI command groups.
 
+## Implemented in M3
+
+- A bounded versioned Claim-Evidence Ledger with strict claim/evidence
+  cross-references, explicit confidence and criticality, secret-free fields,
+  safe relative artifacts, and deterministic serialization.
+- Atomic repository-bounded `evidence add` with duplicate, traversal, link,
+  corruption, and failure cleanup protection.
+- Non-compensating Gate G2 implementation-evidence checks that require Must and
+  acceptance mappings, applicable tests, evidence beyond passing tests alone,
+  explicit unverified state, diff review, and hard critical blockers.
+- Gate G3 independent read-only review checks for reviewer separation,
+  regression/security/maintainability coverage, resolved material findings, and
+  exact Owner approval for any accepted critical finding.
+- Manifest-based UI classification. Non-UI projects require no fabricated UI
+  work; UI projects require a Design Brief and bounded recorded host-browser
+  observations for primary flows, states, viewports, keyboard, focus,
+  readability, contrast, screenshots, offline behavior, and recovery. Passing
+  observations also require a content-bound execution trace, a browser-matched
+  executable and version, and a decodable bounded PNG.
+- Local Gate G4 release-candidate checks combining G2/G3/UI results,
+  exact-commit isolated offline installation from a publication-only owned
+  source snapshot, installed-execution evidence, verified Must claims,
+  secret/disclosure/dependency/license/documentation audits, rollback guidance,
+  and a read-only clean-Git observation.
+- Deterministic automated handoff creation and resume mismatch detection with a
+  bounded next-session prompt that is recorded but never executed.
+- `evidence`, `gate implementation`, `gate review`, `ui`,
+  `audit release-candidate`, and `handoff` CLI paths.
+
 The pinned development dependency and license record is in
 `docs/dependencies.md`.
 
-## Not implemented through M2
+## Known limitations
+
+### Not implemented through M3
 
 - Automatic Git worktree creation, deletion, or integration.
-- Automated UI/UX browser validation.
-- Full evidence-ledger or release automation.
+- A management UI or automatic browser installation and launch. The offline
+  core validates browser observations recorded by a host capability.
+- Gate G5 publication or automatic release publication.
+- Automated schema migration and M4 cross-project evaluation.
 - Solver, OpenAI API, or Agents SDK integrations.
 - GitHub repository creation, remotes, pushes, pull requests, issues, tags, or
   releases.
 - Production deployment.
 
-## Quick start
+## Installation
+
+### Quick start
 
 Use Python 3.12 or newer in an isolated environment:
 
 ```text
 python -m venv .venv
-.venv\Scripts\python -m pip install -r requirements-dev.lock
-.venv\Scripts\python -m pip install --no-build-isolation --no-deps -e .
+.venv\Scripts\python -m pip --isolated install -r requirements-dev.lock
+.venv\Scripts\python -m pip --isolated install --no-build-isolation --no-deps -e .
 .venv\Scripts\python -m pytest
 .venv\Scripts\sdaqf --help
 ```
@@ -114,14 +151,31 @@ python -m sdaqf agents plan examples/m2-orchestration/orchestration-request.json
 python -m sdaqf skills validate .agents/skills --templates examples/m2-orchestration/template-registry.json --framework-version 0.1.0 --available independent-review --json
 python -m sdaqf tools check examples/m2-orchestration/tool-registry.json --name git --json
 python -m sdaqf checkpoint validate examples/m2-orchestration/execution-checkpoint.json --json
+python -m sdaqf evidence validate examples/m3-quality/claim-evidence-ledger.json --json
+python -m sdaqf gate implementation baseline.json --ledger .sdaqf/ledger.json --specification specification.md --json
+python -m sdaqf gate review .sdaqf/review.json --baseline baseline.json --specification specification.md --json
+python -m sdaqf ui validate manifest.json .sdaqf/ui-validation.json --specification specification.md --json
+python -m sdaqf audit release-candidate .sdaqf/release-candidate.json --root . --baseline baseline.json --ledger .sdaqf/ledger.json --review .sdaqf/review.json --manifest manifest.json --ui-validation .sdaqf/ui-validation.json --specification specification.md --json
+python -m sdaqf handoff create handoff-input.json --baseline baseline.json --ledger .sdaqf/ledger.json --specification specification.md --output .sdaqf/handoff.json --json
 ```
 
 ## Safety boundaries
 
-The runtime remains offline-first through M2. Private remote operations and any
+The runtime remains offline-first through M3. Private remote operations and any
 publication require an exact Owner-approved target and scope. A technical
 sandbox approval never authorizes publication, destructive Git operations,
 credential access, or machine-wide configuration changes.
+
+M3 Gate and handoff commands inspect the current repository directly. Candidate
+records under `.sdaqf/` must bind to the current source digest, full Git HEAD,
+and deterministic repository digest; copied sample identities are illustrative
+and are not accepted as current proof.
+
+Gate G4 installation evidence must target the derived
+`<install-target>-source` snapshot. That owned tree must contain exactly the
+regular files in Git's cached-plus-untracked publication set; ignored worktree
+files are never build inputs. Both owned install directories are named in the
+exact rollback contract.
 
 ## License status
 

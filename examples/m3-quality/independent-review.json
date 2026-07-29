@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "review_id": "REV-M3-0001",
+  "baseline_id": "RB-0123456789ABCDEF",
+  "candidate": {
+    "source_spec_sha256": "F28E02029768F80816001BD98DA43739F4BA33C1197710E02B1E20786EAD188B",
+    "git_head": "9421661343809d95affbcd5a97d0d7fca3b7f690",
+    "repository_digest": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
+  },
+  "reviewed_at": "2026-07-29T00:33:00+09:00",
+  "reviewer_id": "AGT-REVIEWER-1",
+  "reviewed_agent_ids": ["AGT-IMPLEMENTER-1"],
+  "status": "completed",
+  "read_only": true,
+  "areas": ["regression", "security", "maintainability"],
+  "findings": [],
+  "reviewed_paths": [
+    "src/sdaqf/application/quality_gates.py"
+  ],
+  "changed_paths": []
+}

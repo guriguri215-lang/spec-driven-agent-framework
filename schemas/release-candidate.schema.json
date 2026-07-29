@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/release-candidate.schema.json",
+  "title": "Local Release Candidate Input",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "install_evidence_id",
+    "execution_module",
+    "install_target",
+    "rollback_guidance",
+    "documentation_paths",
+    "license_status"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "install_evidence_id": {
+      "type": "string",
+      "pattern": "^EV-[A-Z0-9][A-Z0-9-]{0,63}$"
+    },
+    "execution_module": {
+      "type": "string",
+      "maxLength": 200,
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*$"
+    },
+    "install_target": {
+      "type": "string",
+      "maxLength": 233,
+      "pattern": "^\\.sdaqf/(?!.*//)(?!.*(?:^|/)\\.(?:/|$))(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\.(?:/|$))(?!.*/$)(?!.*(?:^|/)~)(?!(?:[^/]+/)*(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:[.]|/|$))[A-Za-z0-9._/-]+$"
+    },
+    "rollback_guidance": {"type": "string", "minLength": 1, "maxLength": 1000},
+    "documentation_paths": {
+      "type": "array",
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "maxLength": 240,
+        "pattern": "^(?!/)(?!.*//)(?!.*(?:^|/)\\.(?:/|$))(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\.(?:/|$))(?!.*/$)(?!.*(?:^|/)~)(?!.*(?:^|/)(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:[.]|/|$))[A-Za-z0-9._/-]+$"
+      }
+    },
+    "license_status": {"const": "not-selected"}
+  },
+  "additionalProperties": false
+}

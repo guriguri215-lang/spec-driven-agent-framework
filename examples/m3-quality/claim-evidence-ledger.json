@@ -1,0 +1,105 @@
+{
+  "schema_version": "1.0",
+  "baseline_id": "RB-0123456789ABCDEF",
+  "source_spec_sha256": "F28E02029768F80816001BD98DA43739F4BA33C1197710E02B1E20786EAD188B",
+  "git_head": "9421661343809d95affbcd5a97d0d7fca3b7f690",
+  "repository_digest": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+  "claims": [
+    {
+      "claim_id": "CLM-FR-EXAMPLE-001",
+      "statement": "The example requirement is implemented and independently verified.",
+      "requirement_ids": ["FR-EXAMPLE-001"],
+      "acceptance_criteria": ["AC-FR-EXAMPLE-001-01"],
+      "state": "verified",
+      "criticality": "must",
+      "confidence": "A"
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "EV-DIFF-0001",
+      "claim_ids": ["CLM-FR-EXAMPLE-001"],
+      "type": "SOURCE_REVIEW",
+      "status": "PASS",
+      "command": ["git", "diff", "--check"],
+      "environment": {
+        "os": "windows",
+        "python": "3.12"
+      },
+      "commit": "9421661343809d95affbcd5a97d0d7fca3b7f690",
+      "repository_digest": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+      "artifacts": [
+        {
+          "path": "docs/evidence/M2-verification.md",
+          "sha256": "852EA7766D7B25935251CF70008D798D0F17798954054D3752FBC7B2F667B91E"
+        }
+      ],
+      "recorded_at": "2026-07-29T00:30:00+09:00"
+    },
+    {
+      "evidence_id": "EV-INSTALL-0001",
+      "claim_ids": ["CLM-FR-EXAMPLE-001"],
+      "type": "TEST",
+      "status": "PASS",
+      "command": [
+        "python",
+        "-I",
+        "-m",
+        "pip",
+        "--isolated",
+        "install",
+        "--disable-pip-version-check",
+        "--no-input",
+        "--no-index",
+        "--no-build-isolation",
+        "--no-deps",
+        "--target",
+        ".sdaqf/install-target",
+        ".sdaqf/install-target-source"
+      ],
+      "environment": {
+        "os": "windows",
+        "python": "3.12"
+      },
+      "commit": "9421661343809d95affbcd5a97d0d7fca3b7f690",
+      "repository_digest": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+      "artifacts": [
+        {
+          "path": "examples/m3-quality/evidence/install-trace.json",
+          "sha256": "55709E7E2AE12939A4809866BAD3E17ABF66EF8E1B7F88A9706F8E256AAB2158"
+        }
+      ],
+      "recorded_at": "2026-07-29T00:31:00+09:00"
+    },
+    {
+      "evidence_id": "EV-REVIEW-0001",
+      "claim_ids": ["CLM-FR-EXAMPLE-001"],
+      "type": "MANUAL_REVIEW",
+      "status": "PASS",
+      "command": [
+        "python",
+        "-m",
+        "sdaqf",
+        "gate",
+        "implementation",
+        "baseline.json",
+        "--ledger",
+        "ledger.json"
+      ],
+      "environment": {
+        "os": "windows",
+        "python": "3.12"
+      },
+      "commit": "9421661343809d95affbcd5a97d0d7fca3b7f690",
+      "repository_digest": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+      "artifacts": [
+        {
+          "path": "docs/evidence/M2-verification.md",
+          "sha256": "852EA7766D7B25935251CF70008D798D0F17798954054D3752FBC7B2F667B91E"
+        }
+      ],
+      "recorded_at": "2026-07-29T00:32:00+09:00"
+    }
+  ],
+  "diff_review_evidence_id": "EV-DIFF-0001"
+}

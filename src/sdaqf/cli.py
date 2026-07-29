@@ -1,4 +1,4 @@
-"""Command-line interface for the M0 foundation and M1 requirements MVP."""
+"""Command-line interface for the offline M0 through M3 framework."""
 
 from __future__ import annotations
 
@@ -19,8 +19,20 @@ from sdaqf.application.checkpoints import (
     validate_resume,
 )
 from sdaqf.application.comparison import BaselineComparator, BaselineDiff
+from sdaqf.application.contracts import ContractError
 from sdaqf.application.doctor import DoctorService
+from sdaqf.application.evidence import (
+    EvidenceLedgerStore,
+    load_evidence_ledger,
+    load_evidence_record,
+)
 from sdaqf.application.goals import GoalTemplateService
+from sdaqf.application.handoffs import (
+    HandoffService,
+    inspect_specification,
+    load_automated_handoff,
+    validate_handoff_resume,
+)
 from sdaqf.application.orchestration import (
     AgentOrchestrator,
     OrchestrationContractError,
@@ -31,6 +43,17 @@ from sdaqf.application.orchestration import (
     validate_agent_tool_references,
 )
 from sdaqf.application.planning import PlanningService, PromptMode, PromptService
+from sdaqf.application.quality_gates import (
+    FindingAcceptanceLoader,
+    ImplementationEvidenceGateService,
+    IndependentReviewGateService,
+    load_independent_review,
+)
+from sdaqf.application.release_qa import (
+    GitInspector,
+    ReleaseCandidateGateService,
+    load_release_candidate,
+)
 from sdaqf.application.requirements import SpecificationError, SpecificationIngestor
 from sdaqf.application.requirements_gate import RequirementsGateService
 from sdaqf.application.skills import (
@@ -47,8 +70,14 @@ from sdaqf.application.tooling import (
     ToolService,
     load_tool_registry,
 )
+from sdaqf.application.ui_validation import (
+    UiValidationService,
+    load_manifest_ui,
+    load_ui_validation,
+)
 from sdaqf.application.validation import ProjectValidator
-from sdaqf.application.workspace import WorkspaceInitializer
+from sdaqf.application.workspace import WorkspaceInitializer, is_reparse_point
+from sdaqf.domain.quality import CandidateIdentity, GitObservation
 from sdaqf.domain.tooling import ExecutionContext, ToolObservationStatus
 
 
@@ -173,6 +202,124 @@ def build_parser() -> argparse.ArgumentParser:
     requirements_gate.add_argument(
         "--json", action="store_true", help="Emit machine-readable JSON."
     )
+    implementation_gate = gate_subparsers.add_parser(
+        "implementation",
+        help="Evaluate Gate G2 for a requirement baseline and evidence ledger.",
+    )
+    implementation_gate.add_argument("baseline", type=Path)
+    implementation_gate.add_argument("--ledger", type=Path, required=True)
+    implementation_gate.add_argument("--specification", type=Path, required=True)
+    implementation_gate.add_argument("--root", type=Path, default=Path("."))
+    implementation_gate.add_argument("--json", action="store_true")
+    review_gate = gate_subparsers.add_parser(
+        "review",
+        help="Evaluate Gate G3 for an independent read-only review.",
+    )
+    review_gate.add_argument("review", type=Path)
+    review_gate.add_argument("--baseline", type=Path, required=True)
+    review_gate.add_argument("--specification", type=Path, required=True)
+    review_gate.add_argument("--root", type=Path, default=Path("."))
+    review_gate.add_argument(
+        "--approval",
+        action="append",
+        default=[],
+        type=Path,
+        metavar="FILE",
+    )
+    review_gate.add_argument("--json", action="store_true")
+
+    evidence = subparsers.add_parser(
+        "evidence",
+        help="Validate or atomically add Claim-Evidence Ledger evidence.",
+    )
+    evidence_commands = evidence.add_subparsers(
+        dest="evidence_command",
+        required=True,
+    )
+    evidence_validate = evidence_commands.add_parser(
+        "validate",
+        help="Validate a Claim-Evidence Ledger.",
+    )
+    evidence_validate.add_argument("ledger", type=Path)
+    evidence_validate.add_argument("--json", action="store_true")
+    evidence_add = evidence_commands.add_parser(
+        "add",
+        help="Atomically add one validated evidence record.",
+    )
+    evidence_add.add_argument("ledger", type=Path)
+    evidence_add.add_argument("record", type=Path)
+    evidence_add.add_argument("--json", action="store_true")
+
+    ui = subparsers.add_parser(
+        "ui",
+        help="Validate UI classification and recorded browser observations.",
+    )
+    ui_commands = ui.add_subparsers(dest="ui_command", required=True)
+    ui_validate = ui_commands.add_parser(
+        "validate",
+        help="Evaluate the applicable UI/UX validation Gate.",
+    )
+    ui_validate.add_argument("manifest", type=Path)
+    ui_validate.add_argument("validation", type=Path)
+    ui_validate.add_argument("--specification", type=Path, required=True)
+    ui_validate.add_argument("--root", type=Path, default=Path("."))
+    ui_validate.add_argument("--json", action="store_true")
+
+    audit = subparsers.add_parser(
+        "audit",
+        help="Evaluate local release quality without publication.",
+    )
+    audit_commands = audit.add_subparsers(dest="audit_command", required=True)
+    release_audit = audit_commands.add_parser(
+        "release-candidate",
+        help="Evaluate local release-candidate Gate G4.",
+    )
+    release_audit.add_argument("candidate", type=Path)
+    release_audit.add_argument("--root", type=Path, default=Path("."))
+    release_audit.add_argument("--baseline", type=Path, required=True)
+    release_audit.add_argument("--ledger", type=Path, required=True)
+    release_audit.add_argument("--review", type=Path, required=True)
+    release_audit.add_argument("--manifest", type=Path, required=True)
+    release_audit.add_argument("--ui-validation", type=Path, required=True)
+    release_audit.add_argument("--specification", type=Path, required=True)
+    release_audit.add_argument(
+        "--approval",
+        action="append",
+        default=[],
+        type=Path,
+        metavar="FILE",
+    )
+    release_audit.add_argument("--json", action="store_true")
+
+    handoff = subparsers.add_parser(
+        "handoff",
+        help="Create or resume a deterministic session handoff.",
+    )
+    handoff_commands = handoff.add_subparsers(
+        dest="handoff_command",
+        required=True,
+    )
+    handoff_create = handoff_commands.add_parser(
+        "create",
+        help="Create a new automated handoff from explicit local state.",
+    )
+    handoff_create.add_argument("input", type=Path)
+    handoff_create.add_argument("--root", type=Path, default=Path("."))
+    handoff_create.add_argument("--baseline", type=Path, required=True)
+    handoff_create.add_argument("--ledger", type=Path, required=True)
+    handoff_create.add_argument("--specification", type=Path, required=True)
+    handoff_create.add_argument("--output", type=Path, required=True)
+    handoff_create.add_argument("--json", action="store_true")
+    handoff_resume = handoff_commands.add_parser(
+        "resume",
+        help="Validate handoff identity before resuming.",
+    )
+    handoff_resume.add_argument("handoff", type=Path)
+    handoff_resume.add_argument("--root", type=Path, default=Path("."))
+    handoff_resume.add_argument("--baseline", type=Path, required=True)
+    handoff_resume.add_argument("--ledger", type=Path, required=True)
+    handoff_resume.add_argument("--specification", type=Path, required=True)
+    handoff_resume.add_argument("--json", action="store_true")
 
     agents = subparsers.add_parser(
         "agents",
@@ -461,6 +608,239 @@ def main(argv: Sequence[str] | None = None) -> int:
         _emit(result.to_dict(), as_json=args.json)
         return 0 if result.passed else 2
 
+    if args.command == "gate" and args.gate_name == "implementation":
+        try:
+            root = _exact_working_root(args.root)
+            baseline = load_baseline(args.baseline)
+            source_digest = inspect_specification(
+                root,
+                args.specification,
+                expected_filename=baseline.source.filename,
+            )
+            if source_digest != baseline.source.sha256:
+                raise ContractError("Specification does not match the baseline.")
+            git = GitInspector(
+                SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)
+            ).inspect(root)
+            _require_specification_candidate(root, args.specification, git)
+            result = ImplementationEvidenceGateService().evaluate(
+                baseline,
+                load_evidence_ledger(args.ledger),
+                candidate=_candidate_identity(source_digest, git),
+                root=root,
+            )
+        except (BaselineContractError, ContractError, OSError):
+            print("ERROR: implementation Gate input is invalid.", file=sys.stderr)
+            return 2
+        _emit(result.to_dict(), as_json=args.json)
+        return 0 if result.passed else 2
+
+    if args.command == "gate" and args.gate_name == "review":
+        try:
+            root = _exact_working_root(args.root)
+            baseline = load_baseline(args.baseline)
+            source_digest = inspect_specification(
+                root,
+                args.specification,
+                expected_filename=baseline.source.filename,
+            )
+            if source_digest != baseline.source.sha256:
+                raise ContractError("Specification does not match the baseline.")
+            git = GitInspector(
+                SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)
+            ).inspect(root)
+            _require_specification_candidate(root, args.specification, git)
+            result = IndependentReviewGateService().evaluate(
+                load_independent_review(args.review),
+                baseline_id=baseline.baseline_id,
+                candidate=_candidate_identity(source_digest, git),
+                changed_paths=git.changed_paths,
+                candidate_paths=git.publication_paths,
+                approvals=tuple(
+                    FindingAcceptanceLoader().load(path)
+                    for path in args.approval
+                ),
+            )
+        except (BaselineContractError, ContractError, OSError):
+            print("ERROR: independent review Gate input is invalid.", file=sys.stderr)
+            return 2
+        _emit(result.to_dict(), as_json=args.json)
+        return 0 if result.passed else 2
+
+    if args.command == "evidence":
+        try:
+            if args.evidence_command == "validate":
+                ledger = load_evidence_ledger(args.ledger)
+            else:
+                root = _exact_working_root(Path("."))
+                ledger_path = _m3_state_path(
+                    root,
+                    args.ledger,
+                    require_existing=True,
+                )
+                ledger = EvidenceLedgerStore(root / ".sdaqf").add(
+                    ledger_path,
+                    load_evidence_record(args.record),
+                )
+        except ContractError:
+            print("ERROR: evidence contract is invalid.", file=sys.stderr)
+            return 2
+        _emit(
+            {
+                "schema_version": ledger.schema_version,
+                "baseline_id": ledger.baseline_id,
+                "claims": len(ledger.claims),
+                "evidence": len(ledger.evidence),
+            },
+            as_json=args.json,
+        )
+        return 0
+
+    if args.command == "ui" and args.ui_command == "validate":
+        try:
+            root = _exact_working_root(args.root)
+            manifest = load_manifest_ui(args.manifest)
+            source_digest = inspect_specification(
+                root,
+                args.specification,
+                expected_filename=manifest.source_filename,
+            )
+            if source_digest != manifest.source_spec_sha256:
+                raise ContractError("Specification does not match the manifest.")
+            git = GitInspector(
+                SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)
+            ).inspect(root)
+            _require_specification_candidate(root, args.specification, git)
+            candidate_identity = _candidate_identity(
+                source_digest,
+                git,
+            )
+            result = UiValidationService().evaluate(
+                manifest=manifest,
+                candidate=candidate_identity,
+                validation=load_ui_validation(args.validation),
+                root=root,
+            )
+        except (ContractError, OSError):
+            print("ERROR: UI validation input is invalid.", file=sys.stderr)
+            return 2
+        _emit(result.to_dict(), as_json=args.json)
+        return 0 if result.passed else 2
+
+    if args.command == "audit" and args.audit_command == "release-candidate":
+        try:
+            root = _exact_working_root(args.root)
+            baseline = load_baseline(args.baseline)
+            ledger = load_evidence_ledger(args.ledger)
+            review = load_independent_review(args.review)
+            approvals = tuple(
+                FindingAcceptanceLoader().load(path) for path in args.approval
+            )
+            manifest = load_manifest_ui(args.manifest)
+            source_digest = inspect_specification(
+                root,
+                args.specification,
+                expected_filename=baseline.source.filename,
+            )
+            if (
+                source_digest != baseline.source.sha256
+                or source_digest != manifest.source_spec_sha256
+            ):
+                raise ContractError("Specification identity is inconsistent.")
+            git = GitInspector(
+                SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)
+            ).inspect(root)
+            _require_specification_candidate(root, args.specification, git)
+            candidate_identity = _candidate_identity(source_digest, git)
+            g2 = ImplementationEvidenceGateService().evaluate(
+                baseline,
+                ledger,
+                candidate=candidate_identity,
+                root=root,
+            )
+            g3 = IndependentReviewGateService().evaluate(
+                review,
+                baseline_id=baseline.baseline_id,
+                candidate=candidate_identity,
+                changed_paths=git.changed_paths,
+                candidate_paths=git.publication_paths,
+                approvals=approvals,
+            )
+            ui_result = UiValidationService().evaluate(
+                manifest=manifest,
+                candidate=candidate_identity,
+                validation=load_ui_validation(args.ui_validation),
+                root=root,
+            )
+            result = ReleaseCandidateGateService().evaluate(
+                root=root,
+                baseline=baseline,
+                ledger=ledger,
+                review=review,
+                candidate=load_release_candidate(args.candidate),
+                g2=g2,
+                g3=g3,
+                ui=ui_result,
+                git=git,
+            )
+        except (BaselineContractError, ContractError, OSError):
+            print("ERROR: release-candidate audit input is invalid.", file=sys.stderr)
+            return 2
+        _emit(result.to_dict(), as_json=args.json)
+        return 0 if result.passed else 2
+
+    if args.command == "handoff":
+        try:
+            root = _exact_working_root(args.root)
+            baseline = load_baseline(args.baseline)
+            ledger = load_evidence_ledger(args.ledger)
+            source_digest = inspect_specification(
+                root,
+                args.specification,
+                expected_filename=baseline.source.filename,
+            )
+            if source_digest != baseline.source.sha256:
+                raise ContractError("Handoff specification does not match the baseline.")
+            git = GitInspector(
+                SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)
+            ).inspect(root)
+            _require_specification_candidate(root, args.specification, git)
+            candidate_identity = _candidate_identity(source_digest, git)
+            if args.handoff_command == "create":
+                output_path = _m3_state_path(
+                    root,
+                    args.output,
+                    require_existing=False,
+                )
+                generated = HandoffService().create(
+                    args.input,
+                    baseline_id=baseline.baseline_id,
+                    candidate=candidate_identity,
+                    git=git,
+                    ledger=ledger,
+                )
+                _write_new_file(output_path, _json_text(generated.to_dict()))
+                if args.json:
+                    print(_json_text(generated.to_dict()), end="")
+                else:
+                    print(f"Automated handoff created: {args.output.name}")
+                return 0
+            stored_handoff = load_automated_handoff(
+                _m3_state_path(root, args.handoff, require_existing=True)
+            )
+            validate_handoff_resume(
+                stored_handoff,
+                baseline_id=baseline.baseline_id,
+                candidate=candidate_identity,
+                git=git,
+                ledger=ledger,
+            )
+        except (BaselineContractError, ContractError, OSError):
+            print("ERROR: automated handoff is invalid.", file=sys.stderr)
+            return 2
+        _emit(stored_handoff.to_dict(), as_json=args.json)
+        return 0
+
     if args.command == "agents":
         try:
             agent_registry = load_agent_registry(args.registry)
@@ -605,6 +985,76 @@ def _emit(payload: Mapping[str, object], *, as_json: bool) -> None:
         return
     for key, value in payload.items():
         print(f"{key}: {value}")
+
+
+def _exact_working_root(path: Path) -> Path:
+    root = path.resolve(strict=True)
+    if root != Path.cwd().resolve(strict=True):
+        raise ContractError("M3 root must be the working directory.")
+    return root
+
+
+def _m3_state_path(
+    root: Path,
+    path: Path,
+    *,
+    require_existing: bool,
+) -> Path:
+    """Require an exact regular path below repository-local ignored M3 state."""
+
+    state = root / ".sdaqf"
+    if (
+        not state.is_dir()
+        or state.is_symlink()
+        or is_reparse_point(state)
+    ):
+        raise ContractError("M3 state directory must be regular and repository-local.")
+    candidate = path if path.is_absolute() else root / path
+    try:
+        resolved = candidate.resolve(strict=require_existing)
+        resolved_state = state.resolve(strict=True)
+    except OSError as exc:
+        raise ContractError("M3 state path could not be resolved.") from exc
+    if not resolved.is_relative_to(resolved_state):
+        raise ContractError("Mutable M3 state must stay inside .sdaqf.")
+    current = resolved_state
+    for part in resolved.relative_to(resolved_state).parts[:-1]:
+        current = current / part
+        if not current.is_dir() or current.is_symlink() or is_reparse_point(current):
+            raise ContractError("M3 state parents must be regular directories.")
+    if require_existing and (
+        not resolved.is_file()
+        or resolved.is_symlink()
+        or is_reparse_point(resolved)
+    ):
+        raise ContractError("M3 state input must be a regular file.")
+    return resolved
+
+
+def _candidate_identity(
+    source_spec_sha256: str,
+    git: GitObservation,
+) -> CandidateIdentity:
+    return CandidateIdentity(
+        source_spec_sha256=source_spec_sha256,
+        git_head=git.head,
+        repository_digest=git.repository_digest,
+    )
+
+
+def _require_specification_candidate(
+    root: Path,
+    specification: Path,
+    git: GitObservation,
+) -> None:
+    """Require the observed specification to be in Git's publication set."""
+
+    try:
+        relative = specification.resolve(strict=True).relative_to(root).as_posix()
+    except (OSError, ValueError) as exc:
+        raise ContractError("Specification is outside the publication candidate.") from exc
+    if relative not in git.publication_paths:
+        raise ContractError("Specification is absent from the Git publication candidate.")
 
 
 def _write_new_file(path: Path, content: str) -> None:

@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "project_id": "ui-example",
+  "title": "UI Example",
+  "release_level": "prototype",
+  "source_spec": {
+    "filename": "sample-specification.md",
+    "sha256": "F28E02029768F80816001BD98DA43739F4BA33C1197710E02B1E20786EAD188B",
+    "imported_at": "2026-07-29T00:00:00+09:00"
+  },
+  "platforms": {
+    "required": ["windows"],
+    "optional": []
+  },
+  "ui": {
+    "present": true
+  },
+  "network_policy": "default-deny",
+  "api_required": false
+}

@@ -22,8 +22,10 @@ def test_required_public_documents_exist_and_are_nonempty() -> None:
         "docs/release-contract.md",
         "docs/evidence/M1-verification.md",
         "docs/evidence/M2-verification.md",
+        "docs/evidence/M3-verification.md",
         "docs/exec-plans/active/M1-requirements-planning.md",
         "docs/exec-plans/active/M2-agent-skill-tool-orchestration.md",
+        "docs/exec-plans/active/M3-evidence-ui-release-qa.md",
         "docs/guides/codex-local-permissions.md",
         "docs/handoffs/M1-goal.md",
     )
@@ -36,7 +38,8 @@ def test_required_public_documents_exist_and_are_nonempty() -> None:
     assert "Implemented in M0" in readme
     assert "Implemented in M1" in readme
     assert "Implemented in M2" in readme
-    assert "Not implemented through M2" in readme
+    assert "Implemented in M3" in readme
+    assert "Not implemented through M3" in readme
     assert not (root / "LICENSE").exists()
 
 
@@ -102,7 +105,7 @@ def test_m2_schema_and_sample_top_level_contracts_match() -> None:
         assert sample["schema_version"] == expected_version, sample_name
 
 
-def test_release_contract_and_ci_share_m2_gate_commands() -> None:
+def test_release_contract_and_ci_share_preserved_gate_commands() -> None:
     root = repository_root()
     release = (root / "docs" / "release-contract.md").read_text(encoding="utf-8")
     workflow = (root / ".github" / "workflows" / "ci.yml").read_text(
@@ -118,6 +121,11 @@ def test_release_contract_and_ci_share_m2_gate_commands() -> None:
     ):
         assert command in release
         assert command in workflow
+    for command in (
+        "src/sdaqf/application/quality_gates.py",
+        "src/sdaqf/application/release_qa.py",
+    ):
+        assert command in release
 
 
 def test_requirement_schema_rejects_unsafe_source_documents() -> None:
