@@ -366,7 +366,7 @@ def test_migration_rejects_link_input_when_supported(
         os.symlink(source, linked)
     except (OSError, NotImplementedError):
         pytest.skip("The environment does not permit symbolic-link creation.")
-    with pytest.raises(ContractError, match="regular file"):
+    with pytest.raises(ContractError, match="link or reparse point"):
         approved_migrate(
             root=tmp_path,
             contract="agent-registry",
