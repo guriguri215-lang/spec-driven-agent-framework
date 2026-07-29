@@ -358,3 +358,18 @@ published.
   tests with three environment skips and retained 91/94/90/91/93 percent
   total/M1/M2/M3/M4 coverage. Exact candidate-bound Windows/Linux Python
   3.12/3.13 evidence remains pending and is the remaining milestone Gate.
+- 2026-07-30: Owner-approved commit
+  `92f26216a92124274bcdcb193b84db15639a5a10` was pushed normally to private
+  `main`. Exact-SHA run `30464503453` found one test-only cross-platform
+  expectation mismatch in the symlink/reparse-point negative test; all four
+  jobs otherwise reached that same fail-closed rejection.
+- 2026-07-30: Changed only the test expectation to assert the actual
+  security-specific link/reparse rejection. Full local Gates passed again and
+  independent read-only re-review returned GO with Critical/High/Medium =
+  0/0/0. Fix commit `69468b201a7af110029285ac88efa663936deae5`
+  was pushed normally.
+- 2026-07-30: Exact-SHA Actions run `30465146945` completed successfully for
+  Windows and Linux on Python 3.12 and 3.13. Every matrix job passed tests,
+  lint, typing, coverage, audits, dependency consistency, and CLI smoke. The
+  platform record now binds the exact verified subject commit and repository
+  digest; macOS remains explicitly `NOT VERIFIED`.

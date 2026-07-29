@@ -2,42 +2,42 @@
   "schema_version": "1.0",
   "milestone": "M4",
   "candidate": {
-    "git_head": null,
-    "repository_digest": null,
+    "git_head": "69468b201a7af110029285ac88efa663936deae5",
+    "repository_digest": "926F3D303C86F3B3303F1998EAA5728E8869BE023BDDAD57A4003ADCF7F21DFC",
     "canonical_specification_sha256": "89340E628F631CEE6A020C7F1008446ECDB9D0470E7CD56B856F91BB9B10D2D5"
   },
   "matrix": [
     {
       "platform": "linux",
       "python": "3.12",
-      "status": "NOT_VERIFIED",
-      "command": "python scripts/run_cli_smoke.py",
-      "source": "not-run",
-      "run_id": null
+      "status": "PASS",
+      "command": "Continuous integration: Run tests through Run CLI smoke checks",
+      "source": "exact-sha-ci",
+      "run_id": 30465146945
     },
     {
       "platform": "linux",
       "python": "3.13",
-      "status": "NOT_VERIFIED",
-      "command": "python scripts/run_cli_smoke.py",
-      "source": "not-run",
-      "run_id": null
+      "status": "PASS",
+      "command": "Continuous integration: Run tests through Run CLI smoke checks",
+      "source": "exact-sha-ci",
+      "run_id": 30465146945
     },
     {
       "platform": "windows",
       "python": "3.12",
-      "status": "NOT_VERIFIED",
-      "command": "python scripts/run_cli_smoke.py",
-      "source": "not-run",
-      "run_id": null
+      "status": "PASS",
+      "command": "Continuous integration: Run tests through Run CLI smoke checks",
+      "source": "exact-sha-ci",
+      "run_id": 30465146945
     },
     {
       "platform": "windows",
       "python": "3.13",
-      "status": "NOT_VERIFIED",
-      "command": "python scripts/run_cli_smoke.py",
-      "source": "not-run",
-      "run_id": null
+      "status": "PASS",
+      "command": "Continuous integration: Run tests through Run CLI smoke checks",
+      "source": "exact-sha-ci",
+      "run_id": 30465146945
     }
   ],
   "macos": {
@@ -45,7 +45,8 @@
     "reason": "No macOS execution environment was available for this milestone."
   },
   "limitations": [
-    "This initial record must be updated only from exact candidate-bound execution evidence.",
-    "The successful M3 matrix does not verify the uncommitted M4 candidate."
+    "Run 30465146945 verifies exact subject commit 69468b201a7af110029285ac88efa663936deae5; this record is a later evidence-only attestation.",
+    "The successful M3 matrix is not reused as M4 evidence.",
+    "No macOS execution environment was available."
   ]
 }

@@ -73,20 +73,25 @@ ignored.
 
 ## Verification status
 
-Every local Release Contract Gate passes for the current uncommitted
-publication candidate. The canonical specification digest remains unchanged,
-the branch remains `main`, the starting HEAD remains checked out, and the
-staged set remains empty.
+Every local Release Contract Gate passes for subject commit
+`69468b201a7af110029285ac88efa663936deae5`. Its publication digest is
+`926F3D303C86F3B3303F1998EAA5728E8869BE023BDDAD57A4003ADCF7F21DFC`
+across 248 paths. The canonical specification digest remains unchanged.
 
-Candidate-bound Windows/Linux Python 3.12/3.13 evidence is pending. The
-successful M3 matrix is not reused as M4 evidence. The milestone must not be
-reported complete until the platform record binds all required successful
-jobs to an exact M4 commit. Independent read-only review is `GO`, with no
-unresolved Critical, High, or Medium finding.
+Exact-SHA Actions run `30465146945` completed successfully for Windows and
+Linux on Python 3.12 and 3.13. Every matrix job passed tests, lint, strict
+typing, total/M1/M2 coverage, workspace/publication/dependency audits,
+installed-dependency consistency, and CLI smoke. The successful M3 matrix is
+not reused as M4 evidence. This document and the platform JSON are a later
+evidence-only attestation to the immutable verified subject commit.
+Independent read-only review is `GO`, with no unresolved Critical, High, or
+Medium finding.
 
 macOS is `NOT VERIFIED` because no macOS execution environment is available.
 No production dependency, project license, workflow, runner, repository
-setting, commit, push, or external publication has been added or performed.
+setting, PR, merge, tag, release, or public-visibility change was added or
+performed. The English local commits, private normal fast-forward pushes,
+and read-only GitHub observations were separately Owner-approved.
 
 The first independent read-only review returned `NO-GO`, with
 Critical/High/Medium = 0/3/4. Its findings covered comparison evidence
@@ -105,3 +110,11 @@ lowercase `.json` paths, Agent migrations require a non-null companion path and
 digest, and Tool migrations require both values to be null. Bidirectional
 negative tests cover these rules. The final independent read-only re-review is
 `GO`, with Critical/High/Medium = 0/0/0.
+
+The first M4 exact-SHA run, `30464503453`, exposed one cross-platform test-only
+expectation mismatch: all four environments correctly rejected a symlink or
+reparse-point migration input, while the test expected a less specific later
+error message. The test now asserts the actual fail-closed link rejection;
+runtime behavior is unchanged. Full local Gates passed again, independent
+read-only re-review returned `GO` with Critical/High/Medium = 0/0/0, and exact
+fix commit `69468b201a7af110029285ac88efa663936deae5` passed run `30465146945`.
