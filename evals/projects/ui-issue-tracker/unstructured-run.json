@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.0",
+  "run_id": "RUN-UIT-UNSTRUCTURED",
+  "workflow": "ordinary_unstructured_codex",
+  "input_identity": {
+    "project_id": "ui-issue-tracker",
+    "specification_sha256": "78E42746FA5189B283741F81E7F6C9B7D66D87B845F1B2317DBCF1A1D0F3AC0C",
+    "task_sha256": "9D03F712DB70003E5FE43385281BFE480DA96F265BB48450844819EA7B3D3897",
+    "starting_repository_digest": "FF6B50131C807DEF514726B5ACF238111C1102BBADBBAF4B53B5FF93275BAF67",
+    "model_id": "codex-current-session",
+    "client_surface": "Codex desktop",
+    "platform": "windows",
+    "python_version": "3.12.13",
+    "budget_units": 100,
+    "trial_id": "TRIAL-UIT-001"
+  },
+  "intervention": "No SDAQF artifacts; ordinary Codex task prompt and ad hoc completion review.",
+  "intervention_sha256": "2336C2859F9A801E3AA8491222C3E93085E89E647E24670287E93D765461470F",
+  "requirements_implemented": [
+    "C-UIT-001",
+    "FR-UIT-001",
+    "FR-UIT-002",
+    "FR-UIT-003",
+    "NFR-UIT-002"
+  ],
+  "scope_additions": ["SCOPE-UIT-CLOUD-SYNC"],
+  "critical_defects": [
+    {
+      "defect_id": "DEFECT-UIT-SCOPE",
+      "category": "must",
+      "requirement_ids": ["NG-UIT-001"],
+      "description": "Cloud synchronization contradicted the explicit non-goal.",
+      "resolved": false
+    }
+  ],
+  "rework_events": [
+    {
+      "event_id": "REWORK-UIT-001",
+      "failure_signature": "FAIL-UIT-STATES",
+      "description": "Added an error state after review found the missing state coverage."
+    }
+  ],
+  "approvals": [],
+  "handoffs": [
+    {"handoff_id": "HOF-UIT-UNSTRUCTURED", "status": "FAILED"}
+  ],
+  "trace": [
+    "Implemented create, status, and persistence behavior from the primary flow.",
+    "Added cloud synchronization as an unrequested convenience.",
+    "Reviewed visible states after the first completion claim."
+  ],
+  "decisions": [
+    "Prioritized the happy path over the complete state inventory.",
+    "Added cloud synchronization without tracing the non-goal."
+  ],
+  "evidence": [
+    {
+      "evidence_id": "EV-UIT-ADHOC-REVIEW",
+      "evidence_type": "MANUAL_REVIEW",
+      "status": "FAIL",
+      "path": "projects/ui-issue-tracker/evidence/unstructured-review.md",
+      "sha256": "53590A06AE4ABAAA1C4D2AEF256FFB24E8A19244670FD228478FF67EB01A5099",
+      "observed_at": "2026-07-29T12:10:00+09:00",
+      "command": "Manual review of the tracked authored scenario artifact."
+    },
+    {
+      "evidence_id": "EV-UIT-HAPPY-PATH",
+      "evidence_type": "TEST",
+      "status": "FAIL",
+      "path": "projects/ui-issue-tracker/evidence/unstructured-happy-path.md",
+      "sha256": "965682855D1DC6923713FDCFD52E124A93EF84EE6E6ACABD251D3CB139C665E6",
+      "observed_at": "2026-07-29T12:11:00+09:00",
+      "command": "Manual review of the tracked authored scenario artifact."
+    }
+  ],
+  "cause_analyses": [],
+  "cost": {
+    "status": "NOT_VERIFIED",
+    "elapsed_seconds": null,
+    "tool_calls": null,
+    "input_tokens": null,
+    "output_tokens": null,
+    "reason": "The client did not expose comparable per-arm cost telemetry."
+  },
+  "limitations": [
+    "This is an authored scenario fixture with content-bound review artifacts, not an independently executed Codex session.",
+    "No live target-browser observation is claimed by this evaluation fixture."
+  ]
+}

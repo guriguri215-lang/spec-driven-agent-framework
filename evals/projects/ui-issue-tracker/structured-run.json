@@ -1,0 +1,84 @@
+{
+  "schema_version": "1.0",
+  "run_id": "RUN-UIT-STRUCTURED",
+  "workflow": "structured_sdaqf",
+  "input_identity": {
+    "project_id": "ui-issue-tracker",
+    "specification_sha256": "78E42746FA5189B283741F81E7F6C9B7D66D87B845F1B2317DBCF1A1D0F3AC0C",
+    "task_sha256": "9D03F712DB70003E5FE43385281BFE480DA96F265BB48450844819EA7B3D3897",
+    "starting_repository_digest": "FF6B50131C807DEF514726B5ACF238111C1102BBADBBAF4B53B5FF93275BAF67",
+    "model_id": "codex-current-session",
+    "client_surface": "Codex desktop",
+    "platform": "windows",
+    "python_version": "3.12.13",
+    "budget_units": 100,
+    "trial_id": "TRIAL-UIT-001"
+  },
+  "intervention": "SDAQF requirement projection, UI-state contract, non-compensating gates, and handoff protocol.",
+  "intervention_sha256": "509F0439303AB6BAB87F3DB40E0FAFC5F1C5830830D5FBF88E00AD7ED333C4D2",
+  "requirements_implemented": [
+    "C-UIT-001",
+    "FR-UIT-001",
+    "FR-UIT-002",
+    "FR-UIT-003",
+    "FR-UIT-004",
+    "NFR-UIT-001",
+    "NFR-UIT-002",
+    "NG-UIT-001"
+  ],
+  "scope_additions": [],
+  "critical_defects": [],
+  "rework_events": [
+    {
+      "event_id": "REWORK-UIT-001",
+      "failure_signature": "FAIL-UIT-FOCUS",
+      "description": "Corrected one focus-order mismatch found by the planned accessibility check."
+    }
+  ],
+  "approvals": [],
+  "handoffs": [
+    {"handoff_id": "HOF-UIT-STRUCTURED", "status": "PASSED"}
+  ],
+  "trace": [
+    "Classified the sample as a UI project before implementation.",
+    "Enumerated required states, keyboard behavior, focus order, and contrast.",
+    "Recorded the accessibility correction and final evidence."
+  ],
+  "decisions": [
+    "Kept issue persistence local and offline.",
+    "Excluded authentication and cloud synchronization."
+  ],
+  "evidence": [
+    {
+      "evidence_id": "EV-UIT-ACCESSIBILITY",
+      "evidence_type": "MANUAL_REVIEW",
+      "status": "PASS",
+      "path": "projects/ui-issue-tracker/evidence/structured-accessibility.md",
+      "sha256": "C06E093C21D9B1FFD2A3F8E0A91C49B76C637C0DF9DA6B3BE3F45E448B3B5543",
+      "observed_at": "2026-07-29T12:08:00+09:00",
+      "command": "Manual review of the tracked authored scenario artifact."
+    },
+    {
+      "evidence_id": "EV-UIT-STATES",
+      "evidence_type": "SOURCE_REVIEW",
+      "status": "PASS",
+      "path": "projects/ui-issue-tracker/evidence/structured-states.md",
+      "sha256": "0CC24A18E63DE756CDB61BBF449B48B56D625A9FBFD5165C59D21A0B4F8EDC28",
+      "observed_at": "2026-07-29T12:09:00+09:00",
+      "command": "Manual review of the tracked authored scenario artifact."
+    }
+  ],
+  "cause_analyses": [],
+  "cost": {
+    "status": "NOT_VERIFIED",
+    "elapsed_seconds": null,
+    "tool_calls": null,
+    "input_tokens": null,
+    "output_tokens": null,
+    "reason": "The client did not expose comparable per-arm cost telemetry."
+  },
+  "limitations": [
+    "This is an authored scenario fixture with content-bound review artifacts, not an independently executed Codex session.",
+    "No live target-browser observation is claimed by this evaluation fixture."
+  ]
+}

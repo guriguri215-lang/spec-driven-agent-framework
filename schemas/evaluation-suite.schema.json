@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/evaluation-suite.schema.json",
+  "title": "M4 Evaluation Suite",
+  "type": "object",
+  "required": ["schema_version", "suite_id", "projects", "changes", "limitations"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "suite_id": {
+      "type": "string",
+      "pattern": "^EVS-[A-Z0-9][A-Z0-9-]{0,63}$"
+    },
+    "projects": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "project_id",
+          "specification",
+          "task",
+          "structured_instructions",
+          "unstructured_instructions",
+          "expectation",
+          "structured_run",
+          "unstructured_run"
+        ],
+        "properties": {
+          "project_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$"},
+          "specification": {"$ref": "#/$defs/path"},
+          "task": {"$ref": "#/$defs/path"},
+          "structured_instructions": {"$ref": "#/$defs/path"},
+          "unstructured_instructions": {"$ref": "#/$defs/path"},
+          "expectation": {"$ref": "#/$defs/path"},
+          "structured_run": {"$ref": "#/$defs/path"},
+          "unstructured_run": {"$ref": "#/$defs/path"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "changes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "change_id",
+          "artifact_type",
+          "artifact_id",
+          "before_run_id",
+          "after_run_id"
+        ],
+        "properties": {
+          "change_id": {"$ref": "#/$defs/identifier"},
+          "artifact_type": {"enum": ["skill", "template", "prompt"]},
+          "artifact_id": {"$ref": "#/$defs/text"},
+          "before_run_id": {"type": "string", "pattern": "^RUN-[A-Z0-9][A-Z0-9-]{0,63}$"},
+          "after_run_id": {"type": "string", "pattern": "^RUN-[A-Z0-9][A-Z0-9-]{0,63}$"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "limitations": {"$ref": "#/$defs/textArray"}
+  },
+  "$defs": {
+    "identifier": {"type": "string", "pattern": "^[A-Z][A-Z0-9-]{1,63}$"},
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240,
+      "pattern": "^(?![/.])(?!.*(?:^|/)\\.\\.?/)(?!.*\\\\)[A-Za-z0-9._/-]+$"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "pattern": "^[^\\r\\n\\u0000]+$"
+    },
+    "textArray": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/text"}
+    }
+  },
+  "additionalProperties": false
+}

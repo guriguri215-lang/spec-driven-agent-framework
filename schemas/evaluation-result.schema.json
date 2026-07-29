@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/evaluation-result.schema.json",
+  "title": "M4 Evaluation Result",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "suite_id",
+    "comparisons",
+    "hard_blockers",
+    "limitations",
+    "aggregate_score"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "suite_id": {
+      "type": "string",
+      "pattern": "^EVS-[A-Z0-9][A-Z0-9-]{0,63}$"
+    },
+    "comparisons": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "project_id",
+          "structured_run_id",
+          "unstructured_run_id",
+          "structured",
+          "unstructured"
+        ],
+        "properties": {
+          "project_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$"},
+          "structured_run_id": {"$ref": "#/$defs/runId"},
+          "unstructured_run_id": {"$ref": "#/$defs/runId"},
+          "structured": {"$ref": "#/$defs/metrics"},
+          "unstructured": {"$ref": "#/$defs/metrics"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "hard_blockers": {"$ref": "#/$defs/textArray"},
+    "limitations": {
+      "allOf": [
+        {"$ref": "#/$defs/textArray"},
+        {"minItems": 1}
+      ]
+    },
+    "aggregate_score": {"type": "null"}
+  },
+  "$defs": {
+    "runId": {
+      "type": "string",
+      "pattern": "^RUN-[A-Z0-9][A-Z0-9-]{0,63}$"
+    },
+    "metrics": {
+      "type": "object",
+      "required": [
+        "missed_requirements",
+        "scope_additions",
+        "critical_defects",
+        "rework",
+        "approval_count",
+        "failed_handoffs",
+        "trace_steps",
+        "decisions",
+        "evidence_items",
+        "cost",
+        "hard_blockers"
+      ],
+      "properties": {
+        "missed_requirements": {"type": "integer", "minimum": 0, "maximum": 1000000},
+        "scope_additions": {"type": "integer", "minimum": 0, "maximum": 1000000},
+        "critical_defects": {"type": "integer", "minimum": 0, "maximum": 1000000},
+        "rework": {"type": "integer", "minimum": 0, "maximum": 1000000},
+        "approval_count": {"type": "integer", "minimum": 0, "maximum": 1000000},
+        "failed_handoffs": {"type": "integer", "minimum": 0, "maximum": 1000000},
+        "trace_steps": {"type": "integer", "minimum": 1, "maximum": 1000000},
+        "decisions": {"type": "integer", "minimum": 1, "maximum": 1000000},
+        "evidence_items": {"type": "integer", "minimum": 1, "maximum": 1000000},
+        "cost": {"$ref": "#/$defs/cost"},
+        "hard_blockers": {"$ref": "#/$defs/textArray"}
+      },
+      "additionalProperties": false
+    },
+    "textArray": {
+      "type": "array",
+      "maxItems": 256,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000,
+        "pattern": "^[^\\r\\n\\u0000]+$"
+      }
+    },
+    "cost": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "status",
+            "elapsed_seconds",
+            "tool_calls",
+            "input_tokens",
+            "output_tokens",
+            "reason"
+          ],
+          "properties": {
+            "status": {"const": "AVAILABLE"},
+            "elapsed_seconds": {"type": "integer", "minimum": 0},
+            "tool_calls": {"type": "integer", "minimum": 0},
+            "input_tokens": {"type": "integer", "minimum": 0},
+            "output_tokens": {"type": "integer", "minimum": 0},
+            "reason": {"type": "null"}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "status",
+            "elapsed_seconds",
+            "tool_calls",
+            "input_tokens",
+            "output_tokens",
+            "reason"
+          ],
+          "properties": {
+            "status": {"const": "NOT_VERIFIED"},
+            "elapsed_seconds": {"type": "null"},
+            "tool_calls": {"type": "null"},
+            "input_tokens": {"type": "null"},
+            "output_tokens": {"type": "null"},
+            "reason": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500,
+              "pattern": "^[^\\r\\n\\u0000]+$"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "additionalProperties": false
+}

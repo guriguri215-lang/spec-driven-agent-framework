@@ -1,0 +1,65 @@
+{
+  "baseline_id": "RB-9BA516C3E8E6E051",
+  "diagnostic_kinds": [],
+  "project_id": "offline-config",
+  "requirements": [
+    {
+      "acceptance_ids": ["AC-C-CFG-001-01"],
+      "priority": "must",
+      "requirement_id": "C-CFG-001",
+      "statement": "The core must operate without network access.",
+      "type": "constraint",
+      "verification_methods": ["static-analysis", "source-review"]
+    },
+    {
+      "acceptance_ids": ["AC-C-CFG-002-01"],
+      "priority": "must",
+      "requirement_id": "C-CFG-002",
+      "statement": "The implementation must use no third-party runtime dependency.",
+      "type": "constraint",
+      "verification_methods": ["static-analysis", "source-review"]
+    },
+    {
+      "acceptance_ids": ["AC-FR-CFG-001-01"],
+      "priority": "must",
+      "requirement_id": "FR-CFG-001",
+      "statement": "The command must validate one UTF-8 JSON configuration file.",
+      "type": "functional",
+      "verification_methods": ["test"]
+    },
+    {
+      "acceptance_ids": ["AC-FR-CFG-002-01"],
+      "priority": "must",
+      "requirement_id": "FR-CFG-002",
+      "statement": "The command must report every unknown key without modifying the input.",
+      "type": "functional",
+      "verification_methods": ["test"]
+    },
+    {
+      "acceptance_ids": ["AC-FR-CFG-003-01"],
+      "priority": "must",
+      "requirement_id": "FR-CFG-003",
+      "statement": "The command must return a non-zero exit status for invalid configuration.",
+      "type": "functional",
+      "verification_methods": ["test"]
+    },
+    {
+      "acceptance_ids": ["AC-NFR-CFG-001-01"],
+      "priority": "must",
+      "requirement_id": "NFR-CFG-001",
+      "statement": "Validation must complete within two seconds for files up to one megabyte.",
+      "type": "nonfunctional",
+      "verification_methods": ["test", "benchmark"]
+    },
+    {
+      "acceptance_ids": ["AC-NG-CFG-001-01"],
+      "priority": "must",
+      "requirement_id": "NG-CFG-001",
+      "statement": "The project must not edit configuration files.",
+      "type": "non-goal",
+      "verification_methods": ["source-review"]
+    }
+  ],
+  "schema_version": "1.0",
+  "source_sha256": "9BA516C3E8E6E051FB8959B3DD06BBD0028BAADCA6D5627544F8D8386A8E9710"
+}

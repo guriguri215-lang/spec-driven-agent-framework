@@ -1,0 +1,73 @@
+{
+  "baseline_id": "RB-3ABF065700344B65",
+  "diagnostic_kinds": [],
+  "project_id": "secure-export",
+  "requirements": [
+    {
+      "acceptance_ids": ["AC-C-EXP-001-01"],
+      "priority": "must",
+      "requirement_id": "C-EXP-001",
+      "statement": "Export content must not contain credentials or authentication material.",
+      "type": "constraint",
+      "verification_methods": ["static-analysis", "source-review"]
+    },
+    {
+      "acceptance_ids": ["AC-C-EXP-002-01"],
+      "priority": "must",
+      "requirement_id": "C-EXP-002",
+      "statement": "The export workflow must operate without network transfer.",
+      "type": "constraint",
+      "verification_methods": ["static-analysis", "source-review"]
+    },
+    {
+      "acceptance_ids": ["AC-FR-EXP-001-01"],
+      "priority": "must",
+      "requirement_id": "FR-EXP-001",
+      "statement": "The command must export only the records selected by stable identifier.",
+      "type": "functional",
+      "verification_methods": ["test"]
+    },
+    {
+      "acceptance_ids": ["AC-FR-EXP-002-01"],
+      "priority": "must",
+      "requirement_id": "FR-EXP-002",
+      "statement": "The command must require an exact Owner approval before writing an export.",
+      "type": "functional",
+      "verification_methods": ["test"]
+    },
+    {
+      "acceptance_ids": ["AC-FR-EXP-003-01"],
+      "priority": "must",
+      "requirement_id": "FR-EXP-003",
+      "statement": "The command must reject an export target outside the owned project state directory.",
+      "type": "functional",
+      "verification_methods": ["test"]
+    },
+    {
+      "acceptance_ids": ["AC-FR-EXP-004-01"],
+      "priority": "must",
+      "requirement_id": "FR-EXP-004",
+      "statement": "The command must record the approval identifier and content digest for every successful export.",
+      "type": "functional",
+      "verification_methods": ["test"]
+    },
+    {
+      "acceptance_ids": ["AC-NFR-EXP-001-01"],
+      "priority": "must",
+      "requirement_id": "NFR-EXP-001",
+      "statement": "Identical selected records and options must produce identical export bytes.",
+      "type": "nonfunctional",
+      "verification_methods": ["test", "benchmark"]
+    },
+    {
+      "acceptance_ids": ["AC-NG-EXP-001-01"],
+      "priority": "must",
+      "requirement_id": "NG-EXP-001",
+      "statement": "The project must not upload, email, or publish an export.",
+      "type": "non-goal",
+      "verification_methods": ["source-review"]
+    }
+  ],
+  "schema_version": "1.0",
+  "source_sha256": "3ABF065700344B65F9208C3633AAC67B307931FCAA2590D7E57BD10EFAB4A396"
+}

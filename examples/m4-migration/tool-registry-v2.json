@@ -1,0 +1,21 @@
+{
+  "schema_version": "2.0",
+  "tools": [
+    {
+      "capability": "Inspect the local repository version.",
+      "max_attempts": 1,
+      "minimum_version": null,
+      "name": "git",
+      "network": {"destinations": [], "required": false},
+      "normal_scope": ["src", "tests"],
+      "optional": false,
+      "owner_approval": "not_required",
+      "platforms": ["linux", "macos", "windows"],
+      "protected_paths": [".git"],
+      "risk": "low",
+      "technical_approval": "not_required",
+      "version_command": ["git", "--version"],
+      "version_pattern": "git version ([0-9]+\\.[0-9]+(?:\\.[0-9]+)?)"
+    }
+  ]
+}

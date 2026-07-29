@@ -1,0 +1,78 @@
+{
+  "schema_version": "1.0",
+  "run_id": "RUN-EXP-STRUCTURED",
+  "workflow": "structured_sdaqf",
+  "input_identity": {
+    "project_id": "secure-export",
+    "specification_sha256": "3ABF065700344B65F9208C3633AAC67B307931FCAA2590D7E57BD10EFAB4A396",
+    "task_sha256": "9D03F712DB70003E5FE43385281BFE480DA96F265BB48450844819EA7B3D3897",
+    "starting_repository_digest": "FF6B50131C807DEF514726B5ACF238111C1102BBADBBAF4B53B5FF93275BAF67",
+    "model_id": "codex-current-session",
+    "client_surface": "Codex desktop",
+    "platform": "windows",
+    "python_version": "3.12.13",
+    "budget_units": 100,
+    "trial_id": "TRIAL-EXP-001"
+  },
+  "intervention": "SDAQF requirement projection, exact approval boundary, non-compensating gates, and handoff protocol.",
+  "intervention_sha256": "509F0439303AB6BAB87F3DB40E0FAFC5F1C5830830D5FBF88E00AD7ED333C4D2",
+  "requirements_implemented": [
+    "C-EXP-001",
+    "C-EXP-002",
+    "FR-EXP-001",
+    "FR-EXP-002",
+    "FR-EXP-003",
+    "FR-EXP-004",
+    "NFR-EXP-001",
+    "NG-EXP-001"
+  ],
+  "scope_additions": [],
+  "critical_defects": [],
+  "rework_events": [],
+  "approvals": ["APR-EXP-001"],
+  "handoffs": [
+    {"handoff_id": "HOF-EXP-STRUCTURED", "status": "PASSED"}
+  ],
+  "trace": [
+    "Classified approval and disclosure requirements as hard boundaries.",
+    "Mapped target containment and credential rejection to negative tests.",
+    "Recorded approval and content identity in the handoff evidence."
+  ],
+  "decisions": [
+    "Kept export state repository-local and offline.",
+    "Required an exact approval before every write."
+  ],
+  "evidence": [
+    {
+      "evidence_id": "EV-EXP-APPROVAL",
+      "evidence_type": "MANUAL_REVIEW",
+      "status": "PASS",
+      "path": "projects/secure-export/evidence/structured-approval.md",
+      "sha256": "47E80A38F51DD5126377FD0692D56CDA69302E75AC167E63912490168C0DE8D9",
+      "observed_at": "2026-07-29T12:04:00+09:00",
+      "command": "Manual review of the tracked authored scenario artifact."
+    },
+    {
+      "evidence_id": "EV-EXP-SECURITY",
+      "evidence_type": "SOURCE_REVIEW",
+      "status": "PASS",
+      "path": "projects/secure-export/evidence/structured-security.md",
+      "sha256": "5E6D2F18D2B899DBD8041B5D83811B0E2FF3588EE18861FAADF387F5C1C1AE2A",
+      "observed_at": "2026-07-29T12:05:00+09:00",
+      "command": "Manual review of the tracked authored scenario artifact."
+    }
+  ],
+  "cause_analyses": [],
+  "cost": {
+    "status": "NOT_VERIFIED",
+    "elapsed_seconds": null,
+    "tool_calls": null,
+    "input_tokens": null,
+    "output_tokens": null,
+    "reason": "The client did not expose comparable per-arm cost telemetry."
+  },
+  "limitations": [
+    "This is an authored scenario fixture with content-bound review artifacts, not an independently executed Codex session.",
+    "The record measures contract coverage and does not claim production security."
+  ]
+}

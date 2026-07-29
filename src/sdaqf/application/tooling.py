@@ -15,6 +15,7 @@ from pathlib import Path, PurePosixPath
 from typing import Self, cast
 from urllib.parse import urlsplit
 
+from sdaqf.application.contracts import ContractError, parse_json_object_bytes
 from sdaqf.application.workspace import is_reparse_point
 from sdaqf.domain.orchestration import RiskLevel
 from sdaqf.domain.tooling import (
@@ -127,7 +128,24 @@ class ToolContractError(ValueError):
 def load_tool_registry(path: Path) -> ToolRegistry:
     """Load a strict Tool Registry version 2.0."""
 
-    root = _load_object(path, "Tool Registry")
+    return _parse_tool_registry(_load_object(path, "Tool Registry"))
+
+
+def load_tool_registry_snapshot(content: bytes) -> ToolRegistry:
+    """Load a strict Tool Registry from one immutable bounded byte snapshot."""
+
+    try:
+        root = parse_json_object_bytes(
+            content,
+            "Tool Registry",
+            maximum_bytes=_MAX_REGISTRY_BYTES,
+        )
+    except ContractError as exc:
+        raise ToolContractError("Tool Registry snapshot is invalid.") from exc
+    return _parse_tool_registry(root)
+
+
+def _parse_tool_registry(root: dict[str, object]) -> ToolRegistry:
     _only_keys(root, {"schema_version", "tools"}, "Tool Registry")
     if _string(root.get("schema_version"), "schema_version") != "2.0":
         raise ToolContractError(

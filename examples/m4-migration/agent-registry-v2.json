@@ -1,0 +1,20 @@
+{
+  "agents": [
+    {
+      "can_write": false,
+      "display_name": "Legacy Reviewer",
+      "independent_reviewer": false,
+      "inputs": ["Approved requirements"],
+      "max_risk": "low",
+      "outputs": ["Structured review summary"],
+      "parallelism": ["sequential"],
+      "problem_types": ["discovery"],
+      "prohibited_actions": ["Modify files", "Publish data"],
+      "responsibilities": ["Review bounded project artifacts"],
+      "role_id": "legacy-reviewer",
+      "scales": ["small"],
+      "tools": ["git"]
+    }
+  ],
+  "schema_version": "2.0"
+}

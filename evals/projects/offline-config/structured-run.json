@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0",
+  "run_id": "RUN-CFG-STRUCTURED",
+  "workflow": "structured_sdaqf",
+  "input_identity": {
+    "project_id": "offline-config",
+    "specification_sha256": "9BA516C3E8E6E051FB8959B3DD06BBD0028BAADCA6D5627544F8D8386A8E9710",
+    "task_sha256": "9D03F712DB70003E5FE43385281BFE480DA96F265BB48450844819EA7B3D3897",
+    "starting_repository_digest": "FF6B50131C807DEF514726B5ACF238111C1102BBADBBAF4B53B5FF93275BAF67",
+    "model_id": "codex-current-session",
+    "client_surface": "Codex desktop",
+    "platform": "windows",
+    "python_version": "3.12.13",
+    "budget_units": 100,
+    "trial_id": "TRIAL-CFG-001"
+  },
+  "intervention": "SDAQF requirement projection, non-compensating gates, evidence ledger, and handoff protocol.",
+  "intervention_sha256": "509F0439303AB6BAB87F3DB40E0FAFC5F1C5830830D5FBF88E00AD7ED333C4D2",
+  "requirements_implemented": [
+    "C-CFG-001",
+    "C-CFG-002",
+    "FR-CFG-001",
+    "FR-CFG-002",
+    "FR-CFG-003",
+    "NFR-CFG-001",
+    "NG-CFG-001"
+  ],
+  "scope_additions": [],
+  "critical_defects": [],
+  "rework_events": [],
+  "approvals": [],
+  "handoffs": [
+    {"handoff_id": "HOF-CFG-STRUCTURED", "status": "PASSED"}
+  ],
+  "trace": [
+    "Normalized the specification before implementation.",
+    "Mapped each Must requirement to verification evidence.",
+    "Evaluated non-compensating completion and handoff checks."
+  ],
+  "decisions": [
+    "Kept JSON as the only supported configuration format.",
+    "Retained the offline and no-runtime-dependency boundaries."
+  ],
+  "evidence": [
+    {
+      "evidence_id": "EV-CFG-REGRESSION",
+      "evidence_type": "TEST",
+      "status": "PASS",
+      "path": "projects/offline-config/evidence/structured-regression.md",
+      "sha256": "EA2DB45D2CB509773AE81E1A17003710215A1A883013B8DA2E1816DAF6E193FF",
+      "observed_at": "2026-07-29T12:00:00+09:00",
+      "command": "Manual review of the tracked authored scenario artifact."
+    },
+    {
+      "evidence_id": "EV-CFG-SOURCE-REVIEW",
+      "evidence_type": "SOURCE_REVIEW",
+      "status": "PASS",
+      "path": "projects/offline-config/evidence/structured-source-review.md",
+      "sha256": "A0F7D233D5EDFD7BF78736E96F10C7C907446F38CCF4B10898DA1CFB1B9C7AEC",
+      "observed_at": "2026-07-29T12:01:00+09:00",
+      "command": "Manual review of the tracked authored scenario artifact."
+    }
+  ],
+  "cause_analyses": [],
+  "cost": {
+    "status": "NOT_VERIFIED",
+    "elapsed_seconds": null,
+    "tool_calls": null,
+    "input_tokens": null,
+    "output_tokens": null,
+    "reason": "The client did not expose comparable per-arm cost telemetry."
+  },
+  "limitations": [
+    "This is an authored scenario fixture with content-bound review artifacts, not an independently executed Codex session.",
+    "Exact backend model snapshot and per-arm token cost were not independently verified."
+  ]
+}

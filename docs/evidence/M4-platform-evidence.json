@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0",
+  "milestone": "M4",
+  "candidate": {
+    "git_head": null,
+    "repository_digest": null,
+    "canonical_specification_sha256": "89340E628F631CEE6A020C7F1008446ECDB9D0470E7CD56B856F91BB9B10D2D5"
+  },
+  "matrix": [
+    {
+      "platform": "linux",
+      "python": "3.12",
+      "status": "NOT_VERIFIED",
+      "command": "python scripts/run_cli_smoke.py",
+      "source": "not-run",
+      "run_id": null
+    },
+    {
+      "platform": "linux",
+      "python": "3.13",
+      "status": "NOT_VERIFIED",
+      "command": "python scripts/run_cli_smoke.py",
+      "source": "not-run",
+      "run_id": null
+    },
+    {
+      "platform": "windows",
+      "python": "3.12",
+      "status": "NOT_VERIFIED",
+      "command": "python scripts/run_cli_smoke.py",
+      "source": "not-run",
+      "run_id": null
+    },
+    {
+      "platform": "windows",
+      "python": "3.13",
+      "status": "NOT_VERIFIED",
+      "command": "python scripts/run_cli_smoke.py",
+      "source": "not-run",
+      "run_id": null
+    }
+  ],
+  "macos": {
+    "status": "NOT_VERIFIED",
+    "reason": "No macOS execution environment was available for this milestone."
+  },
+  "limitations": [
+    "This initial record must be updated only from exact candidate-bound execution evidence.",
+    "The successful M3 matrix does not verify the uncommitted M4 candidate."
+  ]
+}

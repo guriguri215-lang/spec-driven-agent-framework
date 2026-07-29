@@ -23,9 +23,15 @@ def test_required_public_documents_exist_and_are_nonempty() -> None:
         "docs/evidence/M1-verification.md",
         "docs/evidence/M2-verification.md",
         "docs/evidence/M3-verification.md",
+        "docs/evidence/M4-verification.md",
+        "docs/evidence/M4-platform-evidence.json",
         "docs/exec-plans/active/M1-requirements-planning.md",
         "docs/exec-plans/active/M2-agent-skill-tool-orchestration.md",
         "docs/exec-plans/active/M3-evidence-ui-release-qa.md",
+        "docs/exec-plans/active/M4-public-beta-hardening.md",
+        "docs/contributor-guide.md",
+        "docs/evaluation.md",
+        "docs/schema-migrations.md",
         "docs/guides/codex-local-permissions.md",
         "docs/handoffs/M1-goal.md",
     )
@@ -39,7 +45,8 @@ def test_required_public_documents_exist_and_are_nonempty() -> None:
     assert "Implemented in M1" in readme
     assert "Implemented in M2" in readme
     assert "Implemented in M3" in readme
-    assert "Not implemented through M3" in readme
+    assert "Implemented in M4" in readme
+    assert "Not implemented through M4" in readme
     assert not (root / "LICENSE").exists()
 
 
@@ -124,6 +131,9 @@ def test_release_contract_and_ci_share_preserved_gate_commands() -> None:
     for command in (
         "src/sdaqf/application/quality_gates.py",
         "src/sdaqf/application/release_qa.py",
+        "src/sdaqf/application/evaluation.py",
+        "src/sdaqf/application/migrations.py",
+        "evals/comparison-suite.json",
     ):
         assert command in release
 

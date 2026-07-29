@@ -1,0 +1,174 @@
+{
+  "aggregate_score": null,
+  "comparisons": [
+    {
+      "project_id": "offline-config",
+      "structured": {
+        "approval_count": 0,
+        "cost": {
+          "elapsed_seconds": null,
+          "input_tokens": null,
+          "output_tokens": null,
+          "reason": "The client did not expose comparable per-arm cost telemetry.",
+          "status": "NOT_VERIFIED",
+          "tool_calls": null
+        },
+        "critical_defects": 0,
+        "decisions": 2,
+        "evidence_items": 2,
+        "failed_handoffs": 0,
+        "hard_blockers": [],
+        "missed_requirements": 0,
+        "rework": 0,
+        "scope_additions": 0,
+        "trace_steps": 3
+      },
+      "structured_run_id": "RUN-CFG-STRUCTURED",
+      "unstructured": {
+        "approval_count": 0,
+        "cost": {
+          "elapsed_seconds": null,
+          "input_tokens": null,
+          "output_tokens": null,
+          "reason": "The client did not expose comparable per-arm cost telemetry.",
+          "status": "NOT_VERIFIED",
+          "tool_calls": null
+        },
+        "critical_defects": 0,
+        "decisions": 2,
+        "evidence_items": 2,
+        "failed_handoffs": 1,
+        "hard_blockers": ["MISSED-MUST:NFR-CFG-001"],
+        "missed_requirements": 1,
+        "rework": 2,
+        "scope_additions": 1,
+        "trace_steps": 3
+      },
+      "unstructured_run_id": "RUN-CFG-UNSTRUCTURED"
+    },
+    {
+      "project_id": "secure-export",
+      "structured": {
+        "approval_count": 1,
+        "cost": {
+          "elapsed_seconds": null,
+          "input_tokens": null,
+          "output_tokens": null,
+          "reason": "The client did not expose comparable per-arm cost telemetry.",
+          "status": "NOT_VERIFIED",
+          "tool_calls": null
+        },
+        "critical_defects": 0,
+        "decisions": 2,
+        "evidence_items": 2,
+        "failed_handoffs": 0,
+        "hard_blockers": [],
+        "missed_requirements": 0,
+        "rework": 0,
+        "scope_additions": 0,
+        "trace_steps": 3
+      },
+      "structured_run_id": "RUN-EXP-STRUCTURED",
+      "unstructured": {
+        "approval_count": 0,
+        "cost": {
+          "elapsed_seconds": null,
+          "input_tokens": null,
+          "output_tokens": null,
+          "reason": "The client did not expose comparable per-arm cost telemetry.",
+          "status": "NOT_VERIFIED",
+          "tool_calls": null
+        },
+        "critical_defects": 2,
+        "decisions": 2,
+        "evidence_items": 2,
+        "failed_handoffs": 1,
+        "hard_blockers": [
+          "CRITICAL:disclosure:DEFECT-EXP-DISCLOSURE",
+          "CRITICAL:security:DEFECT-EXP-APPROVAL",
+          "MISSED-MUST:C-EXP-001",
+          "MISSED-MUST:FR-EXP-002",
+          "MISSED-MUST:FR-EXP-004"
+        ],
+        "missed_requirements": 3,
+        "rework": 2,
+        "scope_additions": 1,
+        "trace_steps": 3
+      },
+      "unstructured_run_id": "RUN-EXP-UNSTRUCTURED"
+    },
+    {
+      "project_id": "ui-issue-tracker",
+      "structured": {
+        "approval_count": 0,
+        "cost": {
+          "elapsed_seconds": null,
+          "input_tokens": null,
+          "output_tokens": null,
+          "reason": "The client did not expose comparable per-arm cost telemetry.",
+          "status": "NOT_VERIFIED",
+          "tool_calls": null
+        },
+        "critical_defects": 0,
+        "decisions": 2,
+        "evidence_items": 2,
+        "failed_handoffs": 0,
+        "hard_blockers": [],
+        "missed_requirements": 0,
+        "rework": 1,
+        "scope_additions": 0,
+        "trace_steps": 3
+      },
+      "structured_run_id": "RUN-UIT-STRUCTURED",
+      "unstructured": {
+        "approval_count": 0,
+        "cost": {
+          "elapsed_seconds": null,
+          "input_tokens": null,
+          "output_tokens": null,
+          "reason": "The client did not expose comparable per-arm cost telemetry.",
+          "status": "NOT_VERIFIED",
+          "tool_calls": null
+        },
+        "critical_defects": 1,
+        "decisions": 2,
+        "evidence_items": 2,
+        "failed_handoffs": 1,
+        "hard_blockers": [
+          "CRITICAL:must:DEFECT-UIT-SCOPE",
+          "MISSED-MUST:FR-UIT-004",
+          "MISSED-MUST:NFR-UIT-001",
+          "MISSED-MUST:NG-UIT-001"
+        ],
+        "missed_requirements": 3,
+        "rework": 1,
+        "scope_additions": 1,
+        "trace_steps": 3
+      },
+      "unstructured_run_id": "RUN-UIT-UNSTRUCTURED"
+    }
+  ],
+  "hard_blockers": [
+    "offline-config:unstructured:MISSED-MUST:NFR-CFG-001",
+    "secure-export:unstructured:CRITICAL:disclosure:DEFECT-EXP-DISCLOSURE",
+    "secure-export:unstructured:CRITICAL:security:DEFECT-EXP-APPROVAL",
+    "secure-export:unstructured:MISSED-MUST:C-EXP-001",
+    "secure-export:unstructured:MISSED-MUST:FR-EXP-002",
+    "secure-export:unstructured:MISSED-MUST:FR-EXP-004",
+    "ui-issue-tracker:unstructured:CRITICAL:must:DEFECT-UIT-SCOPE",
+    "ui-issue-tracker:unstructured:MISSED-MUST:FR-UIT-004",
+    "ui-issue-tracker:unstructured:MISSED-MUST:NFR-UIT-001",
+    "ui-issue-tracker:unstructured:MISSED-MUST:NG-UIT-001"
+  ],
+  "limitations": [
+    "Exact backend model snapshot and per-arm token cost were not independently verified.",
+    "No live target-browser observation is claimed by this evaluation fixture.",
+    "Results measure the tracked fixtures and must not be generalized into a causal or production-readiness claim.",
+    "The comparison is not blinded, randomized, statistically powered, or an independent replication.",
+    "The paired records are authored single-session scenario fixtures with content-bound review artifacts, not independently executed Codex sessions.",
+    "The record measures contract coverage and does not claim production security.",
+    "This is an authored scenario fixture with content-bound review artifacts, not an independently executed Codex session."
+  ],
+  "schema_version": "1.0",
+  "suite_id": "EVS-PUBLIC-BETA-001"
+}

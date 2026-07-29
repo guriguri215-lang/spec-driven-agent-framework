@@ -1,0 +1,64 @@
+{
+  "schema_version": "1.0",
+  "suite_id": "EVS-PUBLIC-BETA-001",
+  "projects": [
+    {
+      "project_id": "offline-config",
+      "specification": "projects/offline-config/specification.md",
+      "task": "projects/offline-config/task.md",
+      "structured_instructions": "protocols/structured-instructions.md",
+      "unstructured_instructions": "protocols/ordinary-instructions.md",
+      "expectation": "projects/offline-config/expected-normalized.json",
+      "structured_run": "projects/offline-config/structured-run.json",
+      "unstructured_run": "projects/offline-config/unstructured-run.json"
+    },
+    {
+      "project_id": "secure-export",
+      "specification": "projects/secure-export/specification.md",
+      "task": "projects/secure-export/task.md",
+      "structured_instructions": "protocols/structured-instructions.md",
+      "unstructured_instructions": "protocols/ordinary-instructions.md",
+      "expectation": "projects/secure-export/expected-normalized.json",
+      "structured_run": "projects/secure-export/structured-run.json",
+      "unstructured_run": "projects/secure-export/unstructured-run.json"
+    },
+    {
+      "project_id": "ui-issue-tracker",
+      "specification": "projects/ui-issue-tracker/specification.md",
+      "task": "projects/ui-issue-tracker/task.md",
+      "structured_instructions": "protocols/structured-instructions.md",
+      "unstructured_instructions": "protocols/ordinary-instructions.md",
+      "expectation": "projects/ui-issue-tracker/expected-normalized.json",
+      "structured_run": "projects/ui-issue-tracker/structured-run.json",
+      "unstructured_run": "projects/ui-issue-tracker/unstructured-run.json"
+    }
+  ],
+  "changes": [
+    {
+      "change_id": "CHANGE-CFG-PROMPT",
+      "artifact_type": "prompt",
+      "artifact_id": "evaluation-protocol-v1",
+      "before_run_id": "RUN-CFG-UNSTRUCTURED",
+      "after_run_id": "RUN-CFG-STRUCTURED"
+    },
+    {
+      "change_id": "CHANGE-EXP-PROMPT",
+      "artifact_type": "prompt",
+      "artifact_id": "evaluation-protocol-v1",
+      "before_run_id": "RUN-EXP-UNSTRUCTURED",
+      "after_run_id": "RUN-EXP-STRUCTURED"
+    },
+    {
+      "change_id": "CHANGE-UIT-PROMPT",
+      "artifact_type": "prompt",
+      "artifact_id": "evaluation-protocol-v1",
+      "before_run_id": "RUN-UIT-UNSTRUCTURED",
+      "after_run_id": "RUN-UIT-STRUCTURED"
+    }
+  ],
+  "limitations": [
+    "The paired records are authored single-session scenario fixtures with content-bound review artifacts, not independently executed Codex sessions.",
+    "The comparison is not blinded, randomized, statistically powered, or an independent replication.",
+    "Results measure the tracked fixtures and must not be generalized into a causal or production-readiness claim."
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "schema_version": "1.0",
+  "run_id": "RUN-EXP-UNSTRUCTURED",
+  "workflow": "ordinary_unstructured_codex",
+  "input_identity": {
+    "project_id": "secure-export",
+    "specification_sha256": "3ABF065700344B65F9208C3633AAC67B307931FCAA2590D7E57BD10EFAB4A396",
+    "task_sha256": "9D03F712DB70003E5FE43385281BFE480DA96F265BB48450844819EA7B3D3897",
+    "starting_repository_digest": "FF6B50131C807DEF514726B5ACF238111C1102BBADBBAF4B53B5FF93275BAF67",
+    "model_id": "codex-current-session",
+    "client_surface": "Codex desktop",
+    "platform": "windows",
+    "python_version": "3.12.13",
+    "budget_units": 100,
+    "trial_id": "TRIAL-EXP-001"
+  },
+  "intervention": "No SDAQF artifacts; ordinary Codex task prompt and ad hoc completion review.",
+  "intervention_sha256": "2336C2859F9A801E3AA8491222C3E93085E89E647E24670287E93D765461470F",
+  "requirements_implemented": [
+    "C-EXP-002",
+    "FR-EXP-001",
+    "FR-EXP-003",
+    "NFR-EXP-001",
+    "NG-EXP-001"
+  ],
+  "scope_additions": ["SCOPE-EXP-AUTO-UPLOAD"],
+  "critical_defects": [
+    {
+      "defect_id": "DEFECT-EXP-APPROVAL",
+      "category": "security",
+      "requirement_ids": ["FR-EXP-002"],
+      "description": "The first export write did not require the exact Owner approval.",
+      "resolved": false
+    },
+    {
+      "defect_id": "DEFECT-EXP-DISCLOSURE",
+      "category": "disclosure",
+      "requirement_ids": ["C-EXP-001"],
+      "description": "Credential-shaped content was not rejected before export.",
+      "resolved": false
+    }
+  ],
+  "rework_events": [
+    {
+      "event_id": "REWORK-EXP-001",
+      "failure_signature": "FAIL-EXP-BOUNDARY",
+      "description": "Added approval checking after the initial write path was reviewed."
+    },
+    {
+      "event_id": "REWORK-EXP-002",
+      "failure_signature": "FAIL-EXP-BOUNDARY",
+      "description": "Added credential rejection after the second boundary review."
+    }
+  ],
+  "approvals": [],
+  "handoffs": [
+    {"handoff_id": "HOF-EXP-UNSTRUCTURED", "status": "FAILED"}
+  ],
+  "trace": [
+    "Implemented selection and deterministic output first.",
+    "Added an automatic upload option outside the approved scope.",
+    "Discovered approval and disclosure failures during ad hoc review."
+  ],
+  "decisions": [
+    "Deferred approval handling until after the first write path.",
+    "Treated automatic upload as a convenience despite the non-goal."
+  ],
+  "evidence": [
+    {
+      "evidence_id": "EV-EXP-ADHOC-REVIEW",
+      "evidence_type": "MANUAL_REVIEW",
+      "status": "FAIL",
+      "path": "projects/secure-export/evidence/unstructured-review.md",
+      "sha256": "404F80A7DACA8C9DE7C21461B19AACF746478781B85F29FC4617F3A2091807CE",
+      "observed_at": "2026-07-29T12:06:00+09:00",
+      "command": "Manual review of the tracked authored scenario artifact."
+    },
+    {
+      "evidence_id": "EV-EXP-CAUSE",
+      "evidence_type": "MANUAL_REVIEW",
+      "status": "PASS",
+      "path": "projects/secure-export/evidence/unstructured-cause.md",
+      "sha256": "0A228D0700903A788943E6E1EB7176633A0B3A3D48C7B571C0219B684BDFFADF",
+      "observed_at": "2026-07-29T12:07:00+09:00",
+      "command": "Manual review of the tracked authored scenario artifact."
+    }
+  ],
+  "cause_analyses": [
+    {
+      "failure_signature": "FAIL-EXP-BOUNDARY",
+      "layers": ["instructions", "schema", "tests"],
+      "owner": "evaluation maintainer",
+      "action": "Make approval and disclosure failures explicit non-compensating checks.",
+      "status": "verified",
+      "verification_evidence": ["EV-EXP-CAUSE"]
+    }
+  ],
+  "cost": {
+    "status": "NOT_VERIFIED",
+    "elapsed_seconds": null,
+    "tool_calls": null,
+    "input_tokens": null,
+    "output_tokens": null,
+    "reason": "The client did not expose comparable per-arm cost telemetry."
+  },
+  "limitations": [
+    "This is an authored scenario fixture with content-bound review artifacts, not an independently executed Codex session.",
+    "The record measures contract coverage and does not claim production security."
+  ]
+}

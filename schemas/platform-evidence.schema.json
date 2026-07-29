@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/platform-evidence.schema.json",
+  "title": "M4 Platform Evidence",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "milestone",
+    "candidate",
+    "matrix",
+    "macos",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "milestone": {"const": "M4"},
+    "candidate": {
+      "type": "object",
+      "required": [
+        "git_head",
+        "repository_digest",
+        "canonical_specification_sha256"
+      ],
+      "properties": {
+        "git_head": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"},
+        "repository_digest": {"$ref": "#/$defs/sha256OrNull"},
+        "canonical_specification_sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "matrix": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "platform",
+          "python",
+          "status",
+          "command",
+          "source",
+          "run_id"
+        ],
+        "properties": {
+          "platform": {"enum": ["windows", "linux"]},
+          "python": {"enum": ["3.12", "3.13"]},
+          "status": {"enum": ["PASS", "NOT_VERIFIED"]},
+          "command": {"$ref": "#/$defs/text"},
+          "source": {"enum": ["local", "exact-sha-ci", "not-run"]},
+          "run_id": {"type": ["integer", "null"], "minimum": 1}
+        },
+        "additionalProperties": false
+      }
+    },
+    "macos": {
+      "type": "object",
+      "required": ["status", "reason"],
+      "properties": {
+        "status": {"enum": ["PASS", "NOT_VERIFIED"]},
+        "reason": {"$ref": "#/$defs/text"}
+      },
+      "additionalProperties": false
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/text"}
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9A-F]{64}$"},
+    "sha256OrNull": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9A-F]{64}$"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "pattern": "^[^\\r\\n\\u0000]+$"
+    }
+  },
+  "additionalProperties": false
+}

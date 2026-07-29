@@ -3,10 +3,11 @@
 SDAQF is a specification-driven development and quality-assurance framework for
 Codex-assisted projects. This repository contains the M0 Bootstrap Foundation,
 M1 Requirements and Planning MVP, M2 Agent, Skill, and Tool Orchestration, and
-M3 Evidence, UI/UX, and Release QA: an offline-first Python CLI, deterministic
+M3 Evidence, UI/UX, and Release QA, plus M4 Public Beta Hardening: an
+offline-first Python CLI, deterministic
 requirement, orchestration, evidence, review, UI-observation, release, and
-handoff contracts, safety guidance, reusable agent skills, and local quality
-gates.
+handoff contracts, representative evaluation projects, explicit schema
+migration, safety guidance, reusable agent skills, and local quality gates.
 
 The authoritative source for this bootstrap was a private Japanese
 specification. The public English baseline records its source digest without
@@ -99,18 +100,42 @@ copying private workspace state.
 - `evidence`, `gate implementation`, `gate review`, `ui`,
   `audit release-candidate`, and `handoff` CLI paths.
 
+## Implemented in M4
+
+- Three representative sample specifications for an offline non-UI command,
+  an offline UI workflow, and an approval/security-sensitive export, each with
+  an expected deterministic normalization projection.
+- Strict evaluation-suite and run-record contracts with exact input parity,
+  deterministic missed requirements, scope additions, critical defects,
+  rework, approvals, and failed handoffs.
+- Execution trace, decision, evidence, and cost-availability comparison without
+  an aggregate score. Must, security, data-loss, and disclosure failures remain
+  named hard blockers.
+- A tracked paired structured-SDAQF and ordinary-unstructured-Codex fixture
+  result with content-bound review artifacts and explicit authored-scenario,
+  non-empirical, non-causal limitations.
+- Explicit non-destructive Agent Registry and Tool Registry 1.0-to-2.0
+  migration with conservative defaults, current-loader validation, source
+  preservation, and exact rollback guidance.
+- Public contributor, evaluation, migration, architecture, extension,
+  security, testing, and release-limit documentation.
+- `eval validate`, `eval compare`, and `schema migrate` CLI paths.
+
 The pinned development dependency and license record is in
 `docs/dependencies.md`.
 
 ## Known limitations
 
-### Not implemented through M3
+### Not implemented through M4
 
 - Automatic Git worktree creation, deletion, or integration.
 - A management UI or automatic browser installation and launch. The offline
   core validates browser observations recorded by a host capability.
 - Gate G5 publication or automatic release publication.
-- Automated schema migration and M4 cross-project evaluation.
+- Migration for contracts other than the explicit Agent and Tool Registry
+  1.0-to-2.0 routes.
+- A blinded, randomized, independently replicated, statistically powered, or
+  cost-comparable Codex benchmark.
 - Solver, OpenAI API, or Agents SDK integrations.
 - GitHub repository creation, remotes, pushes, pull requests, issues, tags, or
   releases.
@@ -157,11 +182,14 @@ python -m sdaqf gate review .sdaqf/review.json --baseline baseline.json --specif
 python -m sdaqf ui validate manifest.json .sdaqf/ui-validation.json --specification specification.md --json
 python -m sdaqf audit release-candidate .sdaqf/release-candidate.json --root . --baseline baseline.json --ledger .sdaqf/ledger.json --review .sdaqf/review.json --manifest manifest.json --ui-validation .sdaqf/ui-validation.json --specification specification.md --json
 python -m sdaqf handoff create handoff-input.json --baseline baseline.json --ledger .sdaqf/ledger.json --specification specification.md --output .sdaqf/handoff.json --json
+python -m sdaqf eval validate evals/comparison-suite.json --result evals/results/public-beta-comparison.json --json
+python -m sdaqf eval compare evals/comparison-suite.json --json
+python -m sdaqf schema migrate --contract agent-registry --from-version 1.0 --to-version 2.0 examples/m4-migration/agent-registry-v1.json --output migrated-agent-registry.json --approval .sdaqf/migration-approval.json --tool-registry examples/m4-migration/tool-registry-v2.json --json
 ```
 
 ## Safety boundaries
 
-The runtime remains offline-first through M3. Private remote operations and any
+The runtime remains offline-first through M4. Private remote operations and any
 publication require an exact Owner-approved target and scope. A technical
 sandbox approval never authorizes publication, destructive Git operations,
 credential access, or machine-wide configuration changes.
@@ -176,6 +204,11 @@ Gate G4 installation evidence must target the derived
 regular files in Git's cached-plus-untracked publication set; ignored worktree
 files are never build inputs. Both owned install directories are named in the
 exact rollback contract.
+
+Schema migration never runs implicitly and never overwrites its source or an
+existing output. Evaluation fixtures are measurement inputs, not instructions,
+and their tracked comparison result does not establish causation, model
+quality, production security, or production readiness.
 
 ## License status
 

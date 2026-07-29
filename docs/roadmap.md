@@ -41,7 +41,9 @@ remains Gate G5.
 
 ## M4: Public Beta Hardening
 
-Status: not implemented.
+Status: implemented by the current milestone.
 
 Validate multiple sample projects, expand platform coverage, run comparative
-evaluations, add schema migrations, and harden contributor documentation.
+evaluations, add explicit schema migrations, and harden contributor
+documentation. Candidate-bound cross-platform verification remains recorded
+separately from implementation and may not be inferred from a prior commit.

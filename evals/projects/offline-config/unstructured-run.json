@@ -1,0 +1,96 @@
+{
+  "schema_version": "1.0",
+  "run_id": "RUN-CFG-UNSTRUCTURED",
+  "workflow": "ordinary_unstructured_codex",
+  "input_identity": {
+    "project_id": "offline-config",
+    "specification_sha256": "9BA516C3E8E6E051FB8959B3DD06BBD0028BAADCA6D5627544F8D8386A8E9710",
+    "task_sha256": "9D03F712DB70003E5FE43385281BFE480DA96F265BB48450844819EA7B3D3897",
+    "starting_repository_digest": "FF6B50131C807DEF514726B5ACF238111C1102BBADBBAF4B53B5FF93275BAF67",
+    "model_id": "codex-current-session",
+    "client_surface": "Codex desktop",
+    "platform": "windows",
+    "python_version": "3.12.13",
+    "budget_units": 100,
+    "trial_id": "TRIAL-CFG-001"
+  },
+  "intervention": "No SDAQF artifacts; ordinary Codex task prompt and ad hoc completion review.",
+  "intervention_sha256": "2336C2859F9A801E3AA8491222C3E93085E89E647E24670287E93D765461470F",
+  "requirements_implemented": [
+    "C-CFG-001",
+    "C-CFG-002",
+    "FR-CFG-001",
+    "FR-CFG-002",
+    "FR-CFG-003",
+    "NG-CFG-001"
+  ],
+  "scope_additions": ["SCOPE-CFG-YAML"],
+  "critical_defects": [],
+  "rework_events": [
+    {
+      "event_id": "REWORK-CFG-001",
+      "failure_signature": "FAIL-CFG-PERFORMANCE",
+      "description": "Added a bounded-file performance check after omission review."
+    },
+    {
+      "event_id": "REWORK-CFG-002",
+      "failure_signature": "FAIL-CFG-PERFORMANCE",
+      "description": "Revised the check after the first threshold did not match the specification."
+    }
+  ],
+  "approvals": [],
+  "handoffs": [
+    {"handoff_id": "HOF-CFG-UNSTRUCTURED", "status": "FAILED"}
+  ],
+  "trace": [
+    "Implemented the three command behaviors from a prose reading.",
+    "Added YAML support without a traced requirement.",
+    "Discovered the performance omission during completion review."
+  ],
+  "decisions": [
+    "Treated an additional configuration format as helpful.",
+    "Deferred the performance requirement during the first completion pass."
+  ],
+  "evidence": [
+    {
+      "evidence_id": "EV-CFG-CAUSE",
+      "evidence_type": "MANUAL_REVIEW",
+      "status": "PASS",
+      "path": "projects/offline-config/evidence/unstructured-cause.md",
+      "sha256": "72D83F74E3E79BE07F7AA244473266F82969EFB2E7FF6B76013CB2846466DED0",
+      "observed_at": "2026-07-29T12:02:00+09:00",
+      "command": "Manual review of the tracked authored scenario artifact."
+    },
+    {
+      "evidence_id": "EV-CFG-UNIT",
+      "evidence_type": "TEST",
+      "status": "FAIL",
+      "path": "projects/offline-config/evidence/unstructured-unit.md",
+      "sha256": "65EC91715BC78ED40D380E97F2E41D0A713B61671F4191D18F9D777CDA876353",
+      "observed_at": "2026-07-29T12:03:00+09:00",
+      "command": "Manual review of the tracked authored scenario artifact."
+    }
+  ],
+  "cause_analyses": [
+    {
+      "failure_signature": "FAIL-CFG-PERFORMANCE",
+      "layers": ["instructions", "tests"],
+      "owner": "evaluation maintainer",
+      "action": "Require a requirement checklist and a threshold test before completion.",
+      "status": "verified",
+      "verification_evidence": ["EV-CFG-CAUSE"]
+    }
+  ],
+  "cost": {
+    "status": "NOT_VERIFIED",
+    "elapsed_seconds": null,
+    "tool_calls": null,
+    "input_tokens": null,
+    "output_tokens": null,
+    "reason": "The client did not expose comparable per-arm cost telemetry."
+  },
+  "limitations": [
+    "This is an authored scenario fixture with content-bound review artifacts, not an independently executed Codex session.",
+    "Exact backend model snapshot and per-arm token cost were not independently verified."
+  ]
+}

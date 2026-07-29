@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "tools": [
+    {
+      "name": "git",
+      "capability": "Inspect the local repository version.",
+      "command": ["git", "--version"],
+      "platforms": ["windows", "linux", "macos"],
+      "normal_scope": ["src", "tests"],
+      "network": {"required": false, "destinations": []},
+      "sandbox_status": "AVAILABLE",
+      "technical_approval": "not_required",
+      "owner_approval": "not_required",
+      "risk": "low"
+    }
+  ]
+}

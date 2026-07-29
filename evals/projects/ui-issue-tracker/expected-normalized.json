@@ -1,0 +1,73 @@
+{
+  "baseline_id": "RB-78E42746FA5189B2",
+  "diagnostic_kinds": [],
+  "project_id": "ui-issue-tracker",
+  "requirements": [
+    {
+      "acceptance_ids": ["AC-C-UIT-001-01"],
+      "priority": "must",
+      "requirement_id": "C-UIT-001",
+      "statement": "Core issue management must operate without network access.",
+      "type": "constraint",
+      "verification_methods": ["static-analysis", "source-review"]
+    },
+    {
+      "acceptance_ids": ["AC-FR-UIT-001-01"],
+      "priority": "must",
+      "requirement_id": "FR-UIT-001",
+      "statement": "A user must create an issue with a title and status.",
+      "type": "functional",
+      "verification_methods": ["test"]
+    },
+    {
+      "acceptance_ids": ["AC-FR-UIT-002-01"],
+      "priority": "must",
+      "requirement_id": "FR-UIT-002",
+      "statement": "A user must move an issue between open and closed states.",
+      "type": "functional",
+      "verification_methods": ["test"]
+    },
+    {
+      "acceptance_ids": ["AC-FR-UIT-003-01"],
+      "priority": "must",
+      "requirement_id": "FR-UIT-003",
+      "statement": "The application must persist issues in local project storage.",
+      "type": "functional",
+      "verification_methods": ["test"]
+    },
+    {
+      "acceptance_ids": ["AC-FR-UIT-004-01"],
+      "priority": "must",
+      "requirement_id": "FR-UIT-004",
+      "statement": "The interface must present loading, empty, error, permission-denied, and offline states.",
+      "type": "functional",
+      "verification_methods": ["test"]
+    },
+    {
+      "acceptance_ids": ["AC-NFR-UIT-001-01"],
+      "priority": "must",
+      "requirement_id": "NFR-UIT-001",
+      "statement": "Every primary flow must support keyboard operation and a visible focus order.",
+      "type": "nonfunctional",
+      "verification_methods": ["test", "benchmark"]
+    },
+    {
+      "acceptance_ids": ["AC-NFR-UIT-002-01"],
+      "priority": "must",
+      "requirement_id": "NFR-UIT-002",
+      "statement": "Text and controls must meet the documented contrast threshold.",
+      "type": "nonfunctional",
+      "verification_methods": ["test", "benchmark"]
+    },
+    {
+      "acceptance_ids": ["AC-NG-UIT-001-01"],
+      "priority": "must",
+      "requirement_id": "NG-UIT-001",
+      "statement": "The project must not add account authentication or cloud synchronization.",
+      "type": "non-goal",
+      "verification_methods": ["source-review"]
+    }
+  ],
+  "schema_version": "1.0",
+  "source_sha256": "78E42746FA5189B283741F81E7F6C9B7D66D87B845F1B2317DBCF1A1D0F3AC0C"
+}

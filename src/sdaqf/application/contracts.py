@@ -62,28 +62,49 @@ def load_json_object(
     try:
         if path.stat().st_size > maximum_bytes:
             raise ContractError(f"{label} exceeds the size limit.")
+        content = path.read_bytes()
+    except ContractError:
+        raise
+    except OSError as exc:
+        raise ContractError(f"{label} could not be read.") from exc
+    return parse_json_object_bytes(
+        content,
+        label,
+        maximum_bytes=maximum_bytes,
+    )
 
-        def strict_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
-            result: dict[str, object] = {}
-            for key, value in pairs:
-                if key in result:
-                    raise ContractError(f"{label} contains a duplicate JSON key.")
-                result[key] = value
-            return result
 
-        def reject_constant(value: str) -> object:
-            raise ContractError(
-                f"{label} contains non-finite JSON number {value}."
-            )
+def parse_json_object_bytes(
+    content: bytes,
+    label: str,
+    *,
+    maximum_bytes: int = 256 * 1024,
+) -> dict[str, object]:
+    """Parse one immutable bounded UTF-8 JSON snapshot with strict keys."""
 
+    if len(content) > maximum_bytes:
+        raise ContractError(f"{label} exceeds the size limit.")
+
+    def strict_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        result: dict[str, object] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ContractError(f"{label} contains a duplicate JSON key.")
+            result[key] = value
+        return result
+
+    def reject_constant(value: str) -> object:
+        raise ContractError(f"{label} contains non-finite JSON number {value}.")
+
+    try:
         decoded: object = json.loads(
-            path.read_text(encoding="utf-8", errors="strict"),
+            content.decode("utf-8", errors="strict"),
             object_pairs_hook=strict_object,
             parse_constant=reject_constant,
         )
     except ContractError:
         raise
-    except (OSError, UnicodeError, ValueError, RecursionError) as exc:
+    except (UnicodeError, ValueError, RecursionError) as exc:
         raise ContractError(f"{label} could not be read.") from exc
     _validate_json_structure(decoded, label)
     return object_value(decoded, label)

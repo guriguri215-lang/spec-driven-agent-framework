@@ -25,6 +25,9 @@ selection, worktree-plan validation, Skill and template lifecycle evaluation,
 tool capability observation, retry control, and atomic checkpoint recovery. M3
 adds strict evidence, independent-review, UI-observation, release-candidate,
 and handoff loading; atomic evidence addition; and Gates G2 through G4.
+M4 adds strict sample-normalization, evaluation-suite, paired run,
+deterministic metric, recorded-result, and explicit registry-migration
+services.
 
 `sdaqf.adapters` contains bounded subprocess and local filesystem behavior.
 
@@ -39,7 +42,10 @@ tool-execution approval, orchestration request, worktree, structured result,
 template, and checkpoint contracts. M3 adds separate versioned Claim-Evidence
 Ledger, evidence-addition, review, finding-acceptance, UI validation,
 release-candidate, handoff-input, and automated-handoff contracts without
-changing the M1 or M2 versions.
+changing the M1 or M2 versions. M4 preserves every existing version and adds
+evaluation, migration-result, and platform-evidence contracts. Legacy Agent and
+Tool Registry 1.0 inputs are transformed only through an explicit migration
+boundary; runtime adoption remains strict version 2.0.
 
 ## M1 requirements pipeline
 
@@ -184,6 +190,40 @@ root, work state, ledger-backed evidence, decisions, problems, next work,
 approval stops, and deterministic prompt context. Completed handoffs cannot
 retain incomplete work, open decisions, or known problems. Resume rejects any
 identity mismatch, and generated prompts are never executed automatically.
+
+## M4 public-beta hardening pipeline
+
+Three representative projects bind a regular UTF-8 specification and task to
+an expected semantic normalization projection. The evaluator re-runs M1
+ingestion, hashes the actual specification and task, and rejects expectation
+drift. Paired structured-SDAQF and ordinary-unstructured-Codex records compare
+only when project, specification, task, starting repository, model/client,
+platform, Python, budget, and trial identity match exactly. The intervention
+must be disclosed and differ by content. Every evidence entry binds its type,
+status, observation time, review command, safe tracked path, and exact content
+digest.
+
+Metrics include missed requirements, scope additions, critical defects,
+rework, approvals, failed handoffs, trace steps, decisions, evidence items, and
+available or explicitly unverified cost. No aggregate quality score exists.
+Missed Must requirements and unresolved Must, security, data-loss, or
+disclosure defects remain named hard blockers. Repeated failure signatures
+require an evidence-linked cause analysis that selects instruction, Skill,
+schema, test, or implementation remediation; an open analysis remains a named
+hard blocker.
+
+Agent and Tool Registry migration is an explicit one-step 1.0-to-2.0 service.
+It requires an exact current Owner approval, parses one immutable initial
+source snapshot, preserves the source, inserts only documented conservative
+defaults, serializes deterministically, validates a temporary regular JSON file
+through the current strict 2.0 loader, and creates the named output
+exclusively. Agent migration also requires a current Tool Registry and
+validates every tool reference from one immutable byte snapshot whose path and
+digest are part of the exact approval and result. Existing output, unsafe
+command, external network capability, missing tool, ambiguous or colliding
+identity, link, traversal, unsupported version, validation failure, or final
+source-read or identity failure leaves no named output. Rollback removes only
+the created output and retains the unchanged source.
 
 ## Trust boundaries
 

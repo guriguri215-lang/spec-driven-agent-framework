@@ -1,4 +1,4 @@
-"""Command-line interface for the offline M0 through M3 framework."""
+"""Command-line interface for the offline M0 through M4 framework."""
 
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ from sdaqf.application.checkpoints import (
 from sdaqf.application.comparison import BaselineComparator, BaselineDiff
 from sdaqf.application.contracts import ContractError
 from sdaqf.application.doctor import DoctorService
+from sdaqf.application.evaluation import EvaluationService
 from sdaqf.application.evidence import (
     EvidenceLedgerStore,
     load_evidence_ledger,
@@ -33,6 +34,7 @@ from sdaqf.application.handoffs import (
     load_automated_handoff,
     validate_handoff_resume,
 )
+from sdaqf.application.migrations import MigrationService
 from sdaqf.application.orchestration import (
     AgentOrchestrator,
     OrchestrationContractError,
@@ -419,6 +421,60 @@ def build_parser() -> argparse.ArgumentParser:
     checkpoint_resume.add_argument("--git-head", required=True)
     checkpoint_resume.add_argument("--worktree-digest", required=True)
     checkpoint_resume.add_argument("--json", action="store_true")
+
+    evaluation = subparsers.add_parser(
+        "eval",
+        help="Validate and compare bounded public-beta evaluation records.",
+    )
+    evaluation_commands = evaluation.add_subparsers(
+        dest="evaluation_command",
+        required=True,
+    )
+    evaluation_validate = evaluation_commands.add_parser(
+        "validate",
+        help="Validate a suite and its optional recorded deterministic result.",
+    )
+    evaluation_validate.add_argument("suite", type=Path)
+    evaluation_validate.add_argument("--result", type=Path)
+    evaluation_validate.add_argument("--json", action="store_true")
+    evaluation_compare = evaluation_commands.add_parser(
+        "compare",
+        help="Calculate paired workflow metrics without an aggregate score.",
+    )
+    evaluation_compare.add_argument("suite", type=Path)
+    evaluation_compare.add_argument("--json", action="store_true")
+
+    schema = subparsers.add_parser(
+        "schema",
+        help="Perform explicit non-destructive schema operations.",
+    )
+    schema_commands = schema.add_subparsers(dest="schema_command", required=True)
+    schema_migrate = schema_commands.add_parser(
+        "migrate",
+        help="Migrate one supported legacy registry to a new validated file.",
+    )
+    schema_migrate.add_argument(
+        "--contract",
+        required=True,
+        choices=("agent-registry", "tool-registry"),
+    )
+    schema_migrate.add_argument("--from-version", required=True)
+    schema_migrate.add_argument("--to-version", required=True)
+    schema_migrate.add_argument("input", type=Path)
+    schema_migrate.add_argument("--output", type=Path, required=True)
+    schema_migrate.add_argument(
+        "--approval",
+        type=Path,
+        required=True,
+        help="Exact time-bounded Owner approval record for this migration.",
+    )
+    schema_migrate.add_argument(
+        "--tool-registry",
+        type=Path,
+        help="Required current Tool Registry for Agent Registry cross-reference.",
+    )
+    schema_migrate.add_argument("--root", type=Path, default=Path("."))
+    schema_migrate.add_argument("--json", action="store_true")
 
     return parser
 
@@ -975,6 +1031,51 @@ def main(argv: Sequence[str] | None = None) -> int:
         except CheckpointContractError:
             print("ERROR: execution checkpoint is invalid.", file=sys.stderr)
             return 2
+
+    if args.command == "eval":
+        try:
+            evaluation_result = EvaluationService().evaluate(args.suite)
+            if args.evaluation_command == "validate" and args.result is not None:
+                EvaluationService().validate_recorded_result(
+                    args.result,
+                    evaluation_result,
+                )
+        except (ContractError, OSError):
+            print("ERROR: evaluation contract is invalid.", file=sys.stderr)
+            return 2
+        if args.evaluation_command == "compare":
+            _emit(evaluation_result.to_dict(), as_json=args.json)
+        else:
+            _emit(
+                {
+                    "schema_version": evaluation_result.schema_version,
+                    "suite_id": evaluation_result.suite_id,
+                    "projects": len(evaluation_result.comparisons),
+                    "hard_blockers": len(evaluation_result.hard_blockers),
+                    "aggregate_score": None,
+                },
+                as_json=args.json,
+            )
+        return 0
+
+    if args.command == "schema" and args.schema_command == "migrate":
+        try:
+            root = _exact_working_root(args.root)
+            migration_result = MigrationService().migrate(
+                root=root,
+                contract=args.contract,
+                source=args.input,
+                output=args.output,
+                approval=args.approval,
+                tool_registry=args.tool_registry,
+                source_version=args.from_version,
+                target_version=args.to_version,
+            )
+        except (ContractError, OSError):
+            print("ERROR: schema migration is invalid.", file=sys.stderr)
+            return 2
+        _emit(migration_result.to_dict(), as_json=args.json)
+        return 0
 
     raise AssertionError("argparse accepted an unknown command")
 

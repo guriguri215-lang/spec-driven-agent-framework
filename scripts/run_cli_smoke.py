@@ -1,4 +1,4 @@
-"""Run the exact offline M0 through M3 CLI smoke contract."""
+"""Run the exact offline M0 through M4 CLI smoke contract."""
 
 from __future__ import annotations
 
@@ -1240,6 +1240,112 @@ def main_smoke() -> int:
                 expected_blockers={"G4-GIT"},
             )
             _run_positive_g4_smoke(temporary)
+            _run(
+                "M4 evaluation validation",
+                [
+                    "eval",
+                    "validate",
+                    str(root / "evals" / "comparison-suite.json"),
+                    "--result",
+                    str(
+                        root
+                        / "evals"
+                        / "results"
+                        / "public-beta-comparison.json"
+                    ),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M4 evaluation comparison",
+                [
+                    "eval",
+                    "compare",
+                    str(root / "evals" / "comparison-suite.json"),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            migrated_registry = temporary / "agent-registry-v2.json"
+            current_tool_registry = m2 / "tool-registry.json"
+            legacy_registry = (
+                root
+                / "examples"
+                / "m4-migration"
+                / "agent-registry-v1.json"
+            )
+            migration_approval = temporary / "migration-approval.json"
+            _write_json(
+                migration_approval,
+                {
+                    "schema_version": "1.0",
+                    "approval_id": "APR-M4-CLI-SMOKE",
+                    "approval_type": "owner",
+                    "action": "Migrate one registry schema",
+                    "scope": {
+                        "contract": "agent-registry",
+                        "source_sha256": hashlib.sha256(
+                            legacy_registry.read_bytes()
+                        ).hexdigest().upper(),
+                        "output_path": migrated_registry.relative_to(root).as_posix(),
+                        "tool_registry_path": current_tool_registry.relative_to(
+                            root
+                        ).as_posix(),
+                        "tool_registry_sha256": hashlib.sha256(
+                            current_tool_registry.read_bytes()
+                        ).hexdigest().upper(),
+                        "source_version": "1.0",
+                        "target_version": "2.0",
+                    },
+                    "risk": "medium",
+                    "status": "approved",
+                    "rationale": "Repository-local CLI smoke fixture.",
+                    "reversible": True,
+                    "approved_by": "Owner",
+                    "approved_at": "2026-07-29T00:00:00+00:00",
+                    "expires_at": "2035-07-29T00:00:00+00:00",
+                    "lifetime": "until_expiry",
+                    "conditions": {
+                        "source_preserved": True,
+                        "exclusive_output": True,
+                    },
+                },
+            )
+            _run(
+                "M4 schema migration",
+                [
+                    "schema",
+                    "migrate",
+                    "--contract",
+                    "agent-registry",
+                    "--from-version",
+                    "1.0",
+                    "--to-version",
+                    "2.0",
+                    str(legacy_registry),
+                    "--output",
+                    str(migrated_registry),
+                    "--approval",
+                    str(migration_approval),
+                    "--tool-registry",
+                    str(current_tool_registry),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M4 migrated registry validation",
+                [
+                    "agents",
+                    "validate",
+                    str(migrated_registry),
+                    "--tools",
+                    str(current_tool_registry),
+                    "--json",
+                ],
+                json_output=True,
+            )
         finally:
             os.chdir(previous)
             if (
@@ -1249,7 +1355,7 @@ def main_smoke() -> int:
                 and not is_reparse_point(m3_spec)
             ):
                 m3_spec.unlink()
-    print("PASS: offline M0 through M3 CLI smoke checks succeeded.")
+    print("PASS: offline M0 through M4 CLI smoke checks succeeded.")
     return 0
 
 

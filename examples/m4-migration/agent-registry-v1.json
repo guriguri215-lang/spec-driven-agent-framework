@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "agents": [
+    {
+      "role": "Legacy Reviewer",
+      "responsibilities": ["Review bounded project artifacts"],
+      "inputs": ["Approved requirements"],
+      "outputs": ["Structured review summary"],
+      "tools": ["git"],
+      "prohibited_actions": ["Modify files", "Publish data"]
+    }
+  ]
+}

@@ -30,3 +30,13 @@ All notable changes will be documented in this file.
   classification and recorded browser validation, local release audits,
   deterministic automated handoffs, schemas, samples, CLI commands, and
   negative, boundary, failure-injection, and regression tests.
+- M4 representative non-UI, UI, and security-sensitive sample projects with
+  expected normalized projections.
+- Strict paired structured and ordinary-unstructured evaluation records,
+  parity validation, non-compensating metrics, repeated-failure analysis,
+  tracked results, schemas, documentation, CLI commands, and tests.
+- Explicit Agent and Tool Registry 1.0-to-2.0 migration with conservative
+  defaults, exclusive validated output, failure rollback, public policy,
+  fixtures, CLI commands, and negative tests.
+- Public contributor setup, development, testing, architecture, extension,
+  security, evaluation, migration, and release-limit documentation.
