@@ -13,6 +13,18 @@ Supported migration routes:
 |---|---:|---:|---|
 | Agent Registry | 1.0 | 2.0 | migrated output must pass the existing 2.0 loader |
 | Tool Registry | 1.0 | 2.0 | migrated output must pass the existing 2.0 loader |
+| Release Candidate | 1.0 | 1.1 | create a new selected-license record; never rewrite the 1.0 record |
+
+Release Candidate 1.0 remains the historical strict `not-selected` project
+license contract in `release-candidate.schema.json`. V1 adds
+`release-candidate-v1.1.schema.json`, whose exact Apache-2.0 object binds the
+Owner-approved holder and `LICENSE` and `NOTICE` digests. Adoption creates a
+new record and reruns applicable Gates against a new candidate identity; no
+runtime migration command silently converts the record.
+
+The public-release-candidate schema is a new offline readiness declaration,
+not a migration and not external publication evidence. It requires
+`publication_performed: false` and actual Gate G5 `NOT_RUN`.
 
 Downgrade, multi-hop, in-place, and other contract migrations are unsupported.
 

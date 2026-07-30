@@ -2,13 +2,15 @@
 
 ## Supported status
 
-M4 is a public-beta hardening milestone, not a production release.
+SDAQF `1.0.0rc1` is a release candidate, not a production release.
 
 ## Reporting
 
-Do not disclose suspected vulnerabilities in a public issue. Until a private
-security contact is selected by the Owner, keep the report local and request a
-private reporting channel.
+Do not disclose suspected vulnerabilities in a public issue. GitHub private
+vulnerability reporting is the intended channel only after it is enabled
+through a separately approved repository-setting change when the repository
+is public. Until that channel is confirmed, keep the report private and
+request the current disclosure instructions from the Owner.
 
 ## Security boundaries
 
@@ -26,5 +28,7 @@ private reporting channel.
 - Publication requires secret, personal-path, language, dependency, and license
   audits plus separate Owner approval.
 
-No production security support commitment is made for this pre-release state.
-Evaluation fixtures and passing Gates do not guarantee the absence of defects.
+No prerelease backports or production security SLA are promised. A separately
+approved final `1.0.0` receives best-effort Critical security and data-loss
+fixes for six months. Evaluation fixtures and passing Gates do not guarantee
+the absence of defects.

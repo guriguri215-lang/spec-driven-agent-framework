@@ -16,6 +16,9 @@ def test_required_public_documents_exist_and_are_nonempty() -> None:
         "CONTRIBUTING.md",
         "SECURITY.md",
         "CHANGELOG.md",
+        "LICENSE",
+        "NOTICE",
+        "SUPPORT.md",
         "docs/specification.md",
         "docs/architecture.md",
         "docs/roadmap.md",
@@ -29,6 +32,9 @@ def test_required_public_documents_exist_and_are_nonempty() -> None:
         "docs/exec-plans/active/M2-agent-skill-tool-orchestration.md",
         "docs/exec-plans/active/M3-evidence-ui-release-qa.md",
         "docs/exec-plans/active/M4-public-beta-hardening.md",
+        "docs/exec-plans/active/V1-release-readiness.md",
+        "docs/compatibility.md",
+        "docs/releases/v1.0.0-rc.1.md",
         "docs/contributor-guide.md",
         "docs/evaluation.md",
         "docs/schema-migrations.md",
@@ -46,8 +52,9 @@ def test_required_public_documents_exist_and_are_nonempty() -> None:
     assert "Implemented in M2" in readme
     assert "Implemented in M3" in readme
     assert "Implemented in M4" in readme
-    assert "Not implemented through M4" in readme
-    assert not (root / "LICENSE").exists()
+    assert "Not implemented for the release candidate" in readme
+    assert (root / "LICENSE").exists()
+    assert (root / "NOTICE").exists()
 
 
 def test_git_checkout_preserves_canonical_lf_bytes() -> None:

@@ -32,7 +32,7 @@ def test_skill_and_template_lifecycle_is_explicit_and_deterministic() -> None:
 
     evaluated = evaluate_templates(
         templates,
-        framework_version="0.1.0",
+        framework_version="1.0.0",
         available_dependencies=("independent-review",),
         selected=("m2-agent-result",),
     )
@@ -263,7 +263,7 @@ def test_template_evaluation_rejects_invalid_version_and_unknown_selection() -> 
     with pytest.raises(SkillContractError, match="unavailable"):
         evaluate_templates(
             templates,
-            framework_version="0.1.0",
+            framework_version="1.0.0",
             available_dependencies=("independent-review",),
             selected=("missing-template",),
         )

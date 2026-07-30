@@ -1,0 +1,348 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/public-release-candidate.schema.json",
+  "title": "Offline Public Release Readiness Candidate",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "candidate",
+    "project",
+    "license",
+    "release",
+    "policies",
+    "verification",
+    "publication_performed",
+    "actual_gate_g5"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "candidate": {
+      "type": "object",
+      "required": ["identity", "branch", "publication_paths"],
+      "properties": {
+        "identity": {"$ref": "#/$defs/candidateIdentity"},
+        "branch": {"const": "main"},
+        "publication_paths": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/path"}
+        }
+      },
+      "additionalProperties": false
+    },
+    "project": {
+      "type": "object",
+      "required": [
+        "name",
+        "repository",
+        "distribution",
+        "cli",
+        "version",
+        "proposed_tag",
+        "desired_visibility",
+        "default_branch",
+        "target_public_api"
+      ],
+      "properties": {
+        "name": {"const": "SDAQF"},
+        "repository": {"const": "spec-driven-agent-framework"},
+        "distribution": {"const": "sdaqf"},
+        "cli": {"const": "sdaqf"},
+        "version": {"const": "1.0.0rc1"},
+        "proposed_tag": {"const": "v1.0.0-rc.1"},
+        "desired_visibility": {"const": "PUBLIC"},
+        "default_branch": {"const": "main"},
+        "target_public_api": {"const": "1.0.0"}
+      },
+      "additionalProperties": false
+    },
+    "license": {"$ref": "#/$defs/license"},
+    "release": {
+      "type": "object",
+      "required": [
+        "level",
+        "audience",
+        "title",
+        "description",
+        "notes",
+        "prerelease",
+        "latest",
+        "attached_assets",
+        "package_registry_publication",
+        "source_archives"
+      ],
+      "properties": {
+        "level": {"const": "release-candidate-prerelease"},
+        "audience": {
+          "const": ["framework evaluators", "advanced Codex users"]
+        },
+        "title": {"const": "SDAQF v1.0.0-rc.1"},
+        "description": {
+          "const": "Offline-first specification-driven development and quality assurance for Codex-assisted projects."
+        },
+        "notes": {
+          "type": "object",
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": {"const": "docs/releases/v1.0.0-rc.1.md"},
+            "sha256": {"$ref": "#/$defs/sha256"}
+          },
+          "additionalProperties": false
+        },
+        "prerelease": {"const": true},
+        "latest": {"const": false},
+        "attached_assets": {"const": []},
+        "package_registry_publication": {"const": false},
+        "source_archives": {"const": "GitHub-provided tag archives only"}
+      },
+      "additionalProperties": false
+    },
+    "policies": {
+      "type": "object",
+      "required": [
+        "compatibility",
+        "migration",
+        "rollback",
+        "support",
+        "security",
+        "maintenance",
+        "contributions",
+        "code_of_conduct",
+        "known_limitations"
+      ],
+      "properties": {
+        "compatibility": {
+          "const": "Target V1 public API; prerelease compatibility is not guaranteed until 1.0.0."
+        },
+        "migration": {
+          "const": "No migration is required from the M4 Public Beta CLI; validate versioned schemas before reuse."
+        },
+        "rollback": {
+          "const": "Discard the unpublished local candidate; never delete or move a published tag automatically."
+        },
+        "support": {
+          "const": "GitHub Issues for bugs and documentation; best effort, no SLA, latest release only."
+        },
+        "security": {
+          "const": "Use GitHub private vulnerability reporting after separately approved enablement when public; do not disclose vulnerabilities in public issues."
+        },
+        "maintenance": {
+          "const": "No prerelease backports; final 1.0.0 receives best-effort Critical security and data-loss fixes for six months."
+        },
+        "contributions": {
+          "const": "External pull requests are not accepted during the release candidate; bug and documentation issues are best effort."
+        },
+        "code_of_conduct": {"const": "DEFERRED_UNTIL_OPEN_CONTRIBUTIONS"},
+        "known_limitations": {
+          "const": [
+            "Release candidate; not for production use.",
+            "macOS is not verified.",
+            "OpenAI API or Agents SDK adapter is deferred post-V1.",
+            "Management UI is deferred post-V1.",
+            "Authored comparison is not empirical, causal, blinded, randomized, independently replicated, statistically powered, or cost-comparable."
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "verification": {
+      "type": "object",
+      "required": ["gates", "independent_review", "required_matrix", "macos"],
+      "properties": {
+        "gates": {
+          "type": "object",
+          "required": ["G1", "G2", "G3", "G4"],
+          "properties": {
+            "G1": {"$ref": "#/$defs/gateG1"},
+            "G2": {"$ref": "#/$defs/gateG2"},
+            "G3": {"$ref": "#/$defs/gateG3"},
+            "G4": {"$ref": "#/$defs/gateG4"}
+          },
+          "additionalProperties": false
+        },
+        "independent_review": {
+          "type": "object",
+          "required": [
+            "baseline_id",
+            "candidate",
+            "decision",
+            "unresolved_findings"
+          ],
+          "properties": {
+            "baseline_id": {"type": "string", "minLength": 1, "maxLength": 100},
+            "candidate": {"$ref": "#/$defs/candidateIdentity"},
+            "decision": {"const": "GO"},
+            "unresolved_findings": {
+              "type": "object",
+              "required": ["Critical", "High", "Medium", "Low"],
+              "properties": {
+                "Critical": {"const": 0},
+                "High": {"const": 0},
+                "Medium": {"const": 0},
+                "Low": {"const": 0}
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "required_matrix": {
+          "const": [
+            "windows-python-3.12",
+            "windows-python-3.13",
+            "linux-python-3.12",
+            "linux-python-3.13"
+          ]
+        },
+        "macos": {"const": "NOT_VERIFIED"}
+      },
+      "additionalProperties": false
+    },
+    "publication_performed": {"const": false},
+    "actual_gate_g5": {"const": "NOT_RUN"}
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9A-F]{64}$"
+    },
+    "path": {
+      "type": "string",
+      "maxLength": 240,
+      "pattern": "^(?!/)(?!.*//)(?!.*(?:^|/)\\.(?:/|$))(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\.(?:/|$))(?!.*/$)(?!.*(?:^|/)~)(?!.*(?:^|/)(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:[.]|/|$))[A-Za-z0-9._/-]+$"
+    },
+    "candidateIdentity": {
+      "type": "object",
+      "required": [
+        "source_spec_sha256",
+        "git_head",
+        "repository_digest"
+      ],
+      "properties": {
+        "source_spec_sha256": {"$ref": "#/$defs/sha256"},
+        "git_head": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "repository_digest": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "gateG1": {
+      "$ref": "#/$defs/gateBase",
+      "properties": {
+        "status": {"const": "PASS"},
+        "evidence": {
+          "type": "object",
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": {"const": ".sdaqf/v1/gates/G1.json"},
+            "sha256": {"$ref": "#/$defs/sha256"}
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "gateG2": {
+      "$ref": "#/$defs/gateBase",
+      "properties": {
+        "status": {"const": "PASS"},
+        "evidence": {
+          "type": "object",
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": {"const": ".sdaqf/v1/gates/G2.json"},
+            "sha256": {"$ref": "#/$defs/sha256"}
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "gateG3": {
+      "$ref": "#/$defs/gateBase",
+      "properties": {
+        "status": {"const": "PASS"},
+        "evidence": {
+          "type": "object",
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": {"const": ".sdaqf/v1/gates/G3.json"},
+            "sha256": {"$ref": "#/$defs/sha256"}
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "gateG4": {
+      "$ref": "#/$defs/gateBase",
+      "properties": {
+        "status": {"const": "PASS"},
+        "evidence": {
+          "type": "object",
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": {"const": ".sdaqf/v1/gates/G4.json"},
+            "sha256": {"$ref": "#/$defs/sha256"}
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "gateBase": {
+      "type": "object",
+      "required": ["status", "evidence"],
+      "properties": {
+        "status": {"const": "PASS"},
+        "evidence": {
+          "type": "object",
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": {"$ref": "#/$defs/path"},
+            "sha256": {"$ref": "#/$defs/sha256"}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "license": {
+      "type": "object",
+      "required": [
+        "spdx_expression",
+        "copyright_holder",
+        "license_file",
+        "notice_file"
+      ],
+      "properties": {
+        "spdx_expression": {"const": "Apache-2.0"},
+        "copyright_holder": {"const": "guriguri215-lang"},
+        "license_file": {
+          "type": "object",
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": {"const": "LICENSE"},
+            "sha256": {
+              "const": "C71D239DF91726FC519C6EB72D318EC65820627232B2F796219E87DCF35D0AB4"
+            }
+          },
+          "additionalProperties": false
+        },
+        "notice_file": {
+          "type": "object",
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": {"const": "NOTICE"},
+            "sha256": {
+              "const": "2D2F956085982C50C8E1EC40DBADFAAF36E77FE2B3F3979BD2AFF3E29E1CD01D"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

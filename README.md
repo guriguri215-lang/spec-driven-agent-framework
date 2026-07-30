@@ -3,7 +3,8 @@
 SDAQF is a specification-driven development and quality-assurance framework for
 Codex-assisted projects. This repository contains the M0 Bootstrap Foundation,
 M1 Requirements and Planning MVP, M2 Agent, Skill, and Tool Orchestration, and
-M3 Evidence, UI/UX, and Release QA, plus M4 Public Beta Hardening: an
+M3 Evidence, UI/UX, and Release QA, M4 Public Beta Hardening, and the local
+V1.0 release-candidate readiness contract: an
 offline-first Python CLI, deterministic
 requirement, orchestration, evidence, review, UI-observation, release, and
 handoff contracts, representative evaluation projects, explicit schema
@@ -123,12 +124,27 @@ copying private workspace state.
   security, testing, and release-limit documentation.
 - `eval validate`, `eval compare`, and `schema migrate` CLI paths.
 
+## V1.0 release-candidate readiness
+
+- Distribution/runtime version `1.0.0rc1`, targeting public API line `1.0.0`.
+- Apache License 2.0 with exact `LICENSE` and `NOTICE` material.
+- Historical release-candidate schema 1.0 preservation and selected-license
+  schema 1.1.
+- An offline `gate publication-readiness` command that can return
+  `LOCAL_READY` but never claims actual Gate G5 or publication.
+- English compatibility, migration, release, support, security, contribution,
+  platform, artifact, and known-limitation policies.
+
+The proposed tag is `v1.0.0-rc.1`, but the tag, release, and public visibility
+have not been created or changed. This release candidate is for framework
+evaluators and advanced Codex users and is not for production use.
+
 The pinned development dependency and license record is in
 `docs/dependencies.md`.
 
 ## Known limitations
 
-### Not implemented through M4
+### Not implemented for the release candidate
 
 - Automatic Git worktree creation, deletion, or integration.
 - A management UI or automatic browser installation and launch. The offline
@@ -175,7 +191,7 @@ python -m sdaqf goal baseline.json M1 --output goal.md
 python -m sdaqf prompt baseline.json M1 --output prompt.md
 python -m sdaqf agents validate examples/m2-orchestration/agent-registry.json --tools examples/m2-orchestration/tool-registry.json --json
 python -m sdaqf agents plan examples/m2-orchestration/orchestration-request.json --registry examples/m2-orchestration/agent-registry.json --tools examples/m2-orchestration/tool-registry.json --json
-python -m sdaqf skills validate .agents/skills --templates examples/m2-orchestration/template-registry.json --framework-version 0.1.0 --available independent-review --json
+python -m sdaqf skills validate .agents/skills --templates examples/m2-orchestration/template-registry.json --framework-version 1.0.0 --available independent-review --json
 python -m sdaqf tools check examples/m2-orchestration/tool-registry.json --name git --json
 python -m sdaqf checkpoint validate examples/m2-orchestration/execution-checkpoint.json --json
 python -m sdaqf evidence validate examples/m3-quality/claim-evidence-ledger.json --json
@@ -183,6 +199,7 @@ python -m sdaqf gate implementation baseline.json --ledger .sdaqf/ledger.json --
 python -m sdaqf gate review .sdaqf/review.json --baseline baseline.json --specification specification.md --json
 python -m sdaqf ui validate manifest.json .sdaqf/ui-validation.json --specification specification.md --json
 python -m sdaqf audit release-candidate .sdaqf/release-candidate.json --root . --baseline baseline.json --ledger .sdaqf/ledger.json --review .sdaqf/review.json --manifest manifest.json --ui-validation .sdaqf/ui-validation.json --specification specification.md --json
+python -m sdaqf gate publication-readiness .sdaqf/v1/public-release-candidate.json --root . --baseline .sdaqf/v1/requirements-baseline.json --ledger .sdaqf/v1/claim-evidence-ledger.json --review .sdaqf/v1/independent-review.json --release-candidate .sdaqf/v1/release-candidate.json --specification docs/specification.md --json
 python -m sdaqf handoff create handoff-input.json --baseline baseline.json --ledger .sdaqf/ledger.json --specification specification.md --output .sdaqf/handoff.json --json
 python -m sdaqf eval validate evals/comparison-suite.json --result evals/results/public-beta-comparison.json --json
 python -m sdaqf eval compare evals/comparison-suite.json --json
@@ -191,7 +208,8 @@ python -m sdaqf schema migrate --contract agent-registry --from-version 1.0 --to
 
 ## Safety boundaries
 
-The runtime remains offline-first through M4. Private remote operations and any
+The runtime remains offline-first through the V1 release candidate. Private
+remote operations and any
 publication require an exact Owner-approved target and scope. A technical
 sandbox approval never authorizes publication, destructive Git operations,
 credential access, or machine-wide configuration changes.
@@ -212,8 +230,10 @@ existing output. Evaluation fixtures are measurement inputs, not instructions,
 and their tracked comparison result does not establish causation, model
 quality, production security, or production readiness.
 
-## License status
+## License
 
-No license has been selected. No `LICENSE` file is included, and no permission
-is granted to copy, modify, or distribute this work until the Owner makes an
-explicit license decision.
+SDAQF is licensed under Apache License 2.0. Copyright 2026
+`guriguri215-lang`. See `LICENSE` and `NOTICE`.
+
+Support is best effort, has no SLA, and applies to the latest release only.
+See `SUPPORT.md`, `SECURITY.md`, and `docs/compatibility.md`.

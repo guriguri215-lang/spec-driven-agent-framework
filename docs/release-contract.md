@@ -1,7 +1,8 @@
 # Release Contract
 
-M4 implementation and validation do not themselves authorize a commit, push,
-or public release. Separately Owner-approved finalization may commit and push
+V1 local implementation and validation do not themselves authorize staging,
+commit, push, remote observation, a tag, a release, a visibility change, or a
+repository-setting change. Separately Owner-approved finalization may create
 an inspected immutable private candidate; public release and every other
 external action remain separately Owner-gated.
 
@@ -59,9 +60,11 @@ ingest and Gate G1 offline in a temporary repository-local directory.
 The repository audit uses Git's complete cached-plus-untracked publication set.
 It checks secrets, email and personal paths in text and binary metadata,
 English/CJK content, links and reparse ancestors, size, private/generated
-state, and nested project-license filenames. The dependency audit verifies the
-empty runtime dependency set, exact development pins, documented license
-metadata, and absence of project-license filenames or metadata. `pip check`
+state, and project-license material. The dependency audit verifies the empty
+runtime dependency set, exact development pins, documented dependency-license
+metadata, and the exact Apache-2.0 project expression, `LICENSE`, and `NOTICE`
+allowlist. Unknown, additional, nested, linked, modified, or conflicting
+project-license material fails closed. `pip check`
 verifies the installed dependency set. Gate G4 additionally requires all
 declared release documents to be regular, unlinked, non-empty UTF-8 files and
 members of the Git publication set, and requires README installation and
@@ -93,7 +96,7 @@ actually run.
 - The staged names, status, stat, diff, and whitespace are reviewed
   explicitly.
 - No secret, personal path, private state, link, generated cache, coverage
-  output, temporary file, project license, or non-English GitHub-facing
+  output, temporary file, unapproved license material, or non-English GitHub-facing
   artifact is staged.
 - The tracked evaluation result exactly reproduces from the suite and run
   records, retains its limits, and contains no aggregate score.
@@ -123,9 +126,32 @@ SHA and every required matrix job must succeed. A failure is diagnosed from
 bounded logs before any retry. An in-scope fix receives focused tests, full
 related Gates, read-only re-review, a new English commit, and a normal push.
 
+## Local publication-readiness gate
+
+After an immutable exact candidate, candidate-bound G1 through G4 evidence,
+and independent review exist, run:
+
+```text
+python -m sdaqf gate publication-readiness .sdaqf/v1/public-release-candidate.json --root . --baseline .sdaqf/v1/requirements-baseline.json --ledger .sdaqf/v1/claim-evidence-ledger.json --review .sdaqf/v1/independent-review.json --release-candidate .sdaqf/v1/release-candidate.json --specification docs/specification.md --json
+```
+
+The command is offline and side-effect-free. It binds the exact branch, HEAD,
+specification digest, repository digest, complete publication path set,
+release metadata, Apache-2.0 material, policies, exact SHA-256-bound
+`.sdaqf/v1/gates/G1.json` through `G4.json` result artifacts whose wrappers
+bind the current specification, HEAD, and repository digest, independent
+review, platform matrix, notes digest, and explicit non-publication state. Its
+terminal success state is `LOCAL_READY`; its gate identifier is
+`G5-LOCAL-READINESS`, `publication_performed` remains false, and actual Gate
+G5 remains `NOT_RUN`.
+
 ## Public release gate
 
-Publication is a separate future action. It requires Owner decisions for
-visibility, description, license, default branch policy, initial tag, and
-English outbound metadata. It also requires a fresh secret, personal-data,
-dependency, license, language, advisory, and clean-environment audit.
+Publication is a separate future action. The approved target is a
+`v1.0.0-rc.1` prerelease titled `SDAQF v1.0.0-rc.1`, with no attached assets
+or package-registry publication and only GitHub-provided tag source archives.
+It still requires separate exact approvals for commit, private push,
+exact-SHA observation, public visibility, tag, release, private vulnerability
+reporting, and post-publication observation. It also requires a fresh secret,
+personal-data, dependency, license, language, advisory, and clean-environment
+audit. Local readiness can never substitute for that evidence.

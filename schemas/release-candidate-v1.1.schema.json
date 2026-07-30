@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/release-candidate-v1.1.schema.json",
+  "title": "Selected-License Local Release Candidate Input",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "install_evidence_id",
+    "execution_module",
+    "install_target",
+    "rollback_guidance",
+    "documentation_paths",
+    "license"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.1"},
+    "install_evidence_id": {
+      "type": "string",
+      "pattern": "^EV-[A-Z0-9][A-Z0-9-]{0,63}$"
+    },
+    "execution_module": {
+      "type": "string",
+      "maxLength": 200,
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*$"
+    },
+    "install_target": {
+      "type": "string",
+      "maxLength": 233,
+      "pattern": "^\\.sdaqf/(?!.*//)(?!.*(?:^|/)\\.(?:/|$))(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\.(?:/|$))(?!.*/$)(?!.*(?:^|/)~)(?!(?:[^/]+/)*(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:[.]|/|$))[A-Za-z0-9._/-]+$"
+    },
+    "rollback_guidance": {"type": "string", "minLength": 1, "maxLength": 1000},
+    "documentation_paths": {
+      "type": "array",
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "maxLength": 240,
+        "pattern": "^(?!/)(?!.*//)(?!.*(?:^|/)\\.(?:/|$))(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\.(?:/|$))(?!.*/$)(?!.*(?:^|/)~)(?!.*(?:^|/)(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:[.]|/|$))[A-Za-z0-9._/-]+$"
+      }
+    },
+    "license": {
+      "type": "object",
+      "required": [
+        "spdx_expression",
+        "copyright_holder",
+        "license_file",
+        "notice_file"
+      ],
+      "properties": {
+        "spdx_expression": {"const": "Apache-2.0"},
+        "copyright_holder": {"const": "guriguri215-lang"},
+        "license_file": {"$ref": "#/$defs/licenseFile"},
+        "notice_file": {"$ref": "#/$defs/noticeFile"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "licenseFile": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"const": "LICENSE"},
+        "sha256": {
+          "const": "C71D239DF91726FC519C6EB72D318EC65820627232B2F796219E87DCF35D0AB4"
+        }
+      },
+      "additionalProperties": false
+    },
+    "noticeFile": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"const": "NOTICE"},
+        "sha256": {
+          "const": "2D2F956085982C50C8E1EC40DBADFAAF36E77FE2B3F3979BD2AFF3E29E1CD01D"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

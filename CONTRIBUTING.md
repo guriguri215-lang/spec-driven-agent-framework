@@ -1,7 +1,8 @@
 # Contributing
 
-This project is in a private public-beta hardening phase and is not yet open
-for external contributions. No project license has been selected.
+This project is in the `1.0.0rc1` release-candidate phase and is not open for
+external pull requests. Bug and documentation issues are handled on a
+best-effort basis after the repository becomes public.
 
 For approved local work:
 
@@ -19,11 +20,15 @@ For approved local work:
    to stage or commit.
 8. Use English for every tracked artifact and commit message.
 
-Do not add production dependencies, select a license, publish a branch, or
-change security boundaries without explicit Owner approval.
+The project is licensed under Apache License 2.0. Do not add production
+dependencies, change project-license material, publish a branch, or change
+security boundaries without explicit Owner approval.
 
 Schema changes follow `docs/schema-migrations.md`. Skill, template, or prompt
 evaluation changes follow `docs/evaluation.md` and require parity-bound before
 and after records. Executing a migration requires a separate exact
 time-bounded Owner approval record even when the migration code is already
 approved. Gate G4 remains local and does not authorize Gate G5 publication.
+Local publication readiness may return `LOCAL_READY`; it also does not
+authorize Gate G5. A project Code of Conduct is deferred until the Owner opens
+external contributions.

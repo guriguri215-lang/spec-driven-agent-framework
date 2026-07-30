@@ -47,3 +47,17 @@ Validate multiple sample projects, expand platform coverage, run comparative
 evaluations, add explicit schema migrations, and harden contributor
 documentation. Candidate-bound cross-platform verification remains recorded
 separately from implementation and may not be inferred from a prior commit.
+
+## V1.0: Release-candidate readiness
+
+Status: local implementation in progress; publication not performed.
+
+Set version `1.0.0rc1`, adopt Apache-2.0, define the target V1 public API and
+compatibility/migration policy, preserve historical schemas, add the selected
+license schema 1.1, and evaluate an exact offline publication-readiness
+declaration. A successful local result is `LOCAL_READY`, not actual Gate G5.
+
+The proposed public tag is `v1.0.0-rc.1`. Commit, private push, exact-SHA
+matrix, remote observation, public visibility, tag, release, and repository
+settings remain separate Owner approval boundaries. Final `1.0.0` is a future
+new candidate.

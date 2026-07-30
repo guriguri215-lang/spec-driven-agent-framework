@@ -78,7 +78,7 @@ def test_skill_tool_and_checkpoint_cli(capsys: object) -> None:
             "--templates",
             str(m2_example("template-registry.json")),
             "--framework-version",
-            "0.1.0",
+            "1.0.0",
             "--available",
             "independent-review",
             "--select-skill",

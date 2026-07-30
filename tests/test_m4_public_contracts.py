@@ -218,13 +218,16 @@ def test_m4_public_documentation_covers_contributor_and_release_boundaries() -> 
         assert command in release
 
 
-def test_m4_keeps_runtime_dependencies_empty_and_project_license_unselected() -> None:
+def test_v1_keeps_runtime_dependencies_empty_and_selects_exact_apache_license() -> None:
     root = repository_root()
     project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
 
     assert project["project"]["dependencies"] == []
-    assert not (root / "LICENSE").exists()
+    assert project["project"]["license"] == "Apache-2.0"
+    assert project["project"]["license-files"] == ["LICENSE", "NOTICE"]
+    assert (root / "LICENSE").exists()
+    assert (root / "NOTICE").exists()
     assert not (root / "LICENSE.md").exists()
-    assert "No license has been selected" in (root / "README.md").read_text(
+    assert "licensed under Apache License 2.0" in (root / "README.md").read_text(
         encoding="utf-8"
     )

@@ -14,9 +14,15 @@ from pathlib import Path, PurePosixPath
 from sdaqf.application.contracts import (
     ContractError,
     array_value,
+    boolean_value,
+    integer_value,
     load_json_object,
+    object_value,
     only_keys,
+    parse_artifact_reference,
+    parse_candidate_identity,
     safe_relative_path,
+    string_tuple,
     string_value,
     verify_artifact,
 )
@@ -24,6 +30,7 @@ from sdaqf.application.gates import GateEngine
 from sdaqf.application.workspace import is_reparse_point
 from sdaqf.domain.models import GateCheck, GateResult
 from sdaqf.domain.quality import (
+    ArtifactReference,
     CandidateIdentity,
     ClaimState,
     EvidenceLedger,
@@ -31,6 +38,8 @@ from sdaqf.domain.quality import (
     EvidenceType,
     GitObservation,
     IndependentReview,
+    ProjectLicense,
+    PublicationReadinessInput,
     ReleaseCandidateInput,
 )
 from sdaqf.domain.requirements import RequirementBaseline, RequirementPriority
@@ -65,10 +74,14 @@ _PERSONAL_EMAIL = re.compile(
     r"(?![A-Za-z0-9.-])",
 )
 _PROJECT_LICENSE_NAME = re.compile(
-    r"(?:licen[cs]e|copying)(?:\.(?:md|rst|txt))?",
+    r"(?:licen[cs]e|copying|notice)(?:\.(?:md|rst|txt))?",
     re.IGNORECASE,
 )
 _PROJECT_LICENSE_DIRECTORIES = {"licenses", "licences"}
+_APPROVED_PROJECT_LICENSES = {
+    "LICENSE": "C71D239DF91726FC519C6EB72D318EC65820627232B2F796219E87DCF35D0AB4",
+    "NOTICE": "2D2F956085982C50C8E1EC40DBADFAAF36E77FE2B3F3979BD2AFF3E29E1CD01D",
+}
 _SECRET_PATTERNS = (
     re.compile(r"AKIA[0-9A-Z]{16}"),
     re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}"),
@@ -88,6 +101,16 @@ _REQUIRED_DOCUMENTS = {
     "SECURITY.md",
     "CHANGELOG.md",
     "docs/release-contract.md",
+}
+_REQUIRED_G4_CHECKS = {
+    "G4-PRIOR-GATES",
+    "G4-REPRODUCIBLE-INSTALL",
+    "G4-MUST-VERIFIED",
+    "G4-SECURITY-AUDIT",
+    "G4-DEPENDENCY-LICENSE",
+    "G4-DOCUMENTATION",
+    "G4-ROLLBACK",
+    "G4-GIT",
 }
 
 
@@ -199,7 +222,9 @@ def audit_repository(
     for linked_directory in _reparse_directories(root):
         relative = linked_directory.relative_to(root).as_posix()
         errors.append(f"{relative}: directory links and reparse points are not allowed.")
-    for path in candidate_files(root, publication_paths):
+    candidates = candidate_files(root, publication_paths)
+    license_material: set[str] = set()
+    for path in candidates:
         relative = path.relative_to(root).as_posix()
         parts = path.relative_to(root).parts
         if publication_paths is not None and any(
@@ -216,7 +241,7 @@ def audit_repository(
                 for part in parts[:-1]
             )
         ):
-            errors.append(f"{relative}: project license requires an Owner decision.")
+            license_material.add(relative)
         if _path_or_parent_is_linked(root, path):
             errors.append(f"{relative}: links and reparse points are not allowed.")
             continue
@@ -243,6 +268,24 @@ def audit_repository(
             continue
         if _CJK.search(text):
             errors.append(f"{relative}: contains non-English CJK text.")
+    if license_material:
+        expected = set(_APPROVED_PROJECT_LICENSES)
+        for relative in sorted(license_material - expected):
+            errors.append(f"{relative}: project license material is not approved.")
+        for relative in sorted(expected - license_material):
+            errors.append(f"{relative}: approved project license material is missing.")
+        for relative, expected_digest in _APPROVED_PROJECT_LICENSES.items():
+            if relative not in license_material:
+                continue
+            path = root / relative
+            try:
+                actual_digest = hashlib.sha256(path.read_bytes()).hexdigest().upper()
+            except OSError:
+                actual_digest = ""
+            if actual_digest != expected_digest:
+                errors.append(
+                    f"{relative}: approved project license content does not match."
+                )
     return tuple(errors)
 
 
@@ -332,8 +375,40 @@ def audit_dependencies(root: Path) -> tuple[str, ...]:
     project = project_value
     if project.get("dependencies") != []:
         errors.append("Runtime dependencies must remain empty.")
-    if "license" in project or "license-files" in project:
-        errors.append("Project license metadata requires an explicit Owner decision.")
+    license_expression = project.get("license")
+    license_files = project.get("license-files")
+    project_license_paths = {
+        path.relative_to(root).as_posix()
+        for path in candidate_files(root)
+        if _PROJECT_LICENSE_NAME.fullmatch(path.name)
+        or any(
+            part.casefold() in _PROJECT_LICENSE_DIRECTORIES
+            for part in path.relative_to(root).parts[:-1]
+        )
+    }
+    selected_license = bool(
+        project_license_paths
+        or license_expression is not None
+        or license_files is not None
+    )
+    if selected_license:
+        if license_expression != "Apache-2.0":
+            errors.append("Project license expression must be Apache-2.0.")
+        if license_files != ["LICENSE", "NOTICE"]:
+            errors.append("Project license files must be exactly LICENSE and NOTICE.")
+        if project_license_paths != set(_APPROVED_PROJECT_LICENSES):
+            errors.append("Project license material must match the approved allowlist.")
+        for relative, expected_digest in _APPROVED_PROJECT_LICENSES.items():
+            path = root / relative
+            if _path_or_parent_is_linked(root, path):
+                errors.append(f"{relative} must be a regular, unlinked file.")
+                continue
+            try:
+                actual_digest = hashlib.sha256(path.read_bytes()).hexdigest().upper()
+            except OSError:
+                actual_digest = ""
+            if actual_digest != expected_digest:
+                errors.append(f"{relative} does not match the approved content.")
     classifiers = project.get("classifiers", [])
     if not isinstance(classifiers, list) or not all(
         isinstance(item, str) for item in classifiers
@@ -358,15 +433,6 @@ def audit_dependencies(root: Path) -> tuple[str, ...]:
             errors.append(f"Dependency license record is missing: {package}.")
     if "license" not in folded_record:
         errors.append("Dependency documentation must record licenses.")
-    if any(
-        _PROJECT_LICENSE_NAME.fullmatch(path.name)
-        or any(
-            part.casefold() in _PROJECT_LICENSE_DIRECTORIES
-            for part in path.relative_to(root).parts[:-1]
-        )
-        for path in candidate_files(root)
-    ):
-        errors.append("A project license requires an explicit Owner decision.")
     return tuple(errors)
 
 
@@ -413,6 +479,115 @@ def source_target_for(install_target: str) -> str:
     if not source_target.startswith(".sdaqf/"):
         raise ContractError("Materialized source target must stay inside M3 state.")
     return source_target
+
+
+def _valid_project_license(root: Path, candidate: ReleaseCandidateInput) -> bool:
+    """Require the historical unselected state or the exact selected contract."""
+
+    material = {
+        path.relative_to(root).as_posix()
+        for path in candidate_files(root)
+        if _PROJECT_LICENSE_NAME.fullmatch(path.name)
+        or any(
+            part.casefold() in _PROJECT_LICENSE_DIRECTORIES
+            for part in path.relative_to(root).parts[:-1]
+        )
+    }
+    if candidate.schema_version == "1.0":
+        return candidate.license_status == "not-selected" and not material
+    return (
+        candidate.schema_version == "1.1"
+        and candidate.license_status == "selected"
+        and candidate.license is not None
+        and material == set(_APPROVED_PROJECT_LICENSES)
+        and verify_artifact(root, candidate.license.license_file)
+        and verify_artifact(root, candidate.license.notice_file)
+    )
+
+
+def _valid_gate_result_artifact(
+    root: Path,
+    reference: ArtifactReference,
+    gate_id: str,
+    candidate: CandidateIdentity,
+    expected: GateResult | None = None,
+) -> bool:
+    """Validate one exact, non-compensating serialized Gate result."""
+
+    if not verify_artifact(root, reference, maximum_bytes=64 * 1024):
+        return False
+    try:
+        payload = load_json_object(
+            root.joinpath(*Path(reference.path).parts),
+            f"{gate_id} result",
+            maximum_bytes=64 * 1024,
+        )
+        only_keys(payload, {"schema_version", "candidate", "result"}, f"{gate_id}_artifact")
+        if (
+            string_value(payload.get("schema_version"), f"{gate_id}.schema_version")
+            != "1.0"
+            or parse_candidate_identity(
+                payload.get("candidate"),
+                f"{gate_id}.candidate",
+            )
+            != candidate
+        ):
+            return False
+        result = object_value(payload.get("result"), f"{gate_id}.result")
+        only_keys(
+            result,
+            {"gate_id", "passed", "hard_blockers", "checks"},
+            f"{gate_id}_result",
+        )
+        if expected is not None:
+            return result == expected.to_dict()
+        if (
+            string_value(result.get("gate_id"), f"{gate_id}.gate_id") != gate_id
+            or not boolean_value(result.get("passed"), f"{gate_id}.passed")
+            or array_value(result.get("hard_blockers"), f"{gate_id}.hard_blockers")
+        ):
+            return False
+        checks = array_value(result.get("checks"), f"{gate_id}.checks", maximum=128)
+        if not checks:
+            return False
+        check_ids: set[str] = set()
+        for index, value in enumerate(checks):
+            check = object_value(value, f"{gate_id}.checks[{index}]")
+            only_keys(
+                check,
+                {"check_id", "passed", "hard_blocker", "evidence"},
+                f"{gate_id}.checks[{index}]",
+            )
+            check_id = string_value(
+                check.get("check_id"),
+                f"{gate_id}.checks[{index}].check_id",
+                maximum=100,
+            )
+            if (
+                check_id in check_ids
+                or not boolean_value(
+                    check.get("passed"),
+                    f"{gate_id}.checks[{index}].passed",
+                )
+            ):
+                return False
+            hard_blocker = boolean_value(
+                check.get("hard_blocker"),
+                f"{gate_id}.checks[{index}].hard_blocker",
+            )
+            if gate_id == "G4" and not hard_blocker:
+                return False
+            string_value(
+                check.get("evidence"),
+                f"{gate_id}.checks[{index}].evidence",
+                maximum=4_000,
+            )
+            check_ids.add(check_id)
+        if gate_id == "G4" and check_ids != _REQUIRED_G4_CHECKS:
+            return False
+    except ContractError:
+        return False
+    return True
 
 
 def _valid_materialized_source(
@@ -473,21 +648,25 @@ def load_release_candidate(path: Path) -> ReleaseCandidateInput:
     """Load one bounded local release-candidate input."""
 
     root = load_json_object(path, "Release candidate", maximum_bytes=64 * 1024)
-    only_keys(
-        root,
-        {
-            "schema_version",
-            "install_evidence_id",
-            "execution_module",
-            "install_target",
-            "rollback_guidance",
-            "documentation_paths",
-            "license_status",
-        },
-        "release_candidate",
+    schema_version = string_value(
+        root.get("schema_version"),
+        "schema_version",
+        maximum=10,
     )
-    if string_value(root.get("schema_version"), "schema_version", maximum=10) != "1.0":
-        raise ContractError("schema_version must be 1.0.")
+    common_keys = {
+        "schema_version",
+        "install_evidence_id",
+        "execution_module",
+        "install_target",
+        "rollback_guidance",
+        "documentation_paths",
+    }
+    if schema_version == "1.0":
+        only_keys(root, common_keys | {"license_status"}, "release_candidate")
+    elif schema_version == "1.1":
+        only_keys(root, common_keys | {"license"}, "release_candidate")
+    else:
+        raise ContractError("schema_version must be 1.0 or 1.1.")
     evidence_id = string_value(
         root.get("install_evidence_id"),
         "install_evidence_id",
@@ -531,15 +710,21 @@ def load_release_candidate(path: Path) -> ReleaseCandidateInput:
     )
     if len(documentation) != len(set(documentation)):
         raise ContractError("documentation_paths must contain unique paths.")
-    license_status = string_value(
-        root.get("license_status"),
-        "license_status",
-        maximum=50,
-    )
-    if license_status != "not-selected":
-        raise ContractError(
-            "M3 supports only the explicit not-selected project license state."
+    license: ProjectLicense | None = None
+    if schema_version == "1.0":
+        license_status = string_value(
+            root.get("license_status"),
+            "license_status",
+            maximum=50,
         )
+        if license_status != "not-selected":
+            raise ContractError(
+                "Release-candidate schema 1.0 supports only the explicit "
+                "not-selected project license state."
+            )
+    else:
+        license_status = "selected"
+        license = _parse_project_license(root.get("license"))
     return ReleaseCandidateInput(
         install_evidence_id=evidence_id,
         execution_module=execution_module,
@@ -547,7 +732,366 @@ def load_release_candidate(path: Path) -> ReleaseCandidateInput:
         rollback_guidance=rollback_guidance,
         documentation_paths=documentation,
         license_status=license_status,
+        license=license,
+        schema_version=schema_version,
     )
+
+
+def _parse_project_license(value: object) -> ProjectLicense:
+    """Parse the exact Apache-2.0 license decision for schema 1.1."""
+
+    item = object_value(value, "license")
+    only_keys(
+        item,
+        {
+            "spdx_expression",
+            "copyright_holder",
+            "license_file",
+            "notice_file",
+        },
+        "license",
+    )
+    spdx = string_value(item.get("spdx_expression"), "license.spdx_expression")
+    holder = string_value(item.get("copyright_holder"), "license.copyright_holder")
+    license_file = parse_artifact_reference(
+        item.get("license_file"),
+        "license.license_file",
+    )
+    notice_file = parse_artifact_reference(
+        item.get("notice_file"),
+        "license.notice_file",
+    )
+    if (
+        spdx != "Apache-2.0"
+        or holder != "guriguri215-lang"
+        or license_file.path != "LICENSE"
+        or license_file.sha256 != _APPROVED_PROJECT_LICENSES["LICENSE"]
+        or notice_file.path != "NOTICE"
+        or notice_file.sha256 != _APPROVED_PROJECT_LICENSES["NOTICE"]
+    ):
+        raise ContractError("license does not match the exact Owner-approved contract.")
+    return ProjectLicense(
+        spdx_expression=spdx,
+        copyright_holder=holder,
+        license_file=license_file,
+        notice_file=notice_file,
+    )
+
+
+def load_publication_readiness(path: Path) -> PublicationReadinessInput:
+    """Load one exact, offline-only V1 publication-readiness declaration."""
+
+    root = load_json_object(path, "Public release candidate", maximum_bytes=256 * 1024)
+    only_keys(
+        root,
+        {
+            "schema_version",
+            "candidate",
+            "project",
+            "license",
+            "release",
+            "policies",
+            "verification",
+            "publication_performed",
+            "actual_gate_g5",
+        },
+        "public_release_candidate",
+    )
+    if string_value(root.get("schema_version"), "schema_version") != "1.0":
+        raise ContractError("Public release candidate schema_version must be 1.0.")
+
+    candidate_object = object_value(root.get("candidate"), "candidate")
+    only_keys(
+        candidate_object,
+        {"identity", "branch", "publication_paths"},
+        "candidate",
+    )
+    candidate = parse_candidate_identity(candidate_object.get("identity"), "candidate.identity")
+    branch = _literal(candidate_object.get("branch"), "candidate.branch", "main")
+    paths = tuple(
+        safe_relative_path(item, f"candidate.publication_paths[{index}]")
+        for index, item in enumerate(
+            array_value(
+                candidate_object.get("publication_paths"),
+                "candidate.publication_paths",
+                maximum=4_096,
+            )
+        )
+    )
+    if not paths or paths != tuple(sorted(set(paths))):
+        raise ContractError("candidate.publication_paths must be sorted and unique.")
+
+    project = object_value(root.get("project"), "project")
+    only_keys(
+        project,
+        {
+            "name",
+            "repository",
+            "distribution",
+            "cli",
+            "version",
+            "proposed_tag",
+            "desired_visibility",
+            "default_branch",
+            "target_public_api",
+        },
+        "project",
+    )
+    for field, expected in {
+        "name": "SDAQF",
+        "repository": "spec-driven-agent-framework",
+        "distribution": "sdaqf",
+        "cli": "sdaqf",
+        "version": "1.0.0rc1",
+        "proposed_tag": "v1.0.0-rc.1",
+        "desired_visibility": "PUBLIC",
+        "default_branch": "main",
+        "target_public_api": "1.0.0",
+    }.items():
+        _literal(project.get(field), f"project.{field}", expected)
+
+    _parse_project_license(root.get("license"))
+
+    release = object_value(root.get("release"), "release")
+    only_keys(
+        release,
+        {
+            "level",
+            "audience",
+            "title",
+            "description",
+            "notes",
+            "prerelease",
+            "latest",
+            "attached_assets",
+            "package_registry_publication",
+            "source_archives",
+        },
+        "release",
+    )
+    for field, expected in {
+        "level": "release-candidate-prerelease",
+        "title": "SDAQF v1.0.0-rc.1",
+        "description": (
+            "Offline-first specification-driven development and quality assurance "
+            "for Codex-assisted projects."
+        ),
+        "source_archives": "GitHub-provided tag archives only",
+    }.items():
+        _literal(release.get(field), f"release.{field}", expected)
+    if string_tuple(release.get("audience"), "release.audience", minimum=2) != (
+        "framework evaluators",
+        "advanced Codex users",
+    ):
+        raise ContractError("release.audience does not match the Owner decision.")
+    if not boolean_value(release.get("prerelease"), "release.prerelease"):
+        raise ContractError("release.prerelease must be true.")
+    if boolean_value(release.get("latest"), "release.latest"):
+        raise ContractError("release.latest must be false.")
+    if array_value(release.get("attached_assets"), "release.attached_assets"):
+        raise ContractError("release.attached_assets must be empty.")
+    if boolean_value(
+        release.get("package_registry_publication"),
+        "release.package_registry_publication",
+    ):
+        raise ContractError("release.package_registry_publication must be false.")
+    notes = parse_artifact_reference(release.get("notes"), "release.notes")
+    if notes.path != "docs/releases/v1.0.0-rc.1.md":
+        raise ContractError("release.notes.path does not match the approved release.")
+
+    _validate_publication_policies(root.get("policies"))
+    verification = object_value(root.get("verification"), "verification")
+    only_keys(
+        verification,
+        {
+            "gates",
+            "independent_review",
+            "required_matrix",
+            "macos",
+        },
+        "verification",
+    )
+    gates = object_value(verification.get("gates"), "verification.gates")
+    only_keys(gates, {"G1", "G2", "G3", "G4"}, "verification.gates")
+    gate_results_list: list[tuple[str, str]] = []
+    gate_evidence_list: list[tuple[str, ArtifactReference]] = []
+    for gate_id in ("G1", "G2", "G3", "G4"):
+        gate = object_value(gates.get(gate_id), f"verification.gates.{gate_id}")
+        only_keys(gate, {"status", "evidence"}, f"verification.gates.{gate_id}")
+        status = _literal(
+            gate.get("status"),
+            f"verification.gates.{gate_id}.status",
+            "PASS",
+        )
+        evidence = parse_artifact_reference(
+            gate.get("evidence"),
+            f"verification.gates.{gate_id}.evidence",
+        )
+        expected_path = f".sdaqf/v1/gates/{gate_id}.json"
+        if evidence.path != expected_path:
+            raise ContractError(
+                f"verification.gates.{gate_id}.evidence.path is not exact."
+            )
+        gate_results_list.append((gate_id, status))
+        gate_evidence_list.append((gate_id, evidence))
+    gate_results = tuple(gate_results_list)
+    matrix = string_tuple(
+        verification.get("required_matrix"),
+        "verification.required_matrix",
+        minimum=4,
+    )
+    if matrix != (
+        "windows-python-3.12",
+        "windows-python-3.13",
+        "linux-python-3.12",
+        "linux-python-3.13",
+    ):
+        raise ContractError("verification.required_matrix does not match the contract.")
+    _literal(verification.get("macos"), "verification.macos", "NOT_VERIFIED")
+
+    review = object_value(
+        verification.get("independent_review"),
+        "verification.independent_review",
+    )
+    only_keys(
+        review,
+        {"baseline_id", "candidate", "decision", "unresolved_findings"},
+        "verification.independent_review",
+    )
+    review_baseline_id = string_value(
+        review.get("baseline_id"),
+        "verification.independent_review.baseline_id",
+        maximum=100,
+    )
+    review_candidate = parse_candidate_identity(
+        review.get("candidate"),
+        "verification.independent_review.candidate",
+    )
+    review_decision = _literal(
+        review.get("decision"),
+        "verification.independent_review.decision",
+        "GO",
+    )
+    unresolved = object_value(
+        review.get("unresolved_findings"),
+        "verification.independent_review.unresolved_findings",
+    )
+    only_keys(
+        unresolved,
+        {"Critical", "High", "Medium", "Low"},
+        "verification.independent_review.unresolved_findings",
+    )
+    unresolved_findings = tuple(
+        (
+            severity,
+            integer_value(
+                unresolved.get(severity),
+                f"verification.independent_review.unresolved_findings.{severity}",
+                minimum=0,
+                maximum=10_000,
+            ),
+        )
+        for severity in ("Critical", "High", "Medium", "Low")
+    )
+    if any(count for _, count in unresolved_findings):
+        raise ContractError("independent review must have no unresolved findings.")
+
+    publication_performed = boolean_value(
+        root.get("publication_performed"),
+        "publication_performed",
+    )
+    if publication_performed:
+        raise ContractError("Local readiness cannot claim publication was performed.")
+    actual_gate_g5 = _literal(root.get("actual_gate_g5"), "actual_gate_g5", "NOT_RUN")
+    return PublicationReadinessInput(
+        candidate=candidate,
+        branch=branch,
+        publication_paths=paths,
+        release_notes=notes,
+        review_candidate=review_candidate,
+        review_baseline_id=review_baseline_id,
+        review_decision=review_decision,
+        gate_results=gate_results,
+        gate_evidence=tuple(gate_evidence_list),
+        unresolved_findings=unresolved_findings,
+        publication_performed=publication_performed,
+        actual_gate_g5=actual_gate_g5,
+    )
+
+
+def _literal(value: object, where: str, expected: str) -> str:
+    text = string_value(value, where, maximum=1_000)
+    if text != expected:
+        raise ContractError(f"{where} does not match the approved value.")
+    return text
+
+
+def _validate_publication_policies(value: object) -> None:
+    policies = object_value(value, "policies")
+    only_keys(
+        policies,
+        {
+            "compatibility",
+            "migration",
+            "rollback",
+            "support",
+            "security",
+            "maintenance",
+            "contributions",
+            "code_of_conduct",
+            "known_limitations",
+        },
+        "policies",
+    )
+    expected_values = {
+        "compatibility": (
+            "Target V1 public API; prerelease compatibility is not guaranteed "
+            "until 1.0.0."
+        ),
+        "migration": (
+            "No migration is required from the M4 Public Beta CLI; validate "
+            "versioned schemas before reuse."
+        ),
+        "rollback": (
+            "Discard the unpublished local candidate; never delete or move a "
+            "published tag automatically."
+        ),
+        "support": (
+            "GitHub Issues for bugs and documentation; best effort, no SLA, "
+            "latest release only."
+        ),
+        "security": (
+            "Use GitHub private vulnerability reporting after separately approved "
+            "enablement when public; do not disclose vulnerabilities in public issues."
+        ),
+        "maintenance": (
+            "No prerelease backports; final 1.0.0 receives best-effort Critical "
+            "security and data-loss fixes for six months."
+        ),
+        "contributions": (
+            "External pull requests are not accepted during the release candidate; "
+            "bug and documentation issues are best effort."
+        ),
+        "code_of_conduct": "DEFERRED_UNTIL_OPEN_CONTRIBUTIONS",
+    }
+    for field, expected in expected_values.items():
+        _literal(policies.get(field), f"policies.{field}", expected)
+    limitations = string_tuple(
+        policies.get("known_limitations"),
+        "policies.known_limitations",
+        minimum=5,
+    )
+    if limitations != (
+        "Release candidate; not for production use.",
+        "macOS is not verified.",
+        "OpenAI API or Agents SDK adapter is deferred post-V1.",
+        "Management UI is deferred post-V1.",
+        (
+            "Authored comparison is not empirical, causal, blinded, randomized, "
+            "independently replicated, statistically powered, or cost-comparable."
+        ),
+    ):
+        raise ContractError("policies.known_limitations does not match the contract.")
 
 
 class GitInspector:
@@ -741,6 +1285,7 @@ class ReleaseCandidateGateService:
             candidate.documentation_paths,
             git.publication_paths,
         )
+        project_license_passed = _valid_project_license(root, candidate)
         checks = (
             GateCheck(
                 "G4-PRIOR-GATES",
@@ -792,13 +1337,17 @@ class ReleaseCandidateGateService:
             GateCheck(
                 "G4-DEPENDENCY-LICENSE",
                 not dependency_findings
-                and candidate.license_status == "not-selected"
+                and project_license_passed
                 and not any("license" in item.casefold() for item in dependency_findings),
                 True,
                 (
-                    "Runtime, dependency-license, and unselected project-license state passed."
-                    if not dependency_findings
-                    else f"{len(dependency_findings)} dependency findings exist."
+                    "Runtime, dependency-license, and exact project-license state passed."
+                    if not dependency_findings and project_license_passed
+                    else (
+                        f"{len(dependency_findings)} dependency findings exist."
+                        if dependency_findings
+                        else "Project-license state does not match the candidate."
+                    )
                 ),
             ),
             GateCheck(
@@ -856,6 +1405,132 @@ class ReleaseCandidateGateService:
             ),
         )
         return GateEngine().evaluate("G4", checks)
+
+
+class PublicationReadinessService:
+    """Evaluate offline local readiness without performing or claiming Gate G5."""
+
+    def evaluate(
+        self,
+        *,
+        root: Path,
+        baseline: RequirementBaseline,
+        ledger: EvidenceLedger,
+        review: IndependentReview,
+        declaration: PublicationReadinessInput,
+        release_candidate: ReleaseCandidateInput,
+        g1: GateResult,
+        g2: GateResult,
+        g3: GateResult,
+        git: GitObservation,
+    ) -> GateResult:
+        """Return a non-compensating local result whose success is LOCAL_READY."""
+
+        identity = CandidateIdentity(
+            source_spec_sha256=baseline.source.sha256,
+            git_head=git.head,
+            repository_digest=git.repository_digest,
+        )
+        recorded_gates = dict(declaration.gate_results)
+        recorded_gate_evidence = dict(declaration.gate_evidence)
+        actual_gates = {"G1": g1, "G2": g2, "G3": g3}
+        identity_passed = (
+            git.root_matches
+            and git.branch == "main"
+            and git.clean
+            and declaration.branch == "main"
+            and declaration.candidate == identity
+            and declaration.review_candidate == identity
+            and declaration.publication_paths == git.publication_paths
+            and declaration.release_notes.path in git.publication_paths
+        )
+        evidence_passed = (
+            ledger.baseline_id == baseline.baseline_id
+            and ledger.source_spec_sha256 == baseline.source.sha256
+            and ledger.git_head == git.head
+            and ledger.repository_digest == git.repository_digest
+            and review.baseline_id == baseline.baseline_id
+            and review.candidate == identity
+            and declaration.review_baseline_id == baseline.baseline_id
+            and declaration.review_decision == "GO"
+            and not any(dict(declaration.unresolved_findings).values())
+        )
+        gate_passed = (
+            recorded_gates
+            == {"G1": "PASS", "G2": "PASS", "G3": "PASS", "G4": "PASS"}
+            and g1.gate_id == "G1"
+            and g1.passed
+            and g2.gate_id == "G2"
+            and g2.passed
+            and g3.gate_id == "G3"
+            and g3.passed
+            and set(recorded_gate_evidence) == {"G1", "G2", "G3", "G4"}
+            and all(
+                _valid_gate_result_artifact(
+                    root,
+                    recorded_gate_evidence[gate_id],
+                    gate_id,
+                    identity,
+                    actual_gates.get(gate_id),
+                )
+                for gate_id in ("G1", "G2", "G3", "G4")
+            )
+        )
+        license_passed = (
+            release_candidate.schema_version == "1.1"
+            and _valid_project_license(root, release_candidate)
+            and not audit_dependencies(root)
+            and not audit_repository(
+                root,
+                publication_paths=git.publication_paths or None,
+            )
+        )
+        publication_boundary_passed = (
+            declaration.publication_performed is False
+            and declaration.actual_gate_g5 == "NOT_RUN"
+        )
+        checks = (
+            GateCheck(
+                "LOCAL-IDENTITY",
+                identity_passed,
+                True,
+                "Branch, exact candidate identity, notes, and complete path set must match.",
+            ),
+            GateCheck(
+                "LOCAL-EVIDENCE",
+                evidence_passed,
+                True,
+                "Baseline, ledger, and independent-review identities must match.",
+            ),
+            GateCheck(
+                "LOCAL-GATES-G1-G4",
+                gate_passed,
+                True,
+                (
+                    "G1 through G4 exact result artifacts must be recorded PASS; "
+                    "G1 through G3 are re-evaluated."
+                ),
+            ),
+            GateCheck(
+                "LOCAL-LICENSE-PUBLICATION-AUDIT",
+                license_passed,
+                True,
+                "Exact Apache-2.0 material and local publication audits must pass.",
+            ),
+            GateCheck(
+                "LOCAL-RELEASE-NOTES",
+                verify_artifact(root, declaration.release_notes),
+                True,
+                "The approved release-notes path and digest must match.",
+            ),
+            GateCheck(
+                "LOCAL-NO-PUBLICATION",
+                publication_boundary_passed,
+                True,
+                "Local readiness requires publication_performed=false and G5 NOT_RUN.",
+            ),
+        )
+        return GateEngine().evaluate("G5-LOCAL-READINESS", checks)
 
 
 def _valid_install_trace(

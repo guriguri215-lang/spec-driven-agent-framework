@@ -4,7 +4,7 @@
     {
       "template_id": "m2-agent-result",
       "target": "schemas/agent-result.schema.json",
-      "compatible_version": "0.1.0",
+      "compatible_version": "1.0.0",
       "dependencies": ["independent-review"],
       "provenance": "repository-authored",
       "license_status": "not-selected",

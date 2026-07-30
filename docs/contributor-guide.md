@@ -2,10 +2,11 @@
 
 ## Current contribution status
 
-The project is in a private public-beta hardening phase. It is not open for
-external contributions, no project license has been selected, and no
-permission to copy, modify, or distribute the project is granted. This guide
-defines the workflow for explicitly approved local contributors.
+The project is in the private `1.0.0rc1` finalization phase. It is licensed
+under Apache-2.0 but is not open for external pull requests during the release
+candidate. Bug and documentation issues are handled on a best-effort basis
+after publication. This guide defines the workflow for explicitly approved
+local contributors.
 
 ## Setup
 
@@ -105,12 +106,18 @@ single-use approval consumption, and non-compensating critical failures.
 
 Do not inspect credentials, GitHub authentication, private remote metadata, or
 user-level Codex configuration without a separate approved need. Report a
-suspected vulnerability through the private process in `SECURITY.md`.
+suspected vulnerability through the private process in `SECURITY.md`. Do not
+use a public issue for vulnerability disclosure.
 
 ## Release limitations
 
 Gate G4 is a local release-candidate check, not publication. Gate G5 remains
-Owner-gated. Contributors may not select a license, change visibility, publish
-a branch, create a PR, tag or release, change repository settings, deploy, or
-transfer data externally without an exact Owner decision and reviewed outbound
-content.
+Owner-gated. `G5-LOCAL-READINESS` can return `LOCAL_READY` but actual Gate G5
+remains `NOT_RUN`. Contributors may not change project-license material,
+visibility, publish a branch, create a PR, tag or release, change repository
+settings, deploy, or transfer data externally without an exact Owner decision
+and reviewed outbound content.
+
+Support is best effort, has no SLA, and applies to the latest release only.
+No prerelease backports are promised. The project Code of Conduct is deferred
+until external contributions are opened.

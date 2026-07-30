@@ -399,6 +399,26 @@ class UiValidation:
 
 
 @dataclass(frozen=True, slots=True)
+class ProjectLicense:
+    """Exact Owner-approved project-license material."""
+
+    spdx_expression: str
+    copyright_holder: str
+    license_file: ArtifactReference
+    notice_file: ArtifactReference
+
+    def to_dict(self) -> dict[str, object]:
+        """Return a JSON-compatible representation."""
+
+        return {
+            "spdx_expression": self.spdx_expression,
+            "copyright_holder": self.copyright_holder,
+            "license_file": self.license_file.to_dict(),
+            "notice_file": self.notice_file.to_dict(),
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class ReleaseCandidateInput:
     """Bounded local inputs for Gate G4."""
 
@@ -408,19 +428,65 @@ class ReleaseCandidateInput:
     rollback_guidance: str
     documentation_paths: tuple[str, ...]
     license_status: str
+    license: ProjectLicense | None = None
     schema_version: str = "1.0"
 
     def to_dict(self) -> dict[str, object]:
         """Return a JSON-compatible representation."""
 
-        return {
+        result: dict[str, object] = {
             "schema_version": self.schema_version,
             "install_evidence_id": self.install_evidence_id,
             "execution_module": self.execution_module,
             "install_target": self.install_target,
             "rollback_guidance": self.rollback_guidance,
             "documentation_paths": list(self.documentation_paths),
-            "license_status": self.license_status,
+        }
+        if self.schema_version == "1.0":
+            result["license_status"] = self.license_status
+        elif self.license is not None:
+            result["license"] = self.license.to_dict()
+        return result
+
+
+@dataclass(frozen=True, slots=True)
+class PublicationReadinessInput:
+    """Exact offline publication-readiness declaration."""
+
+    candidate: CandidateIdentity
+    branch: str
+    publication_paths: tuple[str, ...]
+    release_notes: ArtifactReference
+    review_candidate: CandidateIdentity
+    review_baseline_id: str
+    review_decision: str
+    gate_results: tuple[tuple[str, str], ...]
+    gate_evidence: tuple[tuple[str, ArtifactReference], ...]
+    unresolved_findings: tuple[tuple[str, int], ...]
+    publication_performed: bool
+    actual_gate_g5: str
+    schema_version: str = "1.0"
+
+    def to_dict(self) -> dict[str, object]:
+        """Return the bounded fields relevant to local evaluation."""
+
+        return {
+            "schema_version": self.schema_version,
+            "candidate": self.candidate.to_dict(),
+            "branch": self.branch,
+            "publication_paths": list(self.publication_paths),
+            "release_notes": self.release_notes.to_dict(),
+            "review_candidate": self.review_candidate.to_dict(),
+            "review_baseline_id": self.review_baseline_id,
+            "review_decision": self.review_decision,
+            "gate_results": dict(self.gate_results),
+            "gate_evidence": {
+                gate_id: reference.to_dict()
+                for gate_id, reference in self.gate_evidence
+            },
+            "unresolved_findings": dict(self.unresolved_findings),
+            "publication_performed": self.publication_performed,
+            "actual_gate_g5": self.actual_gate_g5,
         }
 
 

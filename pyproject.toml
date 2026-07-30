@@ -4,11 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sdaqf"
-version = "0.1.0.dev0"
-description = "Offline requirements and planning for specification-driven agent development."
+version = "1.0.0rc1"
+description = "Offline-first specification-driven development and quality assurance for Codex-assisted projects."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
 
 [project.scripts]
 sdaqf = "sdaqf.cli:main"

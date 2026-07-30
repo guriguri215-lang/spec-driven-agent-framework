@@ -4,6 +4,8 @@ All notable changes will be documented in this file.
 
 ## Unreleased
 
+The proposed `1.0.0rc1` release remains `NOT_PUBLISHED`.
+
 ### Added
 
 - M0 Bootstrap Foundation repository structure.
@@ -41,3 +43,17 @@ All notable changes will be documented in this file.
   negative tests.
 - Public contributor setup, development, testing, architecture, extension,
   security, evaluation, migration, and release-limit documentation.
+- V1 target public API and `1.0.0rc1` version metadata.
+- Apache-2.0 `LICENSE`, `NOTICE`, exact project-license metadata, and
+  fail-closed selected-license auditing.
+- Release-candidate schema 1.1 and offline public-release-candidate schema.
+- Local `gate publication-readiness` with `LOCAL_READY`, explicit
+  `publication_performed: false`, and actual Gate G5 `NOT_RUN`.
+- Compatibility, migration, prerelease notes, support, contribution,
+  maintenance, platform, and source-only artifact policies.
+
+### Changed
+
+- Template compatibility defaults now target public API line `1.0.0`.
+- Historical release-candidate schema 1.0 remains unchanged and continues to
+  represent only the unselected project-license state.

@@ -2,9 +2,14 @@
 
 ## Runtime
 
-M0 through M4 have no third-party runtime dependency. The application uses
-only Python 3.12 standard-library modules. M4 adds no package to the
-development lock.
+M0 through the V1 release candidate have no third-party runtime dependency.
+The application uses only Python 3.12-or-newer standard-library modules. V1
+adds no package to the development lock.
+
+The SDAQF project is licensed under Apache-2.0 through the exact root
+`LICENSE` and `NOTICE` files. This project-license decision does not relicense
+the development packages, CI actions, evaluation inputs, or other third-party
+material recorded below.
 
 ## Development lock
 

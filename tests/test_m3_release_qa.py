@@ -727,7 +727,7 @@ def test_dependency_audit_fails_closed_for_toml_type_and_license_metadata(
         "[project]\ndependencies = []\nlicense = \"MIT\"\n",
         encoding="utf-8",
     )
-    assert any("Owner" in item for item in audit_dependencies(root))
+    assert any("Apache-2.0" in item for item in audit_dependencies(root))
 
     (root / "pyproject.toml").write_text(
         "[project]\ndependencies = []\nclassifiers = \"bad\"\n",

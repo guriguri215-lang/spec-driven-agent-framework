@@ -168,7 +168,8 @@ and order, CRCs, bounded decompression, exact scanlines, and filter bytes.
 
 Gate G4 composes passing G2, G3, and applicable UI results with exact-commit
 installation evidence, verified Must claims, local repository and dependency
-audits, explicit unselected project-license state, required non-empty UTF-8
+audits, either the historical schema 1.0 unselected-license state or the exact
+schema 1.1 Apache-2.0 `LICENSE` and `NOTICE` contract, required non-empty UTF-8
 documentation with installation and known-limitations sections, exact rollback
 guidance, and a bounded read-only Git observation. Installation proof uses an
 exact `python -I -m pip --isolated` command with no index, build isolation, or dependency
@@ -180,7 +181,18 @@ Ignored worktree files, ambient imports, pre-existing targets, extra source
 inputs, and missing publication documents fail closed. The publication audit
 uses the same complete Git candidate set, so nested project-license names,
 binary metadata disclosures, links, and reparse ancestors cannot hide inside
-the candidate. Gate G4 does not perform or authorize Gate G5 publication.
+the candidate. Unknown, additional, nested, linked, modified, or conflicting
+project-license material fails closed. Gate G4 does not perform or authorize
+Gate G5 publication.
+
+The V1 publication-readiness service is a separate offline composition layer.
+It binds exact local candidate identity, complete Git publication paths,
+approved release metadata and policy, selected license material, G1 through G4
+records, and independent review. It re-evaluates G1 through G3 from supplied
+local evidence and audits the exact candidate. Success is
+`G5-LOCAL-READINESS` with status `LOCAL_READY`; the result always records
+`publication_performed: false` and actual Gate G5 `NOT_RUN`. The service has
+no GitHub, credential, tag, release, visibility, or repository-setting port.
 
 Every M3 Gate, UI validation, and handoff command hashes the actual regular,
 unlinked specification supplied on the command line and requires it to be in

@@ -841,7 +841,7 @@ def main_smoke() -> int:
                     "--templates",
                     str(m2 / "template-registry.json"),
                     "--framework-version",
-                    "0.1.0",
+                    "1.0.0",
                     "--available",
                     "independent-review",
                     "--select-skill",

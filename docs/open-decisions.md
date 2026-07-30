@@ -1,17 +1,27 @@
 # Open Decisions
 
-The following decisions remain with the Owner and are not implied by M0:
+The V1.0 release-readiness product decisions are resolved:
 
-1. Final project name and GitHub repository name.
-2. License, with Apache-2.0, MIT, or another explicit option to be evaluated.
-3. GitHub visibility.
-4. Final Python package and CLI names.
-5. Initial public release level: pre-alpha, alpha, or beta.
-6. Required CI operating systems and Python versions.
-7. External contribution policy.
-8. Whether an API or Agents SDK adapter belongs in a future optional extension.
-9. Whether a management UI should be added later.
+- project `SDAQF`, repository `spec-driven-agent-framework`, and
+  distribution/CLI `sdaqf`;
+- Apache-2.0 with copyright holder `guriguri215-lang`;
+- private during local finalization, with public visibility only through a
+  separately approved Gate G5 action;
+- release candidate `1.0.0rc1` for framework evaluators and advanced Codex
+  users, not for production use;
+- proposed tag `v1.0.0-rc.1`, source-only GitHub tag archives, no attached
+  assets, and no package-registry publication;
+- Windows and Linux with Python 3.12 and 3.13 required; macOS
+  `NOT_VERIFIED`;
+- external pull requests closed during the release candidate, issue support
+  best effort, and Code of Conduct deferred until open contributions; and
+- GitHub private vulnerability reporting after separately approved enablement,
+  no prerelease backports, and best-effort six-month Critical-fix maintenance
+  after final `1.0.0`.
 
-Until a license is selected, no permission to copy, modify, or distribute the
-repository is granted. Until publication metadata and visibility are approved,
-no remote or GitHub action is authorized.
+The OpenAI API or Agents SDK adapter and management UI are deferred post-V1.
+Final `1.0.0` requires a new exact candidate and Owner approval.
+
+No commit, push, remote observation, visibility change, tag, release, or
+repository-setting change is implied by these decisions. Each remains a
+separate exact approval boundary.

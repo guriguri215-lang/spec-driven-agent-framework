@@ -56,7 +56,9 @@ from sdaqf.application.quality_gates import (
 )
 from sdaqf.application.release_qa import (
     GitInspector,
+    PublicationReadinessService,
     ReleaseCandidateGateService,
+    load_publication_readiness,
     load_release_candidate,
 )
 from sdaqf.application.requirements import SpecificationError, SpecificationIngestor
@@ -232,6 +234,18 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="FILE",
     )
     review_gate.add_argument("--json", action="store_true")
+    publication_gate = gate_subparsers.add_parser(
+        "publication-readiness",
+        help="Evaluate offline local publication readiness without performing Gate G5.",
+    )
+    publication_gate.add_argument("declaration", type=Path)
+    publication_gate.add_argument("--root", type=Path, default=Path("."))
+    publication_gate.add_argument("--baseline", type=Path, required=True)
+    publication_gate.add_argument("--ledger", type=Path, required=True)
+    publication_gate.add_argument("--review", type=Path, required=True)
+    publication_gate.add_argument("--release-candidate", type=Path, required=True)
+    publication_gate.add_argument("--specification", type=Path, required=True)
+    publication_gate.add_argument("--json", action="store_true")
 
     evidence = subparsers.add_parser(
         "evidence",
@@ -366,7 +380,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     skills_validate.add_argument("root", type=Path)
     skills_validate.add_argument("--templates", type=Path, required=True)
-    skills_validate.add_argument("--framework-version", default="0.1.0")
+    skills_validate.add_argument("--framework-version", default="1.0.0")
     skills_validate.add_argument("--available", action="append", default=[])
     skills_validate.add_argument("--condition", action="append", default=[])
     skills_validate.add_argument("--select-skill", action="append", default=[])
@@ -724,6 +738,61 @@ def main(argv: Sequence[str] | None = None) -> int:
             print("ERROR: independent review Gate input is invalid.", file=sys.stderr)
             return 2
         _emit(result.to_dict(), as_json=args.json)
+        return 0 if result.passed else 2
+
+    if args.command == "gate" and args.gate_name == "publication-readiness":
+        try:
+            root = _exact_working_root(args.root)
+            baseline = load_baseline(args.baseline)
+            ledger = load_evidence_ledger(args.ledger)
+            review = load_independent_review(args.review)
+            source_digest = inspect_specification(
+                root,
+                args.specification,
+                expected_filename=baseline.source.filename,
+            )
+            if source_digest != baseline.source.sha256:
+                raise ContractError("Specification does not match the baseline.")
+            git = GitInspector(
+                SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)
+            ).inspect(root)
+            _require_specification_candidate(root, args.specification, git)
+            identity = _candidate_identity(source_digest, git)
+            g1 = RequirementsGateService().evaluate(baseline)
+            g2 = ImplementationEvidenceGateService().evaluate(
+                baseline,
+                ledger,
+                candidate=identity,
+                root=root,
+            )
+            g3 = IndependentReviewGateService().evaluate(
+                review,
+                baseline_id=baseline.baseline_id,
+                candidate=identity,
+                changed_paths=git.changed_paths,
+                candidate_paths=git.publication_paths,
+                approvals=(),
+            )
+            result = PublicationReadinessService().evaluate(
+                root=root,
+                baseline=baseline,
+                ledger=ledger,
+                review=review,
+                declaration=load_publication_readiness(args.declaration),
+                release_candidate=load_release_candidate(args.release_candidate),
+                g1=g1,
+                g2=g2,
+                g3=g3,
+                git=git,
+            )
+        except (BaselineContractError, ContractError, OSError):
+            print("ERROR: publication-readiness input is invalid.", file=sys.stderr)
+            return 2
+        payload = result.to_dict()
+        payload["status"] = "LOCAL_READY" if result.passed else "BLOCKED"
+        payload["actual_gate_g5"] = "NOT_RUN"
+        payload["publication_performed"] = False
+        _emit(payload, as_json=args.json)
         return 0 if result.passed else 2
 
     if args.command == "evidence":
