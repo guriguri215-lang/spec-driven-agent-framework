@@ -404,5 +404,7 @@ published.
   whitespace. Fresh independent read-only re-review returned `GO` with
   unresolved Critical/High/Medium/Low = 0/0/0/0. The authored/nonempirical
   comparison remains a declared limitation rather than an empirical claim.
-  A new exact-SHA Windows/Linux matrix remains pending separate Owner approval
-  for commit, push, and Actions observation.
+  Owner-approved hardening commit
+  `452263c2bb2136a83cf8bf5c7252795ea4ce4190` was pushed normally. Exact-SHA
+  run `30548734324` passed Windows and Linux on Python 3.12 and 3.13. The
+  evidence-only attestation commit and its final matrix remain pending.

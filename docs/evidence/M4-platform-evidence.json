@@ -2,8 +2,8 @@
   "schema_version": "1.1",
   "milestone": "M4",
   "candidate": {
-    "git_head": "69468b201a7af110029285ac88efa663936deae5",
-    "repository_digest": "926F3D303C86F3B3303F1998EAA5728E8869BE023BDDAD57A4003ADCF7F21DFC",
+    "git_head": "452263c2bb2136a83cf8bf5c7252795ea4ce4190",
+    "repository_digest": "BEB2AD000FECE0E410046C6B0A870829650B129A834FA123FAD4D741C0184E58",
     "canonical_specification_sha256": "89340E628F631CEE6A020C7F1008446ECDB9D0470E7CD56B856F91BB9B10D2D5",
     "workflow_path": ".github/workflows/ci.yml",
     "workflow_sha256": "D10B313EB77F2AA2B47448FB053A0C62F5A42ED89BB1246B510CCA0241EDC3A4"
@@ -30,7 +30,7 @@
         "python scripts/run_cli_smoke.py"
       ],
       "source": "exact-sha-ci",
-      "run_id": 30465146945
+      "run_id": 30548734324
     },
     {
       "platform": "linux",
@@ -53,7 +53,7 @@
         "python scripts/run_cli_smoke.py"
       ],
       "source": "exact-sha-ci",
-      "run_id": 30465146945
+      "run_id": 30548734324
     },
     {
       "platform": "windows",
@@ -76,7 +76,7 @@
         "python scripts/run_cli_smoke.py"
       ],
       "source": "exact-sha-ci",
-      "run_id": 30465146945
+      "run_id": 30548734324
     },
     {
       "platform": "windows",
@@ -99,7 +99,7 @@
         "python scripts/run_cli_smoke.py"
       ],
       "source": "exact-sha-ci",
-      "run_id": 30465146945
+      "run_id": 30548734324
     }
   ],
   "macos": {
@@ -110,9 +110,8 @@
     "run_id": null
   },
   "limitations": [
-    "Run 30465146945 verifies exact subject commit 69468b201a7af110029285ac88efa663936deae5; this record is a later evidence-only attestation.",
+    "Run 30548734324 verifies exact subject commit 452263c2bb2136a83cf8bf5c7252795ea4ce4190; this record is a later evidence-only attestation.",
     "The successful M3 matrix is not reused as M4 evidence.",
-    "The post-finalization hardening worktree requires a new exact-SHA matrix before it can replace this historical subject record.",
     "No macOS execution environment was available."
   ]
 }

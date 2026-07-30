@@ -145,7 +145,11 @@ observation or repository mutation. The authored, nonempirical comparison and
 macOS `NOT VERIFIED` status remain explicit limitations, not completion
 claims.
 
-Run `30465146945` remains valid evidence for historical subject
-`69468b201a7af110029285ac88efa663936deae5`; it does not verify the remediation
-worktree. A new exact-SHA Windows/Linux and Python 3.12/3.13 matrix is required
-before the remediated candidate can replace that subject record.
+The reviewed remediation was committed as exact subject
+`452263c2bb2136a83cf8bf5c7252795ea4ce4190`, whose publication digest is
+`BEB2AD000FECE0E410046C6B0A870829650B129A834FA123FAD4D741C0184E58`
+across 248 paths. Exact-SHA Actions run `30548734324` completed successfully:
+Windows and Linux on Python 3.12 and 3.13 all passed tests, lint, strict
+typing, total/M1/M2 coverage, workspace/publication/dependency audits,
+installed-dependency consistency, and CLI smoke. The public platform record
+is a later evidence-only attestation to that immutable subject.
