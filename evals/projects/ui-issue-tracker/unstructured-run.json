@@ -65,7 +65,7 @@
     },
     {
       "evidence_id": "EV-UIT-HAPPY-PATH",
-      "evidence_type": "TEST",
+      "evidence_type": "MANUAL_REVIEW",
       "status": "FAIL",
       "path": "projects/ui-issue-tracker/evidence/unstructured-happy-path.md",
       "sha256": "965682855D1DC6923713FDCFD52E124A93EF84EE6E6ACABD251D3CB139C665E6",

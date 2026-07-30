@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import copy
+import hashlib
 import json
 import tomllib
 from pathlib import Path
 
+import pytest
+
 from sdaqf.application.orchestration import load_agent_registry
 from sdaqf.application.tooling import load_tool_registry
-from tests.schema_validation import LocalSchemaValidator
+from tests.schema_validation import LocalSchemaValidator, SchemaValidationError
 
 
 def repository_root() -> Path:
@@ -94,17 +98,50 @@ def test_platform_evidence_is_complete_and_truthful_about_verification() -> None
         ("linux", "3.13"),
     }
     candidate = evidence["candidate"]
+    workflow = root / candidate["workflow_path"]
+    assert candidate["workflow_sha256"] == hashlib.sha256(
+        workflow.read_bytes()
+    ).hexdigest().upper()
+    normalized_workflow = " ".join(
+        workflow.read_text(encoding="utf-8").split()
+    )
     for item in matrix:
         if item["status"] == "PASS":
             assert candidate["git_head"] is not None
             assert candidate["repository_digest"] is not None
             assert item["source"] in {"local", "exact-sha-ci"}
+            assert item["commands"]
+            for command in item["commands"]:
+                assert " ".join(command.split()) in normalized_workflow
             if item["source"] == "exact-sha-ci":
                 assert item["run_id"] is not None
         else:
             assert item["source"] == "not-run"
             assert item["run_id"] is None
-    assert evidence["macos"]["status"] in {"PASS", "NOT_VERIFIED"}
+    assert evidence["macos"] == {
+        "status": "NOT_VERIFIED",
+        "reason": "No macOS execution environment was available for this milestone.",
+        "commands": [],
+        "source": "not-run",
+        "run_id": None,
+    }
+
+    invalid = copy.deepcopy(evidence)
+    invalid["matrix"][0]["source"] = "not-run"
+    invalid["matrix"][0]["run_id"] = None
+    with pytest.raises(SchemaValidationError):
+        LocalSchemaValidator(root / "schemas").validate(
+            "platform-evidence.schema.json",
+            invalid,
+        )
+
+    invalid = copy.deepcopy(evidence)
+    invalid["macos"]["status"] = "PASS"
+    with pytest.raises(SchemaValidationError):
+        LocalSchemaValidator(root / "schemas").validate(
+            "platform-evidence.schema.json",
+            invalid,
+        )
 
 
 def test_m4_plan_traces_requirements_and_criteria() -> None:

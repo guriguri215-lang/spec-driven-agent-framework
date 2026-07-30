@@ -44,7 +44,7 @@
   "evidence": [
     {
       "evidence_id": "EV-CFG-REGRESSION",
-      "evidence_type": "TEST",
+      "evidence_type": "MANUAL_REVIEW",
       "status": "PASS",
       "path": "projects/offline-config/evidence/structured-regression.md",
       "sha256": "EA2DB45D2CB509773AE81E1A17003710215A1A883013B8DA2E1816DAF6E193FF",

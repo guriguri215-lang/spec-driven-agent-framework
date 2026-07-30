@@ -36,7 +36,8 @@ All notable changes will be documented in this file.
   parity validation, non-compensating metrics, repeated-failure analysis,
   tracked results, schemas, documentation, CLI commands, and tests.
 - Explicit Agent and Tool Registry 1.0-to-2.0 migration with conservative
-  defaults, exclusive validated output, failure rollback, public policy,
-  fixtures, CLI commands, and negative tests.
+  defaults, exclusive validated output, atomic single-use approval
+  consumption, failure rollback, public policy, fixtures, CLI commands, and
+  negative tests.
 - Public contributor setup, development, testing, architecture, extension,
   security, evaluation, migration, and release-limit documentation.

@@ -34,7 +34,10 @@ from sdaqf.application.handoffs import (
     load_automated_handoff,
     validate_handoff_resume,
 )
-from sdaqf.application.migrations import MigrationService
+from sdaqf.application.migrations import (
+    MigrationPublicationIndeterminateError,
+    MigrationService,
+)
 from sdaqf.application.orchestration import (
     AgentOrchestrator,
     OrchestrationContractError,
@@ -1071,6 +1074,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                 source_version=args.from_version,
                 target_version=args.to_version,
             )
+        except MigrationPublicationIndeterminateError:
+            print(
+                "ERROR: schema migration publication is indeterminate; "
+                "do not use or automatically remove the named output.",
+                file=sys.stderr,
+            )
+            return 2
         except (ContractError, OSError):
             print("ERROR: schema migration is invalid.", file=sys.stderr)
             return 2

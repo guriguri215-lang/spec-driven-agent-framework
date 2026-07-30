@@ -498,6 +498,13 @@ def test_evaluation_service_rejects_workflow_identity_and_change_mismatch(
     with pytest.raises(ContractError, match="distinct before and after"):
         EvaluationService().evaluate(suite)
 
+    suite = copied_suite(tmp_path / "fourth")
+    payload = json.loads(suite.read_text(encoding="utf-8"))
+    payload["changes"][0]["artifact_id"] = "unbound-prompt"
+    write_json(suite, payload)
+    with pytest.raises(ContractError, match="artifact identity"):
+        EvaluationService().evaluate(suite)
+
 
 def test_evaluation_service_rejects_specification_and_defect_identity(
     tmp_path: Path,
@@ -613,6 +620,45 @@ def test_open_repeated_failure_analysis_is_a_named_blocker(
         "secure-export:unstructured:CAUSE-ANALYSIS-OPEN:FAIL-EXP-BOUNDARY"
         in result.hard_blockers
     )
+
+
+def test_failed_evidence_and_recorded_critical_defects_remain_named_blockers(
+    tmp_path: Path,
+) -> None:
+    suite = copied_suite(tmp_path)
+    run = (
+        suite.parent
+        / "projects"
+        / "secure-export"
+        / "unstructured-run.json"
+    )
+    expectation = json.loads(
+        (
+            suite.parent
+            / "projects"
+            / "secure-export"
+            / "expected-normalized.json"
+        ).read_text(encoding="utf-8")
+    )
+    payload = json.loads(run.read_text(encoding="utf-8"))
+    payload["requirements_implemented"] = sorted(
+        item["requirement_id"] for item in expectation["requirements"]
+    )
+    for defect in payload["critical_defects"]:
+        defect["resolved"] = True
+    write_json(run, payload)
+
+    result = EvaluationService().evaluate(suite)
+    comparison = next(
+        item for item in result.comparisons if item.project_id == "secure-export"
+    )
+
+    assert comparison.unstructured.missed_requirements == 0
+    assert {
+        "CRITICAL:disclosure:DEFECT-EXP-DISCLOSURE",
+        "CRITICAL:security:DEFECT-EXP-APPROVAL",
+        "EVIDENCE:FAIL:EV-EXP-ADHOC-REVIEW",
+    } <= set(comparison.unstructured.hard_blockers)
 
 
 def test_verified_cause_analysis_requires_passing_evidence(

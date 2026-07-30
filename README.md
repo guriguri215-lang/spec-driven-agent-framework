@@ -116,7 +116,9 @@ copying private workspace state.
   non-empirical, non-causal limitations.
 - Explicit non-destructive Agent Registry and Tool Registry 1.0-to-2.0
   migration with conservative defaults, current-loader validation, source
-  preservation, and exact rollback guidance.
+  preservation, an exact atomically consumed single-use Owner approval, and
+  exact rollback or indeterminate-publication guidance without automatic path
+  deletion.
 - Public contributor, evaluation, migration, architecture, extension,
   security, testing, and release-limit documentation.
 - `eval validate`, `eval compare`, and `schema migrate` CLI paths.

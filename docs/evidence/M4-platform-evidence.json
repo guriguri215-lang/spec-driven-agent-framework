@@ -1,17 +1,34 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "milestone": "M4",
   "candidate": {
     "git_head": "69468b201a7af110029285ac88efa663936deae5",
     "repository_digest": "926F3D303C86F3B3303F1998EAA5728E8869BE023BDDAD57A4003ADCF7F21DFC",
-    "canonical_specification_sha256": "89340E628F631CEE6A020C7F1008446ECDB9D0470E7CD56B856F91BB9B10D2D5"
+    "canonical_specification_sha256": "89340E628F631CEE6A020C7F1008446ECDB9D0470E7CD56B856F91BB9B10D2D5",
+    "workflow_path": ".github/workflows/ci.yml",
+    "workflow_sha256": "D10B313EB77F2AA2B47448FB053A0C62F5A42ED89BB1246B510CCA0241EDC3A4"
   },
   "matrix": [
     {
       "platform": "linux",
       "python": "3.12",
       "status": "PASS",
-      "command": "Continuous integration: Run tests through Run CLI smoke checks",
+      "commands": [
+        "python -m pip install --disable-pip-version-check -r requirements-dev.lock",
+        "python -m pip install --no-build-isolation --no-deps -e .",
+        "python -m pytest",
+        "python -m ruff check src tests scripts",
+        "python -m mypy src tests scripts",
+        "python -m coverage run -m pytest",
+        "python -m coverage report --fail-under=80",
+        "python -m coverage report --include=\"src/sdaqf/domain/models.py,src/sdaqf/domain/requirements.py,src/sdaqf/application/gates.py,src/sdaqf/application/approvals.py,src/sdaqf/application/baselines.py,src/sdaqf/application/comparison.py,src/sdaqf/application/planning.py,src/sdaqf/application/requirements.py,src/sdaqf/application/requirements_gate.py\" --fail-under=90",
+        "python -m coverage report --include=\"src/sdaqf/domain/orchestration.py,src/sdaqf/domain/tooling.py,src/sdaqf/adapters/process.py,src/sdaqf/application/orchestration.py,src/sdaqf/application/skills.py,src/sdaqf/application/tooling.py,src/sdaqf/application/checkpoints.py\" --fail-under=90",
+        "python scripts/check_workspace_boundary.py --repo . --expected-origin-url https://github.com/guriguri215-lang/spec-driven-agent-framework.git",
+        "python scripts/audit_repository.py --root . --workspace-parent ..",
+        "python scripts/audit_dependencies.py --root .",
+        "python -m pip check",
+        "python scripts/run_cli_smoke.py"
+      ],
       "source": "exact-sha-ci",
       "run_id": 30465146945
     },
@@ -19,7 +36,22 @@
       "platform": "linux",
       "python": "3.13",
       "status": "PASS",
-      "command": "Continuous integration: Run tests through Run CLI smoke checks",
+      "commands": [
+        "python -m pip install --disable-pip-version-check -r requirements-dev.lock",
+        "python -m pip install --no-build-isolation --no-deps -e .",
+        "python -m pytest",
+        "python -m ruff check src tests scripts",
+        "python -m mypy src tests scripts",
+        "python -m coverage run -m pytest",
+        "python -m coverage report --fail-under=80",
+        "python -m coverage report --include=\"src/sdaqf/domain/models.py,src/sdaqf/domain/requirements.py,src/sdaqf/application/gates.py,src/sdaqf/application/approvals.py,src/sdaqf/application/baselines.py,src/sdaqf/application/comparison.py,src/sdaqf/application/planning.py,src/sdaqf/application/requirements.py,src/sdaqf/application/requirements_gate.py\" --fail-under=90",
+        "python -m coverage report --include=\"src/sdaqf/domain/orchestration.py,src/sdaqf/domain/tooling.py,src/sdaqf/adapters/process.py,src/sdaqf/application/orchestration.py,src/sdaqf/application/skills.py,src/sdaqf/application/tooling.py,src/sdaqf/application/checkpoints.py\" --fail-under=90",
+        "python scripts/check_workspace_boundary.py --repo . --expected-origin-url https://github.com/guriguri215-lang/spec-driven-agent-framework.git",
+        "python scripts/audit_repository.py --root . --workspace-parent ..",
+        "python scripts/audit_dependencies.py --root .",
+        "python -m pip check",
+        "python scripts/run_cli_smoke.py"
+      ],
       "source": "exact-sha-ci",
       "run_id": 30465146945
     },
@@ -27,7 +59,22 @@
       "platform": "windows",
       "python": "3.12",
       "status": "PASS",
-      "command": "Continuous integration: Run tests through Run CLI smoke checks",
+      "commands": [
+        "python -m pip install --disable-pip-version-check -r requirements-dev.lock",
+        "python -m pip install --no-build-isolation --no-deps -e .",
+        "python -m pytest",
+        "python -m ruff check src tests scripts",
+        "python -m mypy src tests scripts",
+        "python -m coverage run -m pytest",
+        "python -m coverage report --fail-under=80",
+        "python -m coverage report --include=\"src/sdaqf/domain/models.py,src/sdaqf/domain/requirements.py,src/sdaqf/application/gates.py,src/sdaqf/application/approvals.py,src/sdaqf/application/baselines.py,src/sdaqf/application/comparison.py,src/sdaqf/application/planning.py,src/sdaqf/application/requirements.py,src/sdaqf/application/requirements_gate.py\" --fail-under=90",
+        "python -m coverage report --include=\"src/sdaqf/domain/orchestration.py,src/sdaqf/domain/tooling.py,src/sdaqf/adapters/process.py,src/sdaqf/application/orchestration.py,src/sdaqf/application/skills.py,src/sdaqf/application/tooling.py,src/sdaqf/application/checkpoints.py\" --fail-under=90",
+        "python scripts/check_workspace_boundary.py --repo . --expected-origin-url https://github.com/guriguri215-lang/spec-driven-agent-framework.git",
+        "python scripts/audit_repository.py --root . --workspace-parent ..",
+        "python scripts/audit_dependencies.py --root .",
+        "python -m pip check",
+        "python scripts/run_cli_smoke.py"
+      ],
       "source": "exact-sha-ci",
       "run_id": 30465146945
     },
@@ -35,18 +82,37 @@
       "platform": "windows",
       "python": "3.13",
       "status": "PASS",
-      "command": "Continuous integration: Run tests through Run CLI smoke checks",
+      "commands": [
+        "python -m pip install --disable-pip-version-check -r requirements-dev.lock",
+        "python -m pip install --no-build-isolation --no-deps -e .",
+        "python -m pytest",
+        "python -m ruff check src tests scripts",
+        "python -m mypy src tests scripts",
+        "python -m coverage run -m pytest",
+        "python -m coverage report --fail-under=80",
+        "python -m coverage report --include=\"src/sdaqf/domain/models.py,src/sdaqf/domain/requirements.py,src/sdaqf/application/gates.py,src/sdaqf/application/approvals.py,src/sdaqf/application/baselines.py,src/sdaqf/application/comparison.py,src/sdaqf/application/planning.py,src/sdaqf/application/requirements.py,src/sdaqf/application/requirements_gate.py\" --fail-under=90",
+        "python -m coverage report --include=\"src/sdaqf/domain/orchestration.py,src/sdaqf/domain/tooling.py,src/sdaqf/adapters/process.py,src/sdaqf/application/orchestration.py,src/sdaqf/application/skills.py,src/sdaqf/application/tooling.py,src/sdaqf/application/checkpoints.py\" --fail-under=90",
+        "python scripts/check_workspace_boundary.py --repo . --expected-origin-url https://github.com/guriguri215-lang/spec-driven-agent-framework.git",
+        "python scripts/audit_repository.py --root . --workspace-parent ..",
+        "python scripts/audit_dependencies.py --root .",
+        "python -m pip check",
+        "python scripts/run_cli_smoke.py"
+      ],
       "source": "exact-sha-ci",
       "run_id": 30465146945
     }
   ],
   "macos": {
     "status": "NOT_VERIFIED",
-    "reason": "No macOS execution environment was available for this milestone."
+    "reason": "No macOS execution environment was available for this milestone.",
+    "commands": [],
+    "source": "not-run",
+    "run_id": null
   },
   "limitations": [
     "Run 30465146945 verifies exact subject commit 69468b201a7af110029285ac88efa663936deae5; this record is a later evidence-only attestation.",
     "The successful M3 matrix is not reused as M4 evidence.",
+    "The post-finalization hardening worktree requires a new exact-SHA matrix before it can replace this historical subject record.",
     "No macOS execution environment was available."
   ]
 }

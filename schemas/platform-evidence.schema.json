@@ -12,19 +12,23 @@
     "limitations"
   ],
   "properties": {
-    "schema_version": {"const": "1.0"},
+    "schema_version": {"const": "1.1"},
     "milestone": {"const": "M4"},
     "candidate": {
       "type": "object",
       "required": [
         "git_head",
         "repository_digest",
-        "canonical_specification_sha256"
+        "canonical_specification_sha256",
+        "workflow_path",
+        "workflow_sha256"
       ],
       "properties": {
-        "git_head": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"},
-        "repository_digest": {"$ref": "#/$defs/sha256OrNull"},
-        "canonical_specification_sha256": {"$ref": "#/$defs/sha256"}
+        "git_head": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "repository_digest": {"$ref": "#/$defs/sha256"},
+        "canonical_specification_sha256": {"$ref": "#/$defs/sha256"},
+        "workflow_path": {"const": ".github/workflows/ci.yml"},
+        "workflow_sha256": {"$ref": "#/$defs/sha256"}
       },
       "additionalProperties": false
     },
@@ -39,7 +43,7 @@
           "platform",
           "python",
           "status",
-          "command",
+          "commands",
           "source",
           "run_id"
         ],
@@ -47,20 +51,121 @@
           "platform": {"enum": ["windows", "linux"]},
           "python": {"enum": ["3.12", "3.13"]},
           "status": {"enum": ["PASS", "NOT_VERIFIED"]},
-          "command": {"$ref": "#/$defs/text"},
+          "commands": {"$ref": "#/$defs/commands"},
           "source": {"enum": ["local", "exact-sha-ci", "not-run"]},
           "run_id": {"type": ["integer", "null"], "minimum": 1}
         },
+        "allOf": [
+          {
+            "if": {
+              "required": ["status"],
+              "properties": {"status": {"const": "PASS"}}
+            },
+            "then": {
+              "properties": {
+                "commands": {"minItems": 1},
+                "source": {"enum": ["local", "exact-sha-ci"]}
+              }
+            }
+          },
+          {
+            "if": {
+              "required": ["status"],
+              "properties": {"status": {"const": "NOT_VERIFIED"}}
+            },
+            "then": {
+              "properties": {
+                "commands": {"maxItems": 0},
+                "source": {"const": "not-run"},
+                "run_id": {"type": "null"}
+              }
+            }
+          },
+          {
+            "if": {
+              "required": ["source"],
+              "properties": {"source": {"const": "exact-sha-ci"}}
+            },
+            "then": {
+              "properties": {
+                "run_id": {"type": "integer", "minimum": 1}
+              }
+            }
+          },
+          {
+            "if": {
+              "required": ["source"],
+              "properties": {"source": {"const": "local"}}
+            },
+            "then": {
+              "properties": {
+                "run_id": {"type": "null"}
+              }
+            }
+          }
+        ],
         "additionalProperties": false
       }
     },
     "macos": {
       "type": "object",
-      "required": ["status", "reason"],
+      "required": ["status", "reason", "commands", "source", "run_id"],
       "properties": {
         "status": {"enum": ["PASS", "NOT_VERIFIED"]},
-        "reason": {"$ref": "#/$defs/text"}
+        "reason": {"$ref": "#/$defs/text"},
+        "commands": {"$ref": "#/$defs/commands"},
+        "source": {"enum": ["local", "exact-sha-ci", "not-run"]},
+        "run_id": {"type": ["integer", "null"], "minimum": 1}
       },
+      "allOf": [
+        {
+          "if": {
+            "required": ["status"],
+            "properties": {"status": {"const": "PASS"}}
+          },
+            "then": {
+              "properties": {
+              "commands": {"minItems": 1},
+              "source": {"enum": ["local", "exact-sha-ci"]}
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["status"],
+            "properties": {"status": {"const": "NOT_VERIFIED"}}
+          },
+            "then": {
+              "properties": {
+              "commands": {"maxItems": 0},
+              "source": {"const": "not-run"},
+              "run_id": {"type": "null"}
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["source"],
+            "properties": {"source": {"const": "exact-sha-ci"}}
+          },
+          "then": {
+            "properties": {
+              "run_id": {"type": "integer", "minimum": 1}
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["source"],
+            "properties": {"source": {"const": "local"}}
+          },
+          "then": {
+            "properties": {
+              "run_id": {"type": "null"}
+            }
+          }
+        }
+      ],
       "additionalProperties": false
     },
     "limitations": {
@@ -73,9 +178,11 @@
   },
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[0-9A-F]{64}$"},
-    "sha256OrNull": {
-      "type": ["string", "null"],
-      "pattern": "^[0-9A-F]{64}$"
+    "commands": {
+      "type": "array",
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/text"}
     },
     "text": {
       "type": "string",

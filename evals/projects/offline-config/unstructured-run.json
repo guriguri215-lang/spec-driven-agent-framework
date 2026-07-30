@@ -63,7 +63,7 @@
     },
     {
       "evidence_id": "EV-CFG-UNIT",
-      "evidence_type": "TEST",
+      "evidence_type": "MANUAL_REVIEW",
       "status": "FAIL",
       "path": "projects/offline-config/evidence/unstructured-unit.md",
       "sha256": "65EC91715BC78ED40D380E97F2E41D0A713B61671F4191D18F9D777CDA876353",

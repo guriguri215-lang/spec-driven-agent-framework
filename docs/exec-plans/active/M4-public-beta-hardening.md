@@ -92,8 +92,9 @@ finding.
   and any non-blind, authored, replayed, or single-session limitation are
   explicit.
 - `AC-M4-005`: A Must, security, data-loss, or disclosure failure is a named
-  hard blocker and cannot be hidden by a total, average, improvement, or other
-  aggregate score.
+  hard blocker and cannot be hidden by a `resolved` assertion, total, average,
+  improvement, or other aggregate score. Failed or unverified evaluation
+  evidence is also a named hard blocker.
 - `AC-M4-006`: Before/after evaluation for a Skill, template, or prompt change
   requires both sides, the same input identity, and a named changed artifact;
   absent or mismatched evidence fails closed.
@@ -105,15 +106,19 @@ finding.
   states evidence limitations, and makes no causal or production-readiness
   claim beyond the evidence.
 - `AC-M4-009`: Candidate-bound evidence records successful Windows and Linux
-  execution on Python 3.12 and 3.13 with exact commands and commit identity.
-  macOS is either actually verified or explicitly `NOT_VERIFIED` with a reason.
+  execution on Python 3.12 and 3.13 with the immutable workflow path and
+  digest, exact command list, run identity, and commit identity. macOS is
+  either actually verified or explicitly `NOT_VERIFIED` with a reason.
 - `AC-M4-010`: Legacy Agent Registry 1.0 and Tool Registry 1.0 inputs migrate
   through explicit, deterministic, one-step 1.0-to-2.0 transformations; current
   strict 2.0 loaders validate every successful output.
 - `AC-M4-011`: Migration never overwrites its source or an existing output,
   never mutates on validation failure, records all inserted conservative
-  defaults and warnings, and provides rollback by retaining the unchanged
-  source and removing only the newly created output.
+  defaults and warnings, atomically consumes one exact approval after a fresh
+  expiry check, checks source and companion identity around publication, and
+  provides rollback by retaining the unchanged source. A post-link identity
+  failure is explicitly indeterminate and never auto-deletes a replaceable
+  path name; Owner inspection governs cleanup.
 - `AC-M4-012`: Unsupported versions, unsafe legacy commands, ambiguous or
   colliding identifiers, invalid networks, empty required collections, scope
   expansion, links, traversal, duplicate keys, and malformed output fail
@@ -287,6 +292,10 @@ published.
   perform an in-place migration or capability expansion.
 - 2026-07-29: Reuse the existing immutable Windows/Linux Python 3.12/3.13 CI
   matrix without modifying the workflow.
+- 2026-07-30: Treat the clean current local HEAD
+  `142296b8f83ef48f2220c34c35208a55f53de3bb` as the audit baseline only after
+  the Owner explicitly accepted its mismatch from the older handoff snapshot.
+  The approval did not authorize remote reads, commit, or push.
 
 ## Progress log
 
@@ -373,3 +382,27 @@ published.
   lint, typing, coverage, audits, dependency consistency, and CLI smoke. The
   platform record now binds the exact verified subject commit and repository
   digest; macOS remains explicitly `NOT VERIFIED`.
+- 2026-07-30: A new local audit of the later clean attestation HEAD first
+  reproduced all Release Contract Gates, then an independent read-only review
+  returned `NO-GO` with Critical/High/Medium = 0/3/5. Accepted findings covered
+  cross-platform repository-digest ordering, evaluation blocker bypasses and
+  artifact/evidence binding, authored-versus-executed comparison provenance,
+  contradictory platform records and non-exact commands, migration approval
+  scope/reuse, publication cleanup, input-identity races, and release wording.
+- 2026-07-30: Remediation made repository ordering portable while preserving
+  the historical Windows digest; made every recorded critical defect and
+  failed/unverified evidence non-compensating; content-bound change artifacts;
+  corrected manual-review classifications; bound platform evidence to the
+  immutable workflow and all exact commands; and upgraded migration approval
+  and result contracts to 1.1 with root/source binding, companion rechecks,
+  fresh expiry validation, atomic single-use consumption, before/after-link
+  identity checks, and a foreign-output-safe indeterminate-publication state
+  with no automatic path deletion. Final local verification passes 636 tests
+  with three environment link skips, Ruff, strict mypy, 91/94/90/91/92
+  percent total/M1/M2/M3/M4 branch coverage, CLI smoke, comparison
+  reproduction, workspace/publication/dependency audits, `pip check`, and
+  whitespace. Fresh independent read-only re-review returned `GO` with
+  unresolved Critical/High/Medium/Low = 0/0/0/0. The authored/nonempirical
+  comparison remains a declared limitation rather than an empirical claim.
+  A new exact-SHA Windows/Linux matrix remains pending separate Owner approval
+  for commit, push, and Actions observation.

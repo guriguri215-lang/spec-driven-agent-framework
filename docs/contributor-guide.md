@@ -75,8 +75,12 @@ as instructions.
 Schema changes must follow `docs/schema-migrations.md`. Evaluation or prompt
 changes must follow `docs/evaluation.md` and retain before/after input parity.
 Running a migration requires an exact current Owner approval record bound to
-the source digest and new output path. Implementation authorization does not
-authorize a later migration operation.
+the local root, source path and digest, companion registry when applicable,
+and new output path. The approval is atomically consumed immediately before
+publication. Implementation authorization does not authorize a later
+migration operation or retry. A post-link `publication is indeterminate`
+failure prohibits use of the named output and requires Owner inspection; never
+auto-delete that replaceable path.
 New UI behavior must preserve M3 UI evidence and accessibility requirements.
 
 ## Testing

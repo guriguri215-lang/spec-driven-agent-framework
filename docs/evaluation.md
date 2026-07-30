@@ -58,10 +58,13 @@ The deterministic result reports these measures for each workflow and project:
 - trace-step, decision, and evidence-item counts;
 - cost values or an explicit `NOT_VERIFIED` cost record.
 
-There is no aggregate quality score. A missed Must requirement or unresolved
-security, Must, data-loss, or disclosure defect remains a named hard blocker.
-It cannot be offset by fewer tool calls, lower rework, another project's
-result, or any average.
+There is no aggregate quality score. A missed Must requirement, any recorded
+security, Must, data-loss, or disclosure defect, and every `FAIL` or
+`NOT_VERIFIED` evaluation-evidence item remains a named hard blocker. Version
+1.0 has no evidence-bound critical-defect resolution contract, so a bare
+`resolved` assertion cannot remove a recorded critical blocker. These blockers
+cannot be offset by fewer tool calls, lower rework, another project's result,
+or any average.
 
 Repeated rework with the same failure signature requires a cause-analysis
 record. That record selects one or more instruction, Skill, schema, test, or
@@ -109,5 +112,9 @@ calculated result without writing a file.
 
 A Skill, template, or prompt evaluation must name the changed artifact and
 reference distinct before and after runs with the same input identity. Missing
-arms or changed inputs fail closed. The M4 fixture records the evaluation
-protocol prompt intervention. It does not claim a general prompt benchmark.
+arms or changed inputs fail closed. The artifact identifier binds the declared
+artifact type to the exact before and after intervention SHA-256 values as
+`TYPE:BEFORE_SHA256->AFTER_SHA256`; a descriptive but content-unbound name is
+rejected. The M4 fixture records the evaluation protocol prompt intervention.
+It does not claim a general prompt benchmark. Its Markdown review artifacts
+are classified as manual or source review evidence, never as executed tests.

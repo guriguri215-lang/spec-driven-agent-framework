@@ -34,14 +34,27 @@ requires a current strict Tool Registry and rejects every missing tool
 reference before publication.
 
 Migration is an explicit Owner-approval boundary. The required versioned
-approval record names the exact contract, initial source SHA-256, normalized
-output path, source and target versions, approval and expiry times, reversible
+approval record uses schema version 1.1 and names the exact contract, a
+non-disclosing SHA-256 identity for the resolved local repository root, the
+normalized source path and initial source SHA-256, normalized output path,
+source and target versions, approval and expiry times, reversible
 exclusive-output conditions, and `Owner` provenance. Agent migration also
 binds the normalized companion Tool Registry path and its immutable byte
 snapshot SHA-256; Tool Registry migration requires both companion fields to be
-null. The approval must be current and match the operation exactly. Keep real
+null. The approval must be current and match the operation exactly. Approval
+schema 1.0 is intentionally rejected because it did not bind the local root or
+source path; it must not be migrated or reused as authorization. Migration
+result schema 1.1 records the same root and source identities. Historical 1.0
+results remain records only and are never adopted as new approval. Keep real
 approval records in ignored local state such as `.sdaqf/`; do not publish them.
 A technical sandbox approval cannot replace this Owner record.
+
+Every approval is `single_use`. Immediately before exclusive publication, the
+service atomically claims its approval ID in
+`.sdaqf/migration-approval-consumption.json`. A prior claim, corrupt or linked
+state, an existing lock, or a claim-persistence failure blocks publication. A
+claim remains consumed when a later exclusive link fails, including a
+concurrent-output race, so any retry requires a new exact Owner approval.
 
 ## Conservative defaults
 
@@ -82,22 +95,35 @@ oversized or linked input, traversal, unsafe or unknown commands, ambiguous
 network policy, empty required fields, identifier collisions, missing Agent
 tool references, and any invalid current contract. It serializes
 deterministically to a temporary regular file, validates that file with the
-existing 2.0 loader, and creates the named output exclusively only after
-validation succeeds.
+existing 2.0 loader, confirms the source identity again immediately before
+publication, rechecks the companion Tool Registry when applicable, atomically
+claims a freshly current approval, and creates the named output exclusively
+only after those checks succeed. It then repeats the source and companion
+identity checks while retaining the unique temporary hard link.
 
-The result records approval identity, source, companion Tool Registry when
-applicable, and output digests, inserted defaults, warnings, source
-preservation, the new path, and exact rollback guidance.
+The result records approval, local-root, source-path, source-content,
+companion Tool Registry when applicable, and output identities, inserted
+defaults, warnings, source preservation, the new path, and exact rollback
+guidance.
 
 ## Failure and rollback
 
-Validation, final source-identity, or final source-read failure leaves the
-source unchanged and removes the exclusively created named output before
-returning failure.
+Validation, pre-publication source-identity, approval-consumption, or
+source-read failure occurs before the named output is published. If a
+post-link identity check fails, portable path-based deletion cannot prove that
+the name was not replaced after its last identity check. The command therefore
+returns the explicit `publication is indeterminate` failure, prohibits use of
+the named output, consumes the approval, and never deletes that path. The
+Owner must inspect its current type, identity, and digest before any explicit
+cleanup or retry under a new approval. An output created concurrently by
+another actor causes exclusive publication to fail and is never removed by
+the migration service.
 The command never performs a partial in-place update. After success, rollback
 means removing only the newly created output and continuing to retain the
 unchanged legacy source. Removal is an Owner-controlled filesystem action; the
 migration command does not perform it automatically.
+This successful-result guidance does not apply to an indeterminate
+publication, whose current name may belong to another actor.
 
 Every migrated record requires review before it becomes a project input,
 especially the conservative role and tool defaults. A migration does not grant

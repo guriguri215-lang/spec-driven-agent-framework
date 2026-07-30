@@ -46,6 +46,8 @@ _PLATFORMS = {"windows", "linux", "macos"}
 _RISKS = {"low", "medium", "high", "prohibited"}
 _TECHNICAL_APPROVALS = {"not_required", "may_be_required", "required"}
 _OWNER_APPROVALS = {"not_required", "required", "prohibited"}
+_MAX_MIGRATION_CONSUMPTION_BYTES = 256 * 1024
+_MAX_MIGRATION_CONSUMPTION_RECORDS = 1024
 _SANDBOX_STATES = {
     "AVAILABLE",
     "UNAVAILABLE",
@@ -60,6 +62,164 @@ _VERSION_PROFILES: dict[tuple[str, ...], str] = {
     ("python3", "-V"): r"Python ([0-9]+\.[0-9]+(?:\.[0-9]+)?)",
     ("z3", "--version"): r"Z3 version ([0-9]+\.[0-9]+(?:\.[0-9]+)?)",
 }
+
+
+class MigrationPublicationIndeterminateError(ContractError):
+    """Report a post-link race without deleting an untrusted path name."""
+
+
+class MigrationApprovalConsumptionStore:
+    """Atomically claim one exact migration approval before publication."""
+
+    _STATE_DIRECTORY = ".sdaqf"
+    _STORE_NAME = "migration-approval-consumption.json"
+    _LOCK_NAME = "migration-approval-consumption.lock"
+
+    def __init__(self, root: Path) -> None:
+        self._root = root.resolve()
+
+    def claim(
+        self,
+        approval: MigrationApproval,
+        *,
+        claimed_at: datetime,
+    ) -> None:
+        """Persist a single-use claim or fail without publishing output."""
+
+        if claimed_at.tzinfo is None:
+            raise ContractError(
+                "Migration approval consumption time must be timezone-aware."
+            )
+        state_directory, target, lock = self._paths()
+        lock_descriptor: int | None = None
+        lock_owned = False
+        temporary: Path | None = None
+        try:
+            try:
+                lock_descriptor = os.open(
+                    lock,
+                    os.O_WRONLY
+                    | os.O_CREAT
+                    | os.O_EXCL
+                    | getattr(os, "O_BINARY", 0),
+                    0o600,
+                )
+                lock_owned = True
+            except FileExistsError as exc:
+                raise ContractError(
+                    "Migration approval consumption store is busy or locked."
+                ) from exc
+            with os.fdopen(lock_descriptor, "wb") as stream:
+                lock_descriptor = None
+                stream.write(b"locked\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            existing = _load_migration_consumptions(target, now=claimed_at)
+            if approval.approval_id in {item[0] for item in existing}:
+                raise ContractError(
+                    f"Migration approval {approval.approval_id} is already consumed."
+                )
+            records = tuple(
+                sorted(
+                    (
+                        *existing,
+                        (
+                            approval.approval_id,
+                            _migration_approval_scope_digest(approval),
+                            claimed_at.isoformat(),
+                        ),
+                    )
+                )
+            )
+            if len(records) > _MAX_MIGRATION_CONSUMPTION_RECORDS:
+                raise ContractError(
+                    "Migration approval consumption store exceeds the record limit."
+                )
+            payload = {
+                "schema_version": "1.0",
+                "consumed": [
+                    {
+                        "approval_id": approval_id,
+                        "scope_digest": scope_digest,
+                        "claimed_at": record_claimed_at,
+                    }
+                    for approval_id, scope_digest, record_claimed_at in records
+                ],
+            }
+            encoded = (
+                json.dumps(payload, indent=2, sort_keys=True) + "\n"
+            ).encode("utf-8")
+            if len(encoded) > _MAX_MIGRATION_CONSUMPTION_BYTES:
+                raise ContractError(
+                    "Migration approval consumption store exceeds the size limit."
+                )
+            with tempfile.NamedTemporaryFile(
+                mode="wb",
+                dir=state_directory,
+                prefix=f".{self._STORE_NAME}.",
+                suffix=".tmp",
+                delete=False,
+            ) as stream:
+                temporary = Path(stream.name)
+                stream.write(encoded)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temporary, target)
+            temporary = None
+        except OSError as exc:
+            raise ContractError(
+                "Migration approval consumption could not be persisted."
+            ) from exc
+        finally:
+            if lock_descriptor is not None:
+                os.close(lock_descriptor)
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+            if lock_owned:
+                try:
+                    lock.unlink(missing_ok=True)
+                except OSError as exc:
+                    raise ContractError(
+                        "Migration approval consumption lock could not be released."
+                    ) from exc
+
+    def _paths(self) -> tuple[Path, Path, Path]:
+        if (
+            not self._root.is_dir()
+            or self._root.is_symlink()
+            or is_reparse_point(self._root)
+        ):
+            raise ContractError(
+                "Migration approval consumption root must be regular."
+            )
+        state_directory = self._root / self._STATE_DIRECTORY
+        try:
+            state_directory.mkdir(exist_ok=True)
+        except OSError as exc:
+            raise ContractError(
+                "Migration approval consumption directory could not be created."
+            ) from exc
+        if (
+            not state_directory.is_dir()
+            or state_directory.is_symlink()
+            or is_reparse_point(state_directory)
+            or not state_directory.resolve().is_relative_to(self._root)
+        ):
+            raise ContractError(
+                "Migration approval consumption directory must be regular and local."
+            )
+        target = state_directory / self._STORE_NAME
+        lock = state_directory / self._LOCK_NAME
+        for candidate in (target, lock):
+            if candidate.is_symlink() or is_reparse_point(candidate):
+                raise ContractError(
+                    "Migration approval consumption files must be unlinked."
+                )
+        if target.exists() and not target.is_file():
+            raise ContractError(
+                "Migration approval consumption store must be a regular file."
+            )
+        return state_directory, target, lock
 
 
 class MigrationService:
@@ -101,23 +261,28 @@ class MigrationService:
             raise ContractError("Migration source and output must be distinct.")
         source_bytes = _read_source(resolved_source)
         source_digest = hashlib.sha256(source_bytes).hexdigest().upper()
+        source_display = resolved_source.relative_to(resolved_root).as_posix()
+        root_sha256 = migration_root_identity(resolved_root)
         display = resolved_output.relative_to(resolved_root).as_posix()
         tools, tool_registry_path, tool_registry_sha256 = _load_companion_tools(
             root=resolved_root,
             contract=contract,
             path=tool_registry,
         )
+        now = self._clock()
         migration_approval = _load_migration_approval(
             root=resolved_root,
             path=approval,
             contract=contract,
+            root_sha256=root_sha256,
+            source_path=source_display,
             source_sha256=source_digest,
             output_path=display,
             tool_registry_path=tool_registry_path,
             tool_registry_sha256=tool_registry_sha256,
             source_version=source_version,
             target_version=target_version,
-            now=self._clock(),
+            now=now,
         )
         payload = parse_json_object_bytes(
             source_bytes,
@@ -131,21 +296,48 @@ class MigrationService:
         output_bytes = (
             json.dumps(migrated, indent=2, sort_keys=True) + "\n"
         ).encode("utf-8")
+
+        def confirm_input_identity() -> None:
+            if _read_source(resolved_source) != source_bytes:
+                raise ContractError("Migration source changed during migration.")
+            if tool_registry_path is not None:
+                current_tools = _source_path(
+                    resolved_root,
+                    Path(tool_registry_path),
+                )
+                current_digest = hashlib.sha256(
+                    _read_source(current_tools)
+                ).hexdigest().upper()
+                if current_digest != tool_registry_sha256:
+                    raise ContractError(
+                        "Companion Tool Registry changed during migration."
+                    )
+
+        def claim_approval() -> None:
+            confirm_input_identity()
+            claim_time = self._clock()
+            _require_current_migration_approval(
+                migration_approval,
+                now=claim_time,
+            )
+            MigrationApprovalConsumptionStore(resolved_root).claim(
+                migration_approval,
+                claimed_at=claim_time,
+            )
+
         _validate_and_publish(
             contract=contract,
             output=resolved_output,
             output_bytes=output_bytes,
             tool_registry=tools,
+            before_publish=claim_approval,
+            after_publish=confirm_input_identity,
         )
-        try:
-            if _read_source(resolved_source) != source_bytes:
-                raise ContractError("Migration source changed during migration.")
-        except ContractError:
-            _remove_failed_output(resolved_output)
-            raise
         return MigrationResult(
             approval_id=migration_approval.approval_id,
             contract=contract,
+            root_sha256=root_sha256,
+            source_path=source_display,
             source_version=source_version,
             target_version=target_version,
             source_sha256=source_digest,
@@ -401,6 +593,18 @@ def _regular_root(root: Path) -> Path:
     return resolved
 
 
+def migration_root_identity(root: Path) -> str:
+    """Hash one resolved local root without disclosing its absolute path."""
+
+    rendered = root.as_posix()
+    if os.name == "nt":
+        rendered = rendered.casefold()
+    digest = hashlib.sha256()
+    digest.update(b"sdaqf-local-migration-root-v1\0")
+    digest.update(rendered.encode("utf-8", errors="strict"))
+    return digest.hexdigest().upper()
+
+
 def _source_path(root: Path, path: Path) -> Path:
     candidate = path if path.is_absolute() else root / path
     _reject_lexical_links(root, candidate, include_leaf=True)
@@ -503,6 +707,8 @@ def _validate_and_publish(
     output: Path,
     output_bytes: bytes,
     tool_registry: ToolRegistry | None,
+    before_publish: Callable[[], None],
+    after_publish: Callable[[], None],
 ) -> None:
     temporary: Path | None = None
     descriptor = -1
@@ -527,7 +733,15 @@ def _validate_and_publish(
             validate_agent_tool_references(agents, tool_registry)
         else:
             load_tool_registry(temporary)
+        before_publish()
         os.link(temporary, output)
+        try:
+            after_publish()
+        except ContractError as exc:
+            raise MigrationPublicationIndeterminateError(
+                "Migration input changed after exclusive publication; "
+                "the named output must not be used or automatically removed."
+            ) from exc
     except OrchestrationContractError as exc:
         raise ContractError(
             "Migrated Agent Registry contains an unknown tool reference."
@@ -575,6 +789,8 @@ def _load_migration_approval(
     root: Path,
     path: Path,
     contract: str,
+    root_sha256: str,
+    source_path: str,
     source_sha256: str,
     output_path: str,
     tool_registry_path: str | None,
@@ -614,8 +830,8 @@ def _load_migration_approval(
         record.get("schema_version"),
         "migration approval.schema_version",
         maximum=10,
-    ) != "1.0":
-        raise ContractError("Migration approval schema_version must be 1.0.")
+    ) != "1.1":
+        raise ContractError("Migration approval schema_version must be 1.1.")
     approval_id = string_value(
         record.get("approval_id"),
         "migration approval.approval_id",
@@ -629,7 +845,7 @@ def _load_migration_approval(
         "risk": "medium",
         "status": "approved",
         "approved_by": "Owner",
-        "lifetime": "until_expiry",
+        "lifetime": "single_use",
     }
     for field, expected in exact_values.items():
         if string_value(
@@ -665,6 +881,8 @@ def _load_migration_approval(
         scope,
         {
             "contract",
+            "root_sha256",
+            "source_path",
             "source_sha256",
             "output_path",
             "tool_registry_path",
@@ -676,6 +894,8 @@ def _load_migration_approval(
     )
     expected_scope = {
         "contract": contract,
+        "root_sha256": root_sha256,
+        "source_path": source_path,
         "source_sha256": source_sha256,
         "output_path": output_path,
         "tool_registry_path": tool_registry_path,
@@ -688,6 +908,14 @@ def _load_migration_approval(
             scope.get("contract"),
             "migration approval.scope.contract",
             maximum=30,
+        ),
+        "root_sha256": sha256(
+            scope.get("root_sha256"),
+            "migration approval.scope.root_sha256",
+        ),
+        "source_path": safe_relative_path(
+            scope.get("source_path"),
+            "migration approval.scope.source_path",
         ),
         "source_sha256": sha256(
             scope.get("source_sha256"),
@@ -746,6 +974,8 @@ def _load_migration_approval(
     return MigrationApproval(
         approval_id=approval_id,
         contract=contract,
+        root_sha256=root_sha256,
+        source_path=source_path,
         source_sha256=source_sha256,
         output_path=output_path,
         tool_registry_path=tool_registry_path,
@@ -757,13 +987,116 @@ def _load_migration_approval(
     )
 
 
-def _remove_failed_output(output: Path) -> None:
-    try:
-        output.unlink()
-    except OSError as exc:
+def _require_current_migration_approval(
+    approval: MigrationApproval,
+    *,
+    now: datetime,
+) -> None:
+    if now.tzinfo is None:
+        raise ValueError("Migration approval clock must be timezone-aware.")
+    approved_time = datetime.fromisoformat(approval.approved_at)
+    expires_time = datetime.fromisoformat(approval.expires_at)
+    if approved_time > now or expires_time <= now:
+        raise ContractError("Migration approval is not currently valid.")
+
+
+def _migration_approval_scope_digest(approval: MigrationApproval) -> str:
+    payload = {
+        "approval_id": approval.approval_id,
+        "contract": approval.contract,
+        "root_sha256": approval.root_sha256,
+        "source_path": approval.source_path,
+        "source_sha256": approval.source_sha256,
+        "output_path": approval.output_path,
+        "tool_registry_path": approval.tool_registry_path,
+        "tool_registry_sha256": approval.tool_registry_sha256,
+        "source_version": approval.source_version,
+        "target_version": approval.target_version,
+        "approved_at": approval.approved_at,
+        "expires_at": approval.expires_at,
+    }
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest().upper()
+
+
+def _load_migration_consumptions(
+    path: Path,
+    *,
+    now: datetime,
+) -> tuple[tuple[str, str, str], ...]:
+    if not path.exists():
+        return ()
+    if path.is_symlink() or is_reparse_point(path) or not path.is_file():
         raise ContractError(
-            "Migration failed and named-output cleanup could not be confirmed."
-        ) from exc
+            "Migration approval consumption store must be regular and unlinked."
+        )
+    record = load_json_object(
+        path,
+        "migration approval consumption store",
+        maximum_bytes=_MAX_MIGRATION_CONSUMPTION_BYTES,
+    )
+    only_keys(
+        record,
+        {"schema_version", "consumed"},
+        "migration approval consumption store",
+    )
+    if string_value(
+        record.get("schema_version"),
+        "migration approval consumption.schema_version",
+        maximum=10,
+    ) != "1.0":
+        raise ContractError(
+            "Migration approval consumption schema_version must be 1.0."
+        )
+    raw_consumed = array_value(
+        record.get("consumed"),
+        "migration approval consumption.consumed",
+        maximum=_MAX_MIGRATION_CONSUMPTION_RECORDS,
+    )
+    records: list[tuple[str, str, str]] = []
+    for index, raw in enumerate(raw_consumed):
+        where = f"migration approval consumption.consumed[{index}]"
+        item = object_value(raw, where)
+        only_keys(
+            item,
+            {"approval_id", "scope_digest", "claimed_at"},
+            where,
+        )
+        approval_id = string_value(
+            item.get("approval_id"),
+            f"{where}.approval_id",
+            maximum=68,
+        )
+        if not re.fullmatch(r"APR-[A-Z0-9][A-Z0-9-]{2,63}", approval_id):
+            raise ContractError(
+                "Migration approval consumption identifier is invalid."
+            )
+        scope_digest = sha256(
+            item.get("scope_digest"),
+            f"{where}.scope_digest",
+        )
+        claimed_at = timestamp(
+            item.get("claimed_at"),
+            f"{where}.claimed_at",
+        )
+        if datetime.fromisoformat(claimed_at) > now:
+            raise ContractError(
+                "Migration approval consumption time cannot be in the future."
+            )
+        records.append((approval_id, scope_digest, claimed_at))
+    if len(records) != len({item[0] for item in records}):
+        raise ContractError(
+            "Migration approval consumption identifiers must be unique."
+        )
+    if records != sorted(records):
+        raise ContractError(
+            "Migration approval consumption records must be ordered."
+        )
+    return tuple(records)
 
 
 def _role_slug(value: str) -> str:

@@ -206,24 +206,41 @@ digest.
 Metrics include missed requirements, scope additions, critical defects,
 rework, approvals, failed handoffs, trace steps, decisions, evidence items, and
 available or explicitly unverified cost. No aggregate quality score exists.
-Missed Must requirements and unresolved Must, security, data-loss, or
-disclosure defects remain named hard blockers. Repeated failure signatures
-require an evidence-linked cause analysis that selects instruction, Skill,
-schema, test, or implementation remediation; an open analysis remains a named
-hard blocker.
+Missed Must requirements, recorded Must, security, data-loss, or disclosure
+defects, and failed or unverified evaluation evidence remain named hard
+blockers. A bare defect-resolution assertion cannot remove a blocker because
+evaluation schema 1.0 has no evidence-bound critical-resolution contract.
+Repeated failure signatures require an evidence-linked cause analysis that
+selects instruction, Skill, schema, test, or implementation remediation; an
+open analysis remains a named hard blocker. Before/after change records bind
+the declared artifact type to the exact before and after intervention digests.
 
 Agent and Tool Registry migration is an explicit one-step 1.0-to-2.0 service.
 It requires an exact current Owner approval, parses one immutable initial
 source snapshot, preserves the source, inserts only documented conservative
 defaults, serializes deterministically, validates a temporary regular JSON file
 through the current strict 2.0 loader, and creates the named output
-exclusively. Agent migration also requires a current Tool Registry and
-validates every tool reference from one immutable byte snapshot whose path and
-digest are part of the exact approval and result. Existing output, unsafe
-command, external network capability, missing tool, ambiguous or colliding
-identity, link, traversal, unsupported version, validation failure, or final
-source-read or identity failure leaves no named output. Rollback removes only
-the created output and retains the unchanged source.
+exclusively after a final pre-publication source check. Approval and result
+schema 1.1 bind a non-disclosing local-root identity plus the exact source path
+and digest; approval schema 1.0 is not reusable authorization. Agent migration
+also requires a current Tool Registry and validates every tool reference from
+one immutable byte snapshot whose path and digest are part of the exact
+approval and result, then rechecks that companion immediately before
+publication. Each approval is single-use and is atomically claimed in ignored
+repository-local state after a fresh expiry check and before the exclusive
+output link. Source and companion identities are checked both immediately
+before and immediately after that link. Existing or concurrently created
+output, unsafe command, external network capability, missing tool, ambiguous
+or colliding identity, link, traversal, unsupported version, validation
+failure, final source-read or identity failure, or consumption-state failure
+leaves no confirmed usable named output. A post-link identity failure is
+reported as indeterminate: portable path deletion cannot close the final
+replacement race, so the service never deletes the name and explicitly
+prohibits its use until Owner inspection. A foreign concurrent replacement is
+never deleted. A consumed approval is not restored after a later publication
+failure. Successful rollback guidance removes only the confirmed created
+output and retains the unchanged source; it does not authorize automatic
+cleanup of an indeterminate name.
 
 ## Trust boundaries
 

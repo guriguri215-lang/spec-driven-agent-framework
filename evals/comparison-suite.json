@@ -37,21 +37,21 @@
     {
       "change_id": "CHANGE-CFG-PROMPT",
       "artifact_type": "prompt",
-      "artifact_id": "evaluation-protocol-v1",
+      "artifact_id": "prompt:2336C2859F9A801E3AA8491222C3E93085E89E647E24670287E93D765461470F->509F0439303AB6BAB87F3DB40E0FAFC5F1C5830830D5FBF88E00AD7ED333C4D2",
       "before_run_id": "RUN-CFG-UNSTRUCTURED",
       "after_run_id": "RUN-CFG-STRUCTURED"
     },
     {
       "change_id": "CHANGE-EXP-PROMPT",
       "artifact_type": "prompt",
-      "artifact_id": "evaluation-protocol-v1",
+      "artifact_id": "prompt:2336C2859F9A801E3AA8491222C3E93085E89E647E24670287E93D765461470F->509F0439303AB6BAB87F3DB40E0FAFC5F1C5830830D5FBF88E00AD7ED333C4D2",
       "before_run_id": "RUN-EXP-UNSTRUCTURED",
       "after_run_id": "RUN-EXP-STRUCTURED"
     },
     {
       "change_id": "CHANGE-UIT-PROMPT",
       "artifact_type": "prompt",
-      "artifact_id": "evaluation-protocol-v1",
+      "artifact_id": "prompt:2336C2859F9A801E3AA8491222C3E93085E89E647E24670287E93D765461470F->509F0439303AB6BAB87F3DB40E0FAFC5F1C5830830D5FBF88E00AD7ED333C4D2",
       "before_run_id": "RUN-UIT-UNSTRUCTURED",
       "after_run_id": "RUN-UIT-STRUCTURED"
     }

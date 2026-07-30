@@ -513,6 +513,14 @@ class EvaluationService:
                 raise ContractError("Change evaluation requires distinct before and after runs.")
             if before.intervention_sha256 == after.intervention_sha256:
                 raise ContractError("Change evaluation requires a changed intervention.")
+            expected_artifact = (
+                f"{change.artifact_type}:{before.intervention_sha256}"
+                f"->{after.intervention_sha256}"
+            )
+            if change.artifact_id != expected_artifact:
+                raise ContractError(
+                    "Change evaluation artifact identity is inconsistent."
+                )
 
 
 def _metrics(
@@ -530,7 +538,11 @@ def _metrics(
     blockers.update(
         f"CRITICAL:{defect.category.value}:{defect.defect_id}"
         for defect in run.critical_defects
-        if not defect.resolved
+    )
+    blockers.update(
+        f"EVIDENCE:{evidence.status.value}:{evidence.evidence_id}"
+        for evidence in run.evidence
+        if evidence.status is not EvidenceStatus.PASS
     )
     blockers.update(
         f"CAUSE-ANALYSIS-OPEN:{analysis.failure_signature}"

@@ -58,7 +58,7 @@ replicated, cost-comparable, empirical, or causal benchmark. See
 | Critical M3 branch coverage | Release Contract M3 include command | PASS, 91 percent |
 | Critical M4 branch coverage | Release Contract M4 include command | PASS, 93 percent |
 | M0 through M4 CLI smoke | `python scripts/run_cli_smoke.py` | PASS |
-| Tracked comparison reproduction | `python -m sdaqf eval validate evals/comparison-suite.json --result evals/results/public-beta-comparison.json --json` | PASS, three projects and ten named ordinary-arm hard blockers |
+| Tracked comparison reproduction | `python -m sdaqf eval validate evals/comparison-suite.json --result evals/results/public-beta-comparison.json --json` | PASS, three projects and 14 named ordinary-arm hard blockers |
 | Workspace boundary | `python scripts/check_workspace_boundary.py --repo . --expected-origin-url https://github.com/guriguri215-lang/spec-driven-agent-framework.git` | PASS |
 | Publication audit | `python scripts/audit_repository.py --root . --workspace-parent ..` | PASS |
 | Dependency and license audit | `python scripts/audit_dependencies.py --root .` | PASS; runtime dependency set remains empty |
@@ -118,3 +118,34 @@ error message. The test now asserts the actual fail-closed link rejection;
 runtime behavior is unchanged. Full local Gates passed again, independent
 read-only re-review returned `GO` with Critical/High/Medium = 0/0/0, and exact
 fix commit `69468b201a7af110029285ac88efa663936deae5` passed run `30465146945`.
+
+## Post-finalization hardening audit
+
+On 2026-07-30, the Owner accepted clean local HEAD
+`142296b8f83ef48f2220c34c35208a55f53de3bb` as the baseline for a new local
+audit. This approval did not authorize a remote read, commit, or push. The
+audit found and remediated portable-digest ordering, evaluation fail-closed
+and evidence-binding, platform-provenance, migration approval and publication
+race, and release-wording gaps.
+
+Final local verification on the uncommitted remediation worktree passed:
+
+- 636 tests with three explicit environment link-creation skips;
+- Ruff and strict mypy across 94 source files;
+- 91/94/90/91/92 percent total/M1/M2/M3/M4 branch coverage;
+- complete M0 through M4 CLI smoke;
+- three-project comparison reproduction with 14 named ordinary-arm blockers;
+- workspace, publication, dependency/license, installed-dependency, and
+  whitespace Gates.
+
+Independent read-only re-review returned `GO`, with unresolved
+Critical/High/Medium/Low = 0/0/0/0. It independently reproduced the historical
+subject digest using the portable ordering and performed no remote
+observation or repository mutation. The authored, nonempirical comparison and
+macOS `NOT VERIFIED` status remain explicit limitations, not completion
+claims.
+
+Run `30465146945` remains valid evidence for historical subject
+`69468b201a7af110029285ac88efa663936deae5`; it does not verify the remediation
+worktree. A new exact-SHA Windows/Linux and Python 3.12/3.13 matrix is required
+before the remediated candidate can replace that subject record.

@@ -10,7 +10,11 @@ from pathlib import Path
 import pytest
 
 from sdaqf.application.contracts import ContractError, parse_json_object_bytes
-from sdaqf.application.migrations import MigrationService
+from sdaqf.application.migrations import (
+    MigrationPublicationIndeterminateError,
+    MigrationService,
+    migration_root_identity,
+)
 from sdaqf.application.orchestration import load_agent_registry
 from sdaqf.application.tooling import (
     ToolContractError,
@@ -65,6 +69,10 @@ def write_migration_approval(
         output_path = resolved_output.relative_to(root).as_posix()
     except ValueError:
         output_path = "outside.json"
+    try:
+        source_path = resolved_source.relative_to(root).as_posix()
+    except ValueError:
+        source_path = "outside.json"
     if tool_registry is None:
         tool_registry_path = None
         tool_registry_sha256 = None
@@ -76,22 +84,32 @@ def write_migration_approval(
         tool_registry_sha256 = sha256(
             resolved_tools.read_bytes()
         ).hexdigest().upper()
+    approval_scope = {
+        "contract": contract,
+        "root_sha256": migration_root_identity(root.resolve()),
+        "source_path": source_path,
+        "source_sha256": source_digest,
+        "output_path": output_path,
+        "tool_registry_path": tool_registry_path,
+        "tool_registry_sha256": tool_registry_sha256,
+        "source_version": source_version,
+        "target_version": target_version,
+    }
+    approval_id = "APR-M4-" + sha256(
+        json.dumps(
+            approval_scope,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest().upper()[:16]
     return write_json(
         root / "migration-approval.json",
         {
-            "schema_version": "1.0",
-            "approval_id": "APR-M4-MIGRATION-TEST",
+            "schema_version": "1.1",
+            "approval_id": approval_id,
             "approval_type": "owner",
             "action": "Migrate one registry schema",
-            "scope": {
-                "contract": contract,
-                "source_sha256": source_digest,
-                "output_path": output_path,
-                "tool_registry_path": tool_registry_path,
-                "tool_registry_sha256": tool_registry_sha256,
-                "source_version": source_version,
-                "target_version": target_version,
-            },
+            "scope": approval_scope,
             "risk": "medium",
             "status": "approved",
             "rationale": "Test-only exact migration approval.",
@@ -99,7 +117,7 @@ def write_migration_approval(
             "approved_by": "Owner",
             "approved_at": "2026-07-29T10:00:00+09:00",
             "expires_at": "2030-07-29T10:00:00+09:00",
-            "lifetime": "until_expiry",
+            "lifetime": "single_use",
             "conditions": {
                 "source_preserved": True,
                 "exclusive_output": True,
@@ -178,6 +196,8 @@ def test_registry_migration_is_deterministic_validated_and_non_destructive(
         (migration_examples() / expected_name).read_text(encoding="utf-8")
     )
     assert result.source_preserved
+    assert result.root_sha256 == migration_root_identity(tmp_path.resolve())
+    assert result.source_path == source.name
     assert result.output_path == "migrated.json"
     assert result.rollback == "Remove only the newly created migrated.json file."
     assert result.inserted_defaults
@@ -709,6 +729,319 @@ def test_migration_publish_failure_leaves_no_output(
     assert not tuple(tmp_path.glob(".output.*.json"))
 
 
+def test_migration_publish_race_never_removes_a_foreign_output(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = copy_fixture(tmp_path, "tool-registry-v1.json")
+    output = tmp_path / "output.json"
+    foreign = b'{"foreign":true}\n'
+
+    def replace_before_link(source_path: Path, output_path: Path) -> None:
+        del source_path
+        output_path.write_bytes(foreign)
+        raise FileExistsError("injected concurrent output")
+
+    monkeypatch.setattr("sdaqf.application.migrations.os.link", replace_before_link)
+    with pytest.raises(ContractError, match="validated and published"):
+        approved_migrate(
+            root=tmp_path,
+            contract="tool-registry",
+            source=source,
+            output=output,
+            source_version="1.0",
+            target_version="2.0",
+        )
+    assert output.read_bytes() == foreign
+    assert not tuple(tmp_path.glob(".output.*.json"))
+    approval_id = json.loads(
+        (tmp_path / "migration-approval.json").read_text(encoding="utf-8")
+    )["approval_id"]
+    consumption = json.loads(
+        (
+            tmp_path
+            / ".sdaqf"
+            / "migration-approval-consumption.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert [item["approval_id"] for item in consumption["consumed"]] == [
+        approval_id
+    ]
+
+
+def test_migration_rechecks_source_after_exclusive_publication(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = copy_fixture(tmp_path, "tool-registry-v1.json")
+    output = tmp_path / "output.json"
+    original = source.read_bytes()
+    regular_link = os.link
+
+    def mutate_during_link(temporary: Path, target: Path) -> None:
+        source.write_bytes(original + b" ")
+        regular_link(temporary, target)
+
+    monkeypatch.setattr("sdaqf.application.migrations.os.link", mutate_during_link)
+    with pytest.raises(
+        MigrationPublicationIndeterminateError,
+        match="must not be used or automatically removed",
+    ):
+        approved_migrate(
+            root=tmp_path,
+            contract="tool-registry",
+            source=source,
+            output=output,
+            source_version="1.0",
+            target_version="2.0",
+        )
+
+    assert output.exists()
+    assert source.read_bytes() != original
+
+
+def test_post_publication_rollback_never_removes_a_foreign_replacement(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = copy_fixture(tmp_path, "tool-registry-v1.json")
+    output = tmp_path / "output.json"
+    original = source.read_bytes()
+    foreign = b'{"foreign":true}\n'
+    regular_link = os.link
+
+    def replace_after_link(temporary: Path, target: Path) -> None:
+        regular_link(temporary, target)
+        source.write_bytes(original + b" ")
+        target.unlink()
+        target.write_bytes(foreign)
+
+    monkeypatch.setattr("sdaqf.application.migrations.os.link", replace_after_link)
+    with pytest.raises(
+        MigrationPublicationIndeterminateError,
+        match="must not be used or automatically removed",
+    ):
+        approved_migrate(
+            root=tmp_path,
+            contract="tool-registry",
+            source=source,
+            output=output,
+            source_version="1.0",
+            target_version="2.0",
+        )
+
+    assert output.read_bytes() == foreign
+
+
+def test_migration_cli_reports_indeterminate_publication(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    source = copy_fixture(tmp_path, "tool-registry-v1.json")
+    output = tmp_path / "output.json"
+    approval = write_migration_approval(
+        root=tmp_path,
+        contract="tool-registry",
+        source=source,
+        output=output,
+        source_version="1.0",
+        target_version="2.0",
+    )
+    original = source.read_bytes()
+    regular_link = os.link
+
+    def mutate_during_link(temporary: Path, target: Path) -> None:
+        source.write_bytes(original + b" ")
+        regular_link(temporary, target)
+
+    monkeypatch.setattr("sdaqf.application.migrations.os.link", mutate_during_link)
+    monkeypatch.chdir(tmp_path)
+    result = main(
+        [
+            "schema",
+            "migrate",
+            "--contract",
+            "tool-registry",
+            "--from-version",
+            "1.0",
+            "--to-version",
+            "2.0",
+            source.name,
+            "--output",
+            output.name,
+            "--approval",
+            approval.name,
+        ]
+    )
+
+    assert result == 2
+    assert "publication is indeterminate" in capsys.readouterr().err
+    assert output.exists()
+
+
+def test_migration_approval_is_persistently_single_use(tmp_path: Path) -> None:
+    source = copy_fixture(tmp_path, "tool-registry-v1.json")
+    output = tmp_path / "output.json"
+    approval = write_migration_approval(
+        root=tmp_path,
+        contract="tool-registry",
+        source=source,
+        output=output,
+        source_version="1.0",
+        target_version="2.0",
+    )
+    service = MigrationService(
+        clock=lambda: datetime.fromisoformat("2026-07-29T12:00:00+09:00")
+    )
+
+    def run() -> MigrationResult:
+        return service.migrate(
+            root=tmp_path,
+            contract="tool-registry",
+            source=source,
+            output=output,
+            approval=approval,
+            source_version="1.0",
+            target_version="2.0",
+        )
+
+    run()
+    output.unlink()
+    with pytest.raises(ContractError, match="already consumed"):
+        run()
+
+    assert not output.exists()
+    consumption = json.loads(
+        (
+            tmp_path
+            / ".sdaqf"
+            / "migration-approval-consumption.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert [item["approval_id"] for item in consumption["consumed"]] == [
+        json.loads(approval.read_text(encoding="utf-8"))["approval_id"]
+    ]
+
+
+def test_agent_migration_rechecks_companion_before_publication(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = copy_fixture(tmp_path, "agent-registry-v1.json")
+    tools = copy_fixture(tmp_path, "tool-registry-v2.json")
+    output = tmp_path / "output.json"
+    from sdaqf.application import migrations
+
+    original_migrate = migrations._migrate_agent_registry
+
+    def change_companion(
+        payload: dict[str, object],
+    ) -> tuple[dict[str, object], tuple[str, ...], tuple[str, ...]]:
+        result = original_migrate(payload)
+        changed = json.loads(tools.read_text(encoding="utf-8"))
+        changed["tools"][0]["capability"] = "Changed concurrently."
+        write_json(tools, changed)
+        return result
+
+    monkeypatch.setattr(
+        "sdaqf.application.migrations._migrate_agent_registry",
+        change_companion,
+    )
+    with pytest.raises(ContractError, match="Companion Tool Registry changed"):
+        approved_migrate(
+            root=tmp_path,
+            contract="agent-registry",
+            source=source,
+            output=output,
+            tool_registry=tools,
+            source_version="1.0",
+            target_version="2.0",
+        )
+
+    assert not output.exists()
+    assert not (
+        tmp_path / ".sdaqf" / "migration-approval-consumption.json"
+    ).exists()
+
+
+def test_migration_rechecks_approval_expiry_immediately_before_publication(
+    tmp_path: Path,
+) -> None:
+    source = copy_fixture(tmp_path, "tool-registry-v1.json")
+    output = tmp_path / "output.json"
+    approval = write_migration_approval(
+        root=tmp_path,
+        contract="tool-registry",
+        source=source,
+        output=output,
+        source_version="1.0",
+        target_version="2.0",
+    )
+    payload = json.loads(approval.read_text(encoding="utf-8"))
+    payload["expires_at"] = "2026-07-29T12:00:30+09:00"
+    write_json(approval, payload)
+    times = iter(
+        (
+            datetime.fromisoformat("2026-07-29T12:00:00+09:00"),
+            datetime.fromisoformat("2026-07-29T12:01:00+09:00"),
+        )
+    )
+
+    with pytest.raises(ContractError, match="not currently valid"):
+        MigrationService(clock=lambda: next(times)).migrate(
+            root=tmp_path,
+            contract="tool-registry",
+            source=source,
+            output=output,
+            approval=approval,
+            source_version="1.0",
+            target_version="2.0",
+        )
+
+    assert not output.exists()
+    assert not (
+        tmp_path / ".sdaqf" / "migration-approval-consumption.json"
+    ).exists()
+
+
+def test_migration_blocks_on_locked_or_corrupt_consumption_state(
+    tmp_path: Path,
+) -> None:
+    source = copy_fixture(tmp_path, "tool-registry-v1.json")
+    output = tmp_path / "output.json"
+    state = tmp_path / ".sdaqf"
+    state.mkdir()
+    lock = state / "migration-approval-consumption.lock"
+    lock.write_text("foreign lock\n", encoding="utf-8")
+
+    with pytest.raises(ContractError, match="busy or locked"):
+        approved_migrate(
+            root=tmp_path,
+            contract="tool-registry",
+            source=source,
+            output=output,
+            source_version="1.0",
+            target_version="2.0",
+        )
+    assert not output.exists()
+
+    lock.unlink()
+    (
+        state / "migration-approval-consumption.json"
+    ).write_text('{"schema_version":"9.9","consumed":[]}\n', encoding="utf-8")
+    with pytest.raises(ContractError, match=r"schema_version must be 1\.0"):
+        approved_migrate(
+            root=tmp_path,
+            contract="tool-registry",
+            source=source,
+            output=output,
+            source_version="1.0",
+            target_version="2.0",
+        )
+    assert not output.exists()
+
+
 def test_migration_requires_exact_current_owner_approval(
     tmp_path: Path,
 ) -> None:
@@ -770,6 +1103,55 @@ def test_migration_requires_exact_current_owner_approval(
             target_version="2.0",
         )
     assert not output.exists()
+
+
+def test_migration_approval_binds_root_and_source_path(tmp_path: Path) -> None:
+    root_a = tmp_path / "repo-a"
+    root_b = tmp_path / "repo-b"
+    root_a.mkdir()
+    root_b.mkdir()
+    source_a = copy_fixture(root_a, "tool-registry-v1.json")
+    source_b = copy_fixture(root_b, "tool-registry-v1.json")
+    approval_a = write_migration_approval(
+        root=root_a,
+        contract="tool-registry",
+        source=source_a,
+        output=root_a / "output.json",
+        source_version="1.0",
+        target_version="2.0",
+    )
+    approval_b = root_b / approval_a.name
+    shutil.copy2(approval_a, approval_b)
+
+    service = MigrationService(
+        clock=lambda: datetime.fromisoformat("2026-07-29T12:00:00+09:00")
+    )
+    with pytest.raises(ContractError, match="scope does not match"):
+        service.migrate(
+            root=root_b,
+            contract="tool-registry",
+            source=source_b,
+            output=root_b / "output.json",
+            approval=approval_b,
+            source_version="1.0",
+            target_version="2.0",
+        )
+    assert not (root_b / "output.json").exists()
+
+    payload = json.loads(approval_a.read_text(encoding="utf-8"))
+    payload["scope"]["source_path"] = "different.json"
+    write_json(approval_a, payload)
+    with pytest.raises(ContractError, match="scope does not match"):
+        service.migrate(
+            root=root_a,
+            contract="tool-registry",
+            source=source_a,
+            output=root_a / "output.json",
+            approval=approval_a,
+            source_version="1.0",
+            target_version="2.0",
+        )
+    assert not (root_a / "output.json").exists()
 
 
 def test_migration_schemas_bind_companion_identity_by_contract(

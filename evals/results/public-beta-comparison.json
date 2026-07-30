@@ -38,7 +38,10 @@
         "decisions": 2,
         "evidence_items": 2,
         "failed_handoffs": 1,
-        "hard_blockers": ["MISSED-MUST:NFR-CFG-001"],
+        "hard_blockers": [
+          "EVIDENCE:FAIL:EV-CFG-UNIT",
+          "MISSED-MUST:NFR-CFG-001"
+        ],
         "missed_requirements": 1,
         "rework": 2,
         "scope_additions": 1,
@@ -83,10 +86,11 @@
         "decisions": 2,
         "evidence_items": 2,
         "failed_handoffs": 1,
-        "hard_blockers": [
-          "CRITICAL:disclosure:DEFECT-EXP-DISCLOSURE",
-          "CRITICAL:security:DEFECT-EXP-APPROVAL",
-          "MISSED-MUST:C-EXP-001",
+          "hard_blockers": [
+            "CRITICAL:disclosure:DEFECT-EXP-DISCLOSURE",
+            "CRITICAL:security:DEFECT-EXP-APPROVAL",
+            "EVIDENCE:FAIL:EV-EXP-ADHOC-REVIEW",
+            "MISSED-MUST:C-EXP-001",
           "MISSED-MUST:FR-EXP-002",
           "MISSED-MUST:FR-EXP-004"
         ],
@@ -136,6 +140,8 @@
         "failed_handoffs": 1,
         "hard_blockers": [
           "CRITICAL:must:DEFECT-UIT-SCOPE",
+          "EVIDENCE:FAIL:EV-UIT-ADHOC-REVIEW",
+          "EVIDENCE:FAIL:EV-UIT-HAPPY-PATH",
           "MISSED-MUST:FR-UIT-004",
           "MISSED-MUST:NFR-UIT-001",
           "MISSED-MUST:NG-UIT-001"
@@ -149,13 +155,17 @@
     }
   ],
   "hard_blockers": [
+    "offline-config:unstructured:EVIDENCE:FAIL:EV-CFG-UNIT",
     "offline-config:unstructured:MISSED-MUST:NFR-CFG-001",
     "secure-export:unstructured:CRITICAL:disclosure:DEFECT-EXP-DISCLOSURE",
     "secure-export:unstructured:CRITICAL:security:DEFECT-EXP-APPROVAL",
+    "secure-export:unstructured:EVIDENCE:FAIL:EV-EXP-ADHOC-REVIEW",
     "secure-export:unstructured:MISSED-MUST:C-EXP-001",
     "secure-export:unstructured:MISSED-MUST:FR-EXP-002",
     "secure-export:unstructured:MISSED-MUST:FR-EXP-004",
     "ui-issue-tracker:unstructured:CRITICAL:must:DEFECT-UIT-SCOPE",
+    "ui-issue-tracker:unstructured:EVIDENCE:FAIL:EV-UIT-ADHOC-REVIEW",
+    "ui-issue-tracker:unstructured:EVIDENCE:FAIL:EV-UIT-HAPPY-PATH",
     "ui-issue-tracker:unstructured:MISSED-MUST:FR-UIT-004",
     "ui-issue-tracker:unstructured:MISSED-MUST:NFR-UIT-001",
     "ui-issue-tracker:unstructured:MISSED-MUST:NG-UIT-001"

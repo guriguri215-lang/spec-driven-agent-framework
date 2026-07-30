@@ -1,8 +1,9 @@
 # Release Contract
 
-M4 produces an inspected local public-beta candidate, not a commit, push,
-or public release. Commit and every external action remain separately
-Owner-gated.
+M4 implementation and validation do not themselves authorize a commit, push,
+or public release. Separately Owner-approved finalization may commit and push
+an inspected immutable private candidate; public release and every other
+external action remain separately Owner-gated.
 
 ## Required local gates
 
@@ -42,7 +43,8 @@ temporary clean Git repository, and an explicit dirty-candidate negative path.
 It also validates the tracked M4 evaluation result, calculates the comparison,
 migrates a legacy Agent Registry to a new file, and validates the migrated
 output through the current strict loader and companion Tool Registry. The
-smoke supplies an exact generated Owner migration-approval record; production
+smoke supplies an exact generated single-use Owner migration-approval record
+and exercises its atomic repository-local consumption claim; production
 migration remains approval-bound.
 The positive G4 fixture performs an actual `python -I -m pip --isolated`,
 no-index, no-build-isolation, no-dependency target installation and executes
@@ -96,8 +98,10 @@ actually run.
 - The tracked evaluation result exactly reproduces from the suite and run
   records, retains its limits, and contains no aggregate score.
 - Migration fixtures preserve their source and validate through the existing
-  current-version loaders, the Agent/tool cross-reference, and an exact
-  time-bounded Owner approval.
+  current-version loaders, the Agent/tool cross-reference, and an exact,
+  time-bounded, atomically consumed single-use Owner approval.
+- A post-link input-identity race returns a distinct indeterminate-publication
+  failure, prohibits output use, and never auto-deletes the replaceable name.
 - Runtime approval-consumption, M3 evidence, review, UI, trace, and handoff
   records under `.sdaqf/` remain repository-local ignored state and are never
   staged.

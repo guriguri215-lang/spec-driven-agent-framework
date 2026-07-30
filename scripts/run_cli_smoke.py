@@ -16,6 +16,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from sdaqf.adapters.process import SubprocessRunner
+from sdaqf.application.migrations import migration_root_identity
 from sdaqf.application.release_qa import GitInspector, source_target_for
 from sdaqf.application.workspace import is_reparse_point
 from sdaqf.cli import main
@@ -1276,28 +1277,38 @@ def main_smoke() -> int:
                 / "agent-registry-v1.json"
             )
             migration_approval = temporary / "migration-approval.json"
+            migration_scope = {
+                "contract": "agent-registry",
+                "root_sha256": migration_root_identity(root.resolve()),
+                "source_path": legacy_registry.relative_to(root).as_posix(),
+                "source_sha256": hashlib.sha256(
+                    legacy_registry.read_bytes()
+                ).hexdigest().upper(),
+                "output_path": migrated_registry.relative_to(root).as_posix(),
+                "tool_registry_path": current_tool_registry.relative_to(
+                    root
+                ).as_posix(),
+                "tool_registry_sha256": hashlib.sha256(
+                    current_tool_registry.read_bytes()
+                ).hexdigest().upper(),
+                "source_version": "1.0",
+                "target_version": "2.0",
+            }
+            migration_approval_id = "APR-M4-CLI-" + hashlib.sha256(
+                json.dumps(
+                    migration_scope,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest().upper()[:16]
             _write_json(
                 migration_approval,
                 {
-                    "schema_version": "1.0",
-                    "approval_id": "APR-M4-CLI-SMOKE",
+                    "schema_version": "1.1",
+                    "approval_id": migration_approval_id,
                     "approval_type": "owner",
                     "action": "Migrate one registry schema",
-                    "scope": {
-                        "contract": "agent-registry",
-                        "source_sha256": hashlib.sha256(
-                            legacy_registry.read_bytes()
-                        ).hexdigest().upper(),
-                        "output_path": migrated_registry.relative_to(root).as_posix(),
-                        "tool_registry_path": current_tool_registry.relative_to(
-                            root
-                        ).as_posix(),
-                        "tool_registry_sha256": hashlib.sha256(
-                            current_tool_registry.read_bytes()
-                        ).hexdigest().upper(),
-                        "source_version": "1.0",
-                        "target_version": "2.0",
-                    },
+                    "scope": migration_scope,
                     "risk": "medium",
                     "status": "approved",
                     "rationale": "Repository-local CLI smoke fixture.",
@@ -1305,7 +1316,7 @@ def main_smoke() -> int:
                     "approved_by": "Owner",
                     "approved_at": "2026-07-29T00:00:00+00:00",
                     "expires_at": "2035-07-29T00:00:00+00:00",
-                    "lifetime": "until_expiry",
+                    "lifetime": "single_use",
                     "conditions": {
                         "source_preserved": True,
                         "exclusive_output": True,

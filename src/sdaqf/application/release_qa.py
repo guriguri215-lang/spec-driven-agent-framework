@@ -9,7 +9,7 @@ import shutil
 import stat
 import tomllib
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from sdaqf.application.contracts import (
     ContractError,
@@ -91,25 +91,48 @@ _REQUIRED_DOCUMENTS = {
 }
 
 
+def _candidate_order_key(root: Path, path: Path) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Return the historical Windows order with a portable collision tie-breaker."""
+
+    parts = PurePosixPath(path.relative_to(root).as_posix()).parts
+    return tuple(part.casefold() for part in parts), parts
+
+
+def _portable_unique_candidates(
+    root: Path,
+    files: list[Path],
+) -> tuple[Path, ...]:
+    by_relative: dict[str, Path] = {}
+    for path in files:
+        relative = path.relative_to(root).as_posix()
+        by_relative.setdefault(relative, path)
+    return tuple(
+        sorted(
+            by_relative.values(),
+            key=lambda path: _candidate_order_key(root, path),
+        )
+    )
+
+
 def candidate_files(
     root: Path,
     publication_paths: tuple[str, ...] | None = None,
 ) -> tuple[Path, ...]:
-    """Return the bounded publication set, preferring Git-observed paths."""
+    """Return the bounded publication set in portable relative-path order."""
 
     files: list[Path] = []
     if publication_paths is not None:
         for relative in publication_paths:
             normalized = safe_relative_path(relative, "publication path")
             files.append(root.joinpath(*Path(normalized).parts))
-        return tuple(sorted(set(files)))
+        return _portable_unique_candidates(root, files)
     for path in root.rglob("*"):
         parts = path.relative_to(root).parts
         if any(part in _EXCLUDED_PARTS for part in parts):
             continue
         if path.is_file() or path.is_symlink() or is_reparse_point(path):
             files.append(path)
-    return tuple(sorted(files))
+    return _portable_unique_candidates(root, files)
 
 
 def repository_digest(

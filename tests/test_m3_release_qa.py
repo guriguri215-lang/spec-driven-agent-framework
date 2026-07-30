@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -43,6 +44,42 @@ from tests.m3_helpers import (
     write_evidence_artifacts,
     write_json,
 )
+
+
+def test_repository_digest_uses_portable_relative_path_order(
+    tmp_path: Path,
+) -> None:
+    plans = tmp_path / "PLANS.md"
+    architecture = tmp_path / "docs" / "architecture.md"
+    architecture.parent.mkdir()
+    plans.write_bytes(b"plans\n")
+    architecture.write_bytes(b"architecture\n")
+    relative_paths = ("docs/architecture.md", "PLANS.md")
+
+    expected = hashlib.sha256()
+    for relative in relative_paths:
+        content = (tmp_path / relative).read_bytes()
+        expected.update(relative.encode("utf-8"))
+        expected.update(b"\0")
+        expected.update(str(len(content)).encode("ascii"))
+        expected.update(b"\0")
+        expected.update(content)
+        expected.update(b"\0")
+
+    assert tuple(
+        path.relative_to(tmp_path).as_posix()
+        for path in candidate_files(tmp_path, tuple(reversed(relative_paths)))
+    ) == relative_paths
+    assert repository_digest(tmp_path, tuple(reversed(relative_paths))) == (
+        expected.hexdigest().upper()
+    )
+    assert tuple(
+        path.relative_to(tmp_path).as_posix()
+        for path in candidate_files(
+            tmp_path,
+            ("case.json", "Case.json", "case.json"),
+        )
+    ) == ("Case.json", "case.json")
 
 
 class FakeRunner:

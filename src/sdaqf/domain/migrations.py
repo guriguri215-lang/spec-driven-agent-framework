@@ -11,6 +11,8 @@ class MigrationApproval:
 
     approval_id: str
     contract: str
+    root_sha256: str
+    source_path: str
     source_sha256: str
     output_path: str
     tool_registry_path: str | None
@@ -27,6 +29,8 @@ class MigrationResult:
 
     approval_id: str
     contract: str
+    root_sha256: str
+    source_path: str
     source_version: str
     target_version: str
     source_sha256: str
@@ -38,7 +42,7 @@ class MigrationResult:
     output_path: str
     rollback: str
     source_preserved: bool = True
-    schema_version: str = "1.0"
+    schema_version: str = "1.1"
 
     def to_dict(self) -> dict[str, object]:
         """Return a JSON-compatible migration result."""
@@ -47,6 +51,8 @@ class MigrationResult:
             "schema_version": self.schema_version,
             "approval_id": self.approval_id,
             "contract": self.contract,
+            "root_sha256": self.root_sha256,
+            "source_path": self.source_path,
             "source_version": self.source_version,
             "target_version": self.target_version,
             "source_sha256": self.source_sha256,
