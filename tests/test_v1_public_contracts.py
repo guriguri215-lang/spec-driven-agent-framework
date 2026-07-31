@@ -126,7 +126,7 @@ def test_v1_public_documents_share_release_and_support_boundaries() -> None:
     assert not (root / "CODE_OF_CONDUCT.md").exists()
 
 
-def test_v1_public_state_separates_a7_from_release_publication() -> None:
+def test_v1_public_state_separates_candidate_snapshot_from_post_publication_roadmap() -> None:
     root = Path(__file__).resolve().parents[1]
     paths = (
         "README.md",
@@ -205,11 +205,13 @@ def test_v1_public_state_separates_a7_from_release_publication() -> None:
             "actual Gate G5 remains `NOT_RUN`",
         ),
         "docs/roadmap.md": (
-            "post-A7 reconciliation locally verified",
-            "no independent post-A7 remote read has observed",
-            "tag and GitHub release have not been created",
-            "private vulnerability reporting has not been enabled",
-            "actual Gate G5 remains `NOT_RUN`",
+            "Status: `v1.0.0-rc.1` published; Actual Gate G5 passed.",
+            "`9f14e2287da3afc078db787e823765320b1e23ac`",
+            "annotated tag `v1.0.0-rc.1`",
+            "private vulnerability reporting is enabled",
+            "not production-ready",
+            "macOS remains `NOT_VERIFIED`",
+            "final `1.0.0` requires a new candidate and separate approval",
         ),
         "docs/releases/v1.0.0-rc.1.md": (
             "`A7_COMMAND_ACCEPTED_POST_A7_NOT_OBSERVED`",
@@ -259,8 +261,11 @@ def test_v1_public_state_separates_a7_from_release_publication() -> None:
             "It still requires separate exact approvals",
         ),
         "docs/roadmap.md": (
-            "Status: local implementation in progress; publication not performed",
-            "public visibility, tag, release, and repository settings remain",
+            "post-A7 reconciliation locally verified",
+            "no independent post-A7 remote read has observed",
+            "tag and GitHub release have not been created",
+            "private vulnerability reporting has not been enabled",
+            "actual Gate G5 remains `NOT_RUN`",
         ),
         "docs/releases/v1.0.0-rc.1.md": (
             "that a tag, release, visibility change, or actual Gate G5 has occurred",
