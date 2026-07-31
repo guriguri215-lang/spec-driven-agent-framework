@@ -2,7 +2,7 @@
 
 ## Status
 
-`LOCAL_IMPLEMENTATION_VERIFIED_A3_PENDING`
+`A7_RECONCILIATION_VERIFIED_A3_PENDING`
 
 This is a living plan. The Owner decision matrix was presented on 2026-07-30.
 The Owner subsequently approved every recommended decision and selected the
@@ -26,9 +26,12 @@ dependency, non-compensating Gate, exact-evidence, approval, security, and
 publication boundaries established through M4.
 
 Only an implementation scope that is rewritten to contain literal approved
-decision values and separately approved by the Owner may proceed. Actual tag
-creation, release creation or publication, and public visibility remain
-separate external actions and are never performed automatically.
+decision values and separately approved by the Owner may proceed. The
+separately approved A7 visibility-change command has now been accepted, but
+its resulting visibility has not been independently observed. Tag creation,
+release creation, private vulnerability reporting, and post-publication
+observation remain separate external actions and are never performed
+automatically.
 
 ## Immutable baseline and starting snapshot
 
@@ -70,6 +73,35 @@ The M4 subject is immutable evidence, not the eventual V1.0 candidate. A V1.0
 candidate must receive a new exact identity and may not overwrite, relabel, or
 retroactively extend the M4 claims.
 
+## Completed A3 through A7 boundary and reconciliation baseline
+
+Pre-reconciliation candidate
+`97082edc6ccbfcea5dfcd745681f7db435515074` was committed under A3, pushed
+normally to the then-private `origin/main` under A4, and observed under A5.
+A6 completed with successful Actions run `30593521851` and jobs
+`91040762235`, `91040762245`, `91040762248`, and `91040762288`, covering the
+required Windows/Linux Python 3.12/3.13 matrix.
+
+The Owner separately approved A7. The first normal visibility-change attempt
+was blocked before connection by sandbox socket restrictions. One technically
+approved retry of:
+
+```text
+gh repo edit guriguri215-lang/spec-driven-agent-framework --visibility public --accept-visibility-change-consequences
+```
+
+was accepted with exit code `0` and no output. No independent post-A7 remote
+read has observed current repository visibility. A7 did not create the
+proposed tag or GitHub release, enable private vulnerability reporting,
+perform a post-publication read, or run actual Gate G5. Actual Gate G5 remains
+`NOT_RUN`.
+
+The public-state reconciliation changes candidate bytes, so the predecessor
+A6 result cannot attest the new candidate by inference. The reconciliation
+returns to a new A3 local-commit approval boundary after complete local
+verification and independent read-only review. Do not repeat A7; a future
+separately approved observation must establish current visibility.
+
 ## Owner decision register
 
 | ID | Decision | Status | Approved value |
@@ -105,7 +137,7 @@ staged, or committed.
 | `NFR-003`, `NFR-004`, `NFR-005` | Preserve platform truthfulness, offline core, and security boundaries | exact Windows/Linux matrix, truthful macOS status, no runtime network |
 | `NFR-012`, `NFR-013`, `NFR-016` | Version compatibility and migrations; complete English public documentation | compatibility policy, migration statement, versioned schema and docs |
 | `NFR-017`, `C-005`, `C-015` | Least privilege, offline planning, and Owner/technical approval separation | no network in local readiness; exact approval log |
-| Release Contract | Preserve all local Gates, private candidate rules, exact-SHA CI, and a fresh public-release audit | unchanged commands plus decision-approved V1.0 additions |
+| Release Contract | Preserve all local Gates, candidate-boundary rules, post-A7 visibility uncertainty, exact-SHA CI, and a fresh public-release audit | unchanged commands plus decision-approved V1.0 additions |
 | M4 evidence | Do not broaden authored evaluation, macOS, platform, or security claims beyond exact evidence | explicit known limitations and exact subject/candidate separation |
 
 ## Approved local implementation boundary
@@ -318,7 +350,7 @@ credentials, authentication output, and raw logs remain excluded.
   configuration.
 - Do not create a tag, release, PR, issue, discussion, deployment, package
   publication, or visibility change as part of local finalization.
-- Do not treat a plan, recommendation, local Gate, commit, private push, or
+- Do not treat a plan, recommendation, local Gate, commit, push, or
   remote read as authorization for a later external action.
 
 ## Derived completion criteria
@@ -355,9 +387,11 @@ credentials, authentication output, and raw logs remain excluded.
 - `AC-V1R-011`: A local V1.0 candidate passes every Release Contract command,
   justified V1.0 additions, and independent read-only review with unresolved
   Critical/High/Medium findings equal to zero.
-- `AC-V1R-012`: An exact candidate commit, private push, remote observation,
-  visibility change, tag, release, and post-publication observation each
-  remain separate approval boundaries.
+- `AC-V1R-012`: An exact candidate commit, potentially public push, remote
+  observation, exact-SHA attestation, tag, release, and post-publication
+  observation each remain separate approval boundaries. The consumed
+  predecessor A7 visibility change is not repeated for the reconciliation
+  candidate.
 - `AC-V1R-013`: Actual Gate G5 is `NOT_RUN` until approved external evidence
   proves the exact public state; failure or ambiguity never compensates or
   auto-retries.
@@ -423,7 +457,9 @@ After exact decisions and local implementation authorization:
    Critical, High, and Medium findings; do not self-approve.
 8. Present the exact candidate identity, diff, staged set, results, known
    limits, and proposed next action to the Owner.
-9. Stop. Commit, push, remote read, tag, release, and visibility remain
+9. Stop. For the reconciliation candidate, commit, push, remote read, and
+   exact-SHA observation remain unperformed. Do not repeat A7. Tag, release,
+   private vulnerability reporting, and post-publication observation remain
    unperformed unless each next action is separately approved.
 
 ## Approval sequence
@@ -437,8 +473,10 @@ Each boundary is independent and non-transitive:
    setting, only if unexpectedly required; otherwise prohibited.
 4. `A3 LOCAL COMMIT`: exact reviewed staged paths, diff, author identity, and
    English message.
-5. `A4 PRIVATE PUSH`: exact commit and private `origin/main`, normal
-   fast-forward only.
+5. `A4 PUSH`: exact commit and `origin/main`, normal fast-forward only,
+   approved as a potentially public external publication while current
+   visibility remains unobserved. The predecessor A4 occurred while the
+   repository was observed private.
 6. `A5 REMOTE READ`: exact repository, command/API query, and metadata or
    Actions fields to observe.
 7. `A6 EXACT-SHA ATTESTATION`: exact candidate run and required jobs; a retry
@@ -453,10 +491,15 @@ Each boundary is independent and non-transitive:
 11. `A10 POST-PUBLICATION READ`: exact read-only verification of visibility,
     branch, commit, tag, release, notes, assets, and security/support state.
 
-The final external ordering must be selected explicitly after `D2`, `D4`, and
-`D5`. A private release that becomes public merely through a visibility change
-is prohibited because it collapses the visibility and release approval
-boundaries.
+The predecessor external ordering through A7 was separately selected and
+approved after `D2`, `D4`, and `D5`. A private release that becomes public
+merely through a visibility change remains prohibited because it collapses the
+visibility and release approval boundaries.
+
+A3 through A7 above were consumed only for predecessor candidate
+`97082edc6ccbfcea5dfcd745681f7db435515074`. This reconciliation returns to A3
+for a new candidate. A7 is neither reusable nor to be repeated; current
+visibility requires a separately approved read-only observation.
 
 ## Rollback and failure containment
 
@@ -468,7 +511,7 @@ newly created path. Never use hard reset, destructive clean, broad checkout,
 or deletion outside the declared scope. Recompute the starting identity after
 rollback.
 
-### After a local or private pushed commit
+### After a local or pushed commit
 
 Do not rewrite history or force push. Correct an accepted defect through a new
 focused commit after related Gates and read-only re-review. A pushed candidate
@@ -546,6 +589,21 @@ Stop without repair, staging, commit, remote access, or external action for:
   tag, release, visibility, and repository settings.
 - 2026-07-31: Completed the approved local implementation and verification.
   No staging, commit, remote observation, or external action was performed.
+- 2026-07-31: Completed A3 commit
+  `97082edc6ccbfcea5dfcd745681f7db435515074`, A4 normal push, and the bounded A5
+  remote read under separate exact approvals.
+- 2026-07-31: Completed A6 exact-SHA attestation through successful Actions run
+  `30593521851` and all four required Windows/Linux Python 3.12/3.13 jobs.
+- 2026-07-31: The Owner separately approved A7. The first normal command was
+  blocked before connection by sandbox socket restrictions; one technically
+  approved retry was accepted with exit code `0` and no output.
+- 2026-07-31: No post-A7 remote read was performed. The proposed tag and
+  GitHub release remain uncreated, private vulnerability reporting remains
+  disabled, and actual Gate G5 remains `NOT_RUN`.
+- 2026-07-31: The Owner approved the exact 12-path A7 post-visibility
+  reconciliation, including directly related public-contract tests and
+  bounded private progress updates. This approval excludes staging, commit,
+  remote access, tag, release, and repository-setting changes.
 
 ## Progress log
 
@@ -581,10 +639,37 @@ Stop without repair, staging, commit, remote access, or external action for:
   for publication.
 - Obtained a logically separate independent read-only review: `GO`, with
   unresolved Critical/High/Medium/Low findings `0/0/0/0`.
-- The current worktree remains unstaged and is not an immutable exact-SHA V1
-  candidate. The required Windows/Linux Python 3.12/3.13 exact-SHA matrix has
-  not been observed for V1, macOS remains `NOT_VERIFIED`, and actual Gate G5
-  remains `NOT_RUN`.
-- Stop at the `A3 LOCAL COMMIT` boundary. A separately approved exact staged
-  path set, reviewed diff, author identity, and English commit message are
-  required before staging or committing.
+- Before A3, the worktree remained unstaged and was not an immutable exact-SHA
+  V1 candidate. At that time the V1 Windows/Linux Python 3.12/3.13 exact-SHA
+  matrix had not been observed, macOS remained `NOT_VERIFIED`, and actual Gate
+  G5 remained `NOT_RUN`.
+- At that boundary, work stopped at `A3 LOCAL COMMIT` pending a separately
+  approved staged path set, reviewed diff, author identity, and English commit
+  message.
+- Completed the separately approved A3 through A7 boundaries for predecessor
+  candidate `97082edc6ccbfcea5dfcd745681f7db435515074`. A7 establishes successful
+  command acceptance only; current visibility remains unobserved.
+- Began the exact Owner-approved 12-path public-state reconciliation. No
+  staging, commit, remote read or write, tag, release, private-vulnerability-
+  reporting change, or other repository-setting change is authorized.
+- Reconciled exactly 12 approved tracked paths without modifying the canonical
+  specification, M4 evidence, M4 ExecPlan, implementation code, schemas, or
+  workflows. The complete publication path set remains 260.
+- Passed the focused V1/public-contract suite with 35 tests and the final full
+  suite with 655 passed and three explicit Windows link-environment skips.
+  Ruff and strict mypy across 98 source files passed.
+- Passed coverage without threshold reduction: total 91%, M1 94%, M2 90%,
+  M3/V1 91%, and M4 92%.
+- Passed CLI smoke, the three-project comparison with 14 named hard blockers
+  and no aggregate score, workspace-boundary, publication, dependency/license,
+  installed-dependency, and whitespace checks.
+- Resolved the independent read-only review's release-boundary inconsistency
+  and regression-test hardening findings. Final review is `GO`, with unresolved
+  Critical/High/Medium/Low findings `0/0/0/0`.
+- The reconciled candidate remains unstaged on `main` with HEAD
+  `97082edc6ccbfcea5dfcd745681f7db435515074`, zero staged paths, and no local
+  tag. The predecessor A6 evidence does not transfer to these changed bytes;
+  macOS remains `NOT_VERIFIED`, and actual Gate G5 remains `NOT_RUN`.
+- Stop at the new `A3 LOCAL COMMIT` boundary. A separately approved exact
+  staged path set, reviewed diff, author identity, and English commit message
+  are required before staging or committing.

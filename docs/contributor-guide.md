@@ -2,11 +2,14 @@
 
 ## Current contribution status
 
-The project is in the private `1.0.0rc1` finalization phase. It is licensed
-under Apache-2.0 but is not open for external pull requests during the release
-candidate. Bug and documentation issues are handled on a best-effort basis
-after publication. This guide defines the workflow for explicitly approved
-local contributors.
+The project is in the `1.0.0rc1` release-candidate phase. The Owner-approved A7
+visibility-change command was accepted with exit code `0` and no output, but
+no independent post-A7 remote read has observed current repository visibility.
+The project is licensed under Apache-2.0 but is not open for external pull
+requests during the release candidate. Bug and documentation issues are
+handled through GitHub Issues on a best-effort basis only after public
+availability is independently confirmed. This guide defines the workflow for
+explicitly approved local contributors.
 
 ## Setup
 

@@ -50,14 +50,21 @@ separately from implementation and may not be inferred from a prior commit.
 
 ## V1.0: Release-candidate readiness
 
-Status: local implementation in progress; publication not performed.
+Status: post-A7 reconciliation locally verified; new candidate awaiting commit
+approval.
 
 Set version `1.0.0rc1`, adopt Apache-2.0, define the target V1 public API and
 compatibility/migration policy, preserve historical schemas, add the selected
 license schema 1.1, and evaluate an exact offline publication-readiness
 declaration. A successful local result is `LOCAL_READY`, not actual Gate G5.
 
-The proposed public tag is `v1.0.0-rc.1`. Commit, private push, exact-SHA
-matrix, remote observation, public visibility, tag, release, and repository
-settings remain separate Owner approval boundaries. Final `1.0.0` is a future
-new candidate.
+Pre-reconciliation candidate
+`97082edc6ccbfcea5dfcd745681f7db435515074` completed A6 through successful run
+`30593521851` and all four required Windows/Linux Python 3.12/3.13 jobs. The
+Owner-approved A7 visibility-change command was accepted with exit code `0`
+and no output, but no independent post-A7 remote read has observed current
+repository visibility.
+
+The proposed public tag remains `v1.0.0-rc.1`. The tag and GitHub release have
+not been created, private vulnerability reporting has not been enabled, and
+actual Gate G5 remains `NOT_RUN`. Final `1.0.0` is a future new candidate.

@@ -4,7 +4,12 @@ All notable changes will be documented in this file.
 
 ## Unreleased
 
-The proposed `1.0.0rc1` release remains `NOT_PUBLISHED`.
+The proposed `1.0.0rc1` release remains `NOT_PUBLISHED`: the proposed tag
+`v1.0.0-rc.1` and GitHub release have not been created. The Owner-approved A7
+visibility-change command was accepted with exit code `0` and no output, but
+no independent post-A7 remote read has observed current repository visibility.
+GitHub private vulnerability reporting has not been enabled, and actual Gate
+G5 remains `NOT_RUN`.
 
 ### Added
 

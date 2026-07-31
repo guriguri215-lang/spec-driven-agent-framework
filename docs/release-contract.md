@@ -3,8 +3,9 @@
 V1 local implementation and validation do not themselves authorize staging,
 commit, push, remote observation, a tag, a release, a visibility change, or a
 repository-setting change. Separately Owner-approved finalization may create
-an inspected immutable private candidate; public release and every other
-external action remain separately Owner-gated.
+an inspected immutable local candidate. Because current repository visibility
+is unobserved after A7, any future push must be treated as potentially public.
+Public release and every other external action remain separately Owner-gated.
 
 ## Required local gates
 
@@ -109,17 +110,25 @@ actually run.
   records under `.sdaqf/` remain repository-local ignored state and are never
   staged.
 - The branch is `main`.
-- The only remote is the approved `origin`; every fetch and push URL is the
-  approved private repository.
+- The only remote is the approved `origin`; every configured fetch and push
+  URL exactly matches the approved repository URL. Current repository
+  visibility is unobserved after A7.
 - The commit message and repository-local author identity are non-personal
   English metadata.
 
-## Private push and exact-SHA CI gate
+## Potentially public push and exact-SHA CI gate
 
-Only an explicitly Owner-approved, inspected commit may be pushed normally to
-the approved private `origin/main`. Force push, history rewrite, PRs, issues,
-discussions, tags, releases, deployment, repository administration, secrets,
-and runner changes remain prohibited.
+Pre-reconciliation candidate
+`97082edc6ccbfcea5dfcd745681f7db435515074` was pushed to the then-observed
+private `origin/main` under the separately approved A4 boundary. After the A7
+visibility-change command was accepted and before any post-A7 observation,
+current repository visibility is unobserved. Any future push must therefore be
+treated as a potentially public external publication and requires a new exact
+Owner approval naming the commit, repository, ref, and visibility uncertainty.
+
+Force push, history rewrite, PRs, issues, discussions, tags, releases,
+deployment, repository administration, secrets, and runner changes remain
+prohibited.
 
 After push, the observed workflow must have the exact local commit as its head
 SHA and every required matrix job must succeed. A failure is diagnosed from
@@ -147,11 +156,25 @@ G5 remains `NOT_RUN`.
 
 ## Public release gate
 
-Publication is a separate future action. The approved target is a
-`v1.0.0-rc.1` prerelease titled `SDAQF v1.0.0-rc.1`, with no attached assets
-or package-registry publication and only GitHub-provided tag source archives.
-It still requires separate exact approvals for commit, private push,
-exact-SHA observation, public visibility, tag, release, private vulnerability
-reporting, and post-publication observation. It also requires a fresh secret,
-personal-data, dependency, license, language, advisory, and clean-environment
-audit. Local readiness can never substitute for that evidence.
+The approved release target remains a `v1.0.0-rc.1` prerelease titled
+`SDAQF v1.0.0-rc.1`, with no attached assets or package-registry publication
+and only GitHub-provided tag source archives.
+
+Pre-reconciliation candidate
+`97082edc6ccbfcea5dfcd745681f7db435515074` completed A6 through successful
+Actions run `30593521851` and the four required Windows/Linux Python 3.12/3.13
+jobs. Its separately approved A7 visibility-change command was accepted with
+exit code `0` and no output. No independent post-A7 remote read observed the
+resulting visibility. These facts do not transfer exact-candidate evidence to
+the changed bytes in a reconciliation candidate.
+
+A reconciled candidate requires its own separately approved commit, push, and
+exact-SHA observation before any tag or release action. The proposed tag and
+GitHub release have not been created, private vulnerability reporting has not
+been enabled, and actual Gate G5 remains `NOT_RUN`. Tag, release, private
+vulnerability reporting, and post-publication observation each remain
+separately Owner-gated. Do not repeat the visibility change by inference; a
+separately approved read must establish current visibility, and any mismatch
+stops without repair. A fresh secret, personal-data, dependency, license,
+language, advisory, and clean-environment audit is still required. Local
+readiness can never substitute for external evidence.

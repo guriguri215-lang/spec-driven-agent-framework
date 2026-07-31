@@ -6,11 +6,13 @@ SDAQF `1.0.0rc1` is a release candidate, not a production release.
 
 ## Reporting
 
-Do not disclose suspected vulnerabilities in a public issue. GitHub private
-vulnerability reporting is the intended channel only after it is enabled
-through a separately approved repository-setting change when the repository
-is public. Until that channel is confirmed, keep the report private and
-request the current disclosure instructions from the Owner.
+Do not disclose suspected vulnerabilities in a public issue. The
+Owner-approved A7 visibility-change command was accepted with exit code `0`
+and no output, but no independent post-A7 remote read has observed current
+repository visibility. GitHub private vulnerability reporting has not been
+enabled and remains a separately Owner-gated repository-setting change. Until
+that channel is independently confirmed as enabled, keep the report private
+and request the current disclosure instructions from the Owner.
 
 ## Security boundaries
 

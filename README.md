@@ -135,9 +135,15 @@ copying private workspace state.
 - English compatibility, migration, release, support, security, contribution,
   platform, artifact, and known-limitation policies.
 
-The proposed tag is `v1.0.0-rc.1`, but the tag, release, and public visibility
-have not been created or changed. This release candidate is for framework
-evaluators and advanced Codex users and is not for production use.
+The Owner-approved A7 visibility-change command was accepted with exit code `0`
+and no output. No independent post-A7 remote read has observed the resulting
+repository visibility. The proposed tag `v1.0.0-rc.1` has not been created, the
+GitHub release has not been created, GitHub private vulnerability reporting
+has not been enabled, and actual Gate G5 remains `NOT_RUN`.
+
+This release candidate is for framework evaluators and advanced Codex users,
+is not for production use, and keeps macOS `NOT_VERIFIED`. The authored
+comparison remains nonempirical and noncausal.
 
 The pinned development dependency and license record is in
 `docs/dependencies.md`.
