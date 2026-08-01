@@ -1,0 +1,42 @@
+{
+  "artifact_id": "CTX-QUERY-76204DB6D3EE80C6EE8998F1807311BFCA3437055632197008075364F0DABA91",
+  "artifact_type": "context-query",
+  "content": {
+    "allowed_edge_types": [
+      "contradicts",
+      "depends-on",
+      "derived-from",
+      "implements",
+      "references",
+      "supersedes",
+      "verifies"
+    ],
+    "as_of": "2026-07-31T00:00:00Z",
+    "budget": {
+      "budget_bytes": 65536,
+      "max_edges": 128,
+      "max_nodes": 64,
+      "max_traversal_depth": 4,
+      "unit": "canonical_utf8_bytes"
+    },
+    "candidate": {
+      "git_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "repository_digest": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "source_spec_sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+    },
+    "clearance": "public",
+    "graph_id": "CTX-GRAPH-D1FC9F96691D7B947FF3CAD08B27336C8E7C305F27E3A908B265D6A5CED96096",
+    "identifiers": [
+      "FR-M5-001"
+    ],
+    "required_node_ids": [
+      "CTX-NODE-CC3BAB26EB0DFBF46B4A91F502AC3C31E214573485EA9562B2F562AF3CD5F17C"
+    ],
+    "seed_node_ids": [],
+    "terms": [
+      "context",
+      "validate"
+    ]
+  },
+  "schema_version": "1.0"
+}

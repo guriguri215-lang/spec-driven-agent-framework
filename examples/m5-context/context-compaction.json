@@ -1,0 +1,54 @@
+{
+  "artifact_id": "CTX-COMPACTION-D7BFE62F2BA657158E3EC63F8D1F14C8E6077872F79194E9F30DDA9EA2B28129",
+  "artifact_type": "context-compaction",
+  "content": {
+    "budget_bytes": 65536,
+    "candidate": {
+      "git_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "repository_digest": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "source_spec_sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+    },
+    "extracts": [
+      {
+        "authority": "accepted-public-contract",
+        "contradiction_ids": [],
+        "cost_bytes": 55,
+        "node_id": "CTX-NODE-56D84380E522C62FC0B2411AD045A359AB2870078A9512850FA457F579190B49",
+        "required": false,
+        "sensitivity": "public",
+        "source_id": "CTX-SOURCE-972BE98E396BD4D8E340A294901D53C1E5815B30A023C8AA28D584E62DA2E30D",
+        "text": "# Accepted contract\n\nContext snapshots are exact.\n",
+        "text_sha256": "D8A56B88F3DADD861F4CEF7535C760D3BA794AB24DC7ECCFD16FDA6548C182B9"
+      },
+      {
+        "authority": "verified-evidence",
+        "contradiction_ids": [],
+        "cost_bytes": 46,
+        "node_id": "CTX-NODE-595683BB6C6EB82812B16CF16AD66F06ECDC3B2CCE085D8279C7DAE07C64E84E",
+        "required": false,
+        "sensitivity": "public",
+        "source_id": "CTX-SOURCE-5512965B631295B53D4B600D061747CB28CBAA7D11B6A2942BDA8219FBCDC8EE",
+        "text": "PASS: public fixture evidence is verified.\n",
+        "text_sha256": "4DE4993348334AA8952BEC7496EA8E0521ED0C992468893FC35A58B492B55767"
+      },
+      {
+        "authority": "canonical-specification",
+        "contradiction_ids": [],
+        "cost_bytes": 59,
+        "node_id": "CTX-NODE-CC3BAB26EB0DFBF46B4A91F502AC3C31E214573485EA9562B2F562AF3CD5F17C",
+        "required": true,
+        "sensitivity": "public",
+        "source_id": "CTX-SOURCE-50CCB567B1EA07728A6E09C5C5D6823B53A709A1E1CCBFBE31E0596627B24D5C",
+        "text": "# Specification\n\nThe framework must validate context.\n",
+        "text_sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+      }
+    ],
+    "host_summary_proposal_id": "CTX-HOST-SUMMARY-PROPOSAL-1AEE979D38EDAD5DB429ED863BB0FF4899987289FF960FFC49147475F11B2E20",
+    "omitted_node_ids": [],
+    "sensitivity": "public",
+    "snapshot_id": "CTX-SNAPSHOT-60806B57F8C2C1B3E8AA059428C0FAD2D1629DD06B4E3A402F476497E4038A2C",
+    "unresolved_contradiction_ids": [],
+    "used_bytes": 160
+  },
+  "schema_version": "1.0"
+}

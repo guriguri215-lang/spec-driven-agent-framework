@@ -274,3 +274,49 @@ Tool checks distinguish:
 
 The active Codex session and a nested external Codex CLI process are separate
 capabilities. M0 does not launch a nested Codex process.
+
+## M5 Context Framework
+
+M5 preserves the domain/application/ports/adapters boundary. Frozen Context
+types live in `domain/context.py`. Strict canonical envelopes and use cases live
+in `application/context_*.py`. Source reader, candidate verifier, byte
+estimator, and immutable publisher protocols live in `ports/context.py`;
+standard-library local implementations live in `adapters/context.py`.
+
+The application receives explicit repository or owner roots. It has no ambient
+home, parent-state, credential, network, model, or hosted-service read. Source
+bytes and provenance references are regular, unlinked, bounded, strict UTF-8
+snapshots. The injected production verifier observes Git HEAD, repository
+publication digest, root identity, and canonical specification digest before
+Index and Snapshot adoption. Every selected source, including structurally
+immutable JSON, is re-observed before Snapshot publication; immutable content
+also passes the strict canonical-JSON value checks.
+
+Artifacts are immutable content-addressed JSON. Full SHA-256 identities and
+canonical integer-only ranking remove filesystem, locale, floating-point, and
+model-tokenizer ordering from the baseline. Selection embeds its exact Query,
+and Snapshot construction reruns the selector before re-observation. Required
+and contradiction-connected context allocates atomically under a canonical
+UTF-8 byte budget. Optional source failures remain exact Graph or Snapshot
+exclusions. Snapshot parsing independently requires the candidate-bound
+canonical specification and recomputes every selected node cost. Host summaries
+are source-linked untrusted proposals; policy and
+decision authority remain outside retrieved or generated data.
+
+Persisted Snapshot identity is content integrity, not ambient source
+authentication. The production Compaction boundary therefore requires explicit
+repository/owner roots and re-observes CandidateIdentity, every extract source,
+freshness, and provenance before use. Parsed Graph and Snapshot nodes recompute
+their canonical source identity from source metadata and reject duplicate
+source identities. Compaction first strictly round-trips complete in-memory
+Snapshot and HostSummaryProposal inputs, then repeats all source-identity checks
+in one pure pass before candidate or source I/O. Compaction retains node/source
+identity, authority, sensitivity, and per-extract contradiction IDs so
+downstream code does not have to infer conflict state from a promoted required
+flag. The final pre-publication CandidateIdentity check takes its expected value
+from the validated Compaction being serialized, so a mutable caller cannot
+authenticate a different candidate after compaction.
+
+M5 adds no runtime dependency, SQLite state, scheduler, agent dispatch, solver,
+embedding/vector backend, OpenAI API, Agents SDK, or management UI. M6 consumes
+the exact validated Snapshot rather than sharing M5 storage internals.

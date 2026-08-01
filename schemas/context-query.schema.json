@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/context-query.schema.json",
+  "title": "Context Query",
+  "type": "object",
+  "required": ["schema_version", "artifact_type", "artifact_id", "content"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "artifact_type": {"const": "context-query"},
+    "artifact_id": {"$ref": "context-manifest.schema.json#/$defs/query_id"},
+    "content": {
+      "type": "object",
+      "required": [
+        "candidate",
+        "graph_id",
+        "as_of",
+        "clearance",
+        "required_node_ids",
+        "seed_node_ids",
+        "identifiers",
+        "terms",
+        "allowed_edge_types",
+        "budget"
+      ],
+      "properties": {
+        "candidate": {"$ref": "context-manifest.schema.json#/$defs/candidate"},
+        "graph_id": {"$ref": "context-manifest.schema.json#/$defs/graph_id"},
+        "as_of": {"$ref": "context-manifest.schema.json#/$defs/timestamp_utc"},
+        "clearance": {"$ref": "context-manifest.schema.json#/$defs/sensitivity"},
+        "required_node_ids": {
+          "type": "array",
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {"$ref": "context-manifest.schema.json#/$defs/node_id"}
+        },
+        "seed_node_ids": {
+          "type": "array",
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {"$ref": "context-manifest.schema.json#/$defs/node_id"}
+        },
+        "identifiers": {
+          "$ref": "context-manifest.schema.json#/$defs/short_text_array"
+        },
+        "terms": {"$ref": "context-manifest.schema.json#/$defs/short_text_array"},
+        "allowed_edge_types": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 7,
+          "uniqueItems": true,
+          "items": {"$ref": "context-manifest.schema.json#/$defs/edge_type"}
+        },
+        "budget": {
+          "type": "object",
+          "required": [
+            "unit",
+            "budget_bytes",
+            "max_nodes",
+            "max_edges",
+            "max_traversal_depth"
+          ],
+          "properties": {
+            "unit": {"const": "canonical_utf8_bytes"},
+            "budget_bytes": {
+              "type": "integer",
+              "minimum": 1024,
+              "maximum": 8388608
+            },
+            "max_nodes": {"type": "integer", "minimum": 1, "maximum": 4096},
+            "max_edges": {"type": "integer", "minimum": 0, "maximum": 16384},
+            "max_traversal_depth": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 8
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

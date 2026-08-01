@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/context-selection.schema.json",
+  "title": "Context Selection",
+  "type": "object",
+  "required": ["schema_version", "artifact_type", "artifact_id", "content"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "artifact_type": {"const": "context-selection"},
+    "artifact_id": {"$ref": "context-manifest.schema.json#/$defs/selection_id"},
+    "content": {
+      "type": "object",
+      "required": [
+        "candidate",
+        "graph_id",
+        "query_id",
+        "query",
+        "as_of",
+        "sensitivity",
+        "selected",
+        "excluded",
+        "selected_edge_ids",
+        "unresolved_contradiction_ids",
+        "edge_cost_bytes",
+        "used_bytes",
+        "budget_bytes",
+        "traversal_truncated"
+      ],
+      "properties": {
+        "candidate": {"$ref": "context-manifest.schema.json#/$defs/candidate"},
+        "graph_id": {"$ref": "context-manifest.schema.json#/$defs/graph_id"},
+        "query_id": {"$ref": "context-manifest.schema.json#/$defs/query_id"},
+        "query": {"$ref": "context-query.schema.json#/properties/content"},
+        "as_of": {"$ref": "context-manifest.schema.json#/$defs/timestamp_utc"},
+        "sensitivity": {
+          "$ref": "context-manifest.schema.json#/$defs/adoptable_sensitivity"
+        },
+        "selected": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/selection_decision"}
+        },
+        "excluded": {
+          "type": "array",
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/exclusion"}
+        },
+        "selected_edge_ids": {
+          "type": "array",
+          "maxItems": 16384,
+          "uniqueItems": true,
+          "items": {"$ref": "context-manifest.schema.json#/$defs/edge_id"}
+        },
+        "unresolved_contradiction_ids": {
+          "type": "array",
+          "maxItems": 16384,
+          "uniqueItems": true,
+          "items": {"$ref": "context-manifest.schema.json#/$defs/edge_id"}
+        },
+        "edge_cost_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8388608
+        },
+        "used_bytes": {"type": "integer", "minimum": 0, "maximum": 8388608},
+        "budget_bytes": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 8388608
+        },
+        "traversal_truncated": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "selection_decision": {
+      "type": "object",
+      "required": ["node_id", "reasons", "rank", "cost_bytes"],
+      "properties": {
+        "node_id": {"$ref": "context-manifest.schema.json#/$defs/node_id"},
+        "reasons": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 500}
+        },
+        "rank": {
+          "type": "object",
+          "required": [
+            "phase",
+            "authority_rank",
+            "graph_distance",
+            "lexical_score",
+            "sensitivity_rank",
+            "node_id"
+          ],
+          "properties": {
+            "phase": {"type": "integer", "minimum": 0, "maximum": 3},
+            "authority_rank": {"type": "integer", "minimum": 0, "maximum": 6},
+            "graph_distance": {"type": "integer", "minimum": 0, "maximum": 8},
+            "lexical_score": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000
+            },
+            "sensitivity_rank": {"type": "integer", "minimum": 0, "maximum": 3},
+            "node_id": {"$ref": "context-manifest.schema.json#/$defs/node_id"}
+          },
+          "additionalProperties": false
+        },
+        "cost_bytes": {"type": "integer", "minimum": 1, "maximum": 8388608}
+      },
+      "additionalProperties": false
+    },
+    "exclusion": {
+      "type": "object",
+      "required": ["node_id", "reason", "details"],
+      "properties": {
+        "node_id": {"$ref": "context-manifest.schema.json#/$defs/node_id"},
+        "reason": {"type": "string", "minLength": 1, "maxLength": 100},
+        "details": {
+          "type": "array",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 500}
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

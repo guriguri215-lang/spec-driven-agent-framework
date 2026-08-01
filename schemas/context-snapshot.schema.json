@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/context-snapshot.schema.json",
+  "title": "Context Snapshot",
+  "type": "object",
+  "required": ["schema_version", "artifact_type", "artifact_id", "content"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "artifact_type": {"const": "context-snapshot"},
+    "artifact_id": {"$ref": "context-manifest.schema.json#/$defs/snapshot_id"},
+    "content": {
+      "type": "object",
+      "required": [
+        "candidate",
+        "graph_id",
+        "query_id",
+        "selection_id",
+        "as_of",
+        "sensitivity",
+        "nodes",
+        "edges",
+        "selected",
+        "excluded",
+        "unresolved_contradiction_ids",
+        "context_bytes",
+        "budget_bytes"
+      ],
+      "properties": {
+        "candidate": {"$ref": "context-manifest.schema.json#/$defs/candidate"},
+        "graph_id": {"$ref": "context-manifest.schema.json#/$defs/graph_id"},
+        "query_id": {"$ref": "context-manifest.schema.json#/$defs/query_id"},
+        "selection_id": {
+          "$ref": "context-manifest.schema.json#/$defs/selection_id"
+        },
+        "as_of": {"$ref": "context-manifest.schema.json#/$defs/timestamp_utc"},
+        "sensitivity": {
+          "$ref": "context-manifest.schema.json#/$defs/adoptable_sensitivity"
+        },
+        "nodes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {"$ref": "context-graph.schema.json#/$defs/node"}
+        },
+        "edges": {
+          "type": "array",
+          "maxItems": 16384,
+          "uniqueItems": true,
+          "items": {"$ref": "context-graph.schema.json#/$defs/edge"}
+        },
+        "selected": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "context-selection.schema.json#/$defs/selection_decision"
+          }
+        },
+        "excluded": {
+          "type": "array",
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {"$ref": "context-selection.schema.json#/$defs/exclusion"}
+        },
+        "unresolved_contradiction_ids": {
+          "type": "array",
+          "maxItems": 16384,
+          "uniqueItems": true,
+          "items": {"$ref": "context-manifest.schema.json#/$defs/edge_id"}
+        },
+        "context_bytes": {"type": "integer", "minimum": 0, "maximum": 8388608}
+        ,
+        "budget_bytes": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 8388608
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,4 +1,4 @@
-"""Command-line interface for the offline M0 through M4 framework."""
+"""Command-line interface for the offline M0 through M5 framework."""
 
 from __future__ import annotations
 
@@ -10,6 +10,13 @@ import tempfile
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
+from sdaqf.adapters.context import (
+    CanonicalUTF8ByteEstimator,
+    ContextAdapterError,
+    ExclusiveJSONPublisher,
+    LocalContextCandidateVerifier,
+    LocalContextSourceReader,
+)
 from sdaqf.adapters.process import SubprocessRunner
 from sdaqf.application.approvals import ApprovalContractError, ApprovalLoader
 from sdaqf.application.baselines import BaselineContractError, load_baseline
@@ -19,6 +26,18 @@ from sdaqf.application.checkpoints import (
     validate_resume,
 )
 from sdaqf.application.comparison import BaselineComparator, BaselineDiff
+from sdaqf.application.context_compaction import ContextCompactor
+from sdaqf.application.context_contracts import (
+    ContextContractError,
+    load_context_artifact,
+    serialize_context_artifact,
+)
+from sdaqf.application.context_index import ContextIndexer
+from sdaqf.application.context_selection import (
+    ContextSelector,
+    ContextSnapshotService,
+    compare_context_snapshots,
+)
 from sdaqf.application.contracts import ContractError
 from sdaqf.application.doctor import DoctorService
 from sdaqf.application.evaluation import EvaluationService
@@ -461,6 +480,65 @@ def build_parser() -> argparse.ArgumentParser:
     evaluation_compare.add_argument("suite", type=Path)
     evaluation_compare.add_argument("--json", action="store_true")
 
+    context = subparsers.add_parser(
+        "context",
+        help="Build and inspect deterministic M5 Context artifacts.",
+    )
+    context_commands = context.add_subparsers(
+        dest="context_command",
+        required=True,
+    )
+    context_validate = context_commands.add_parser(
+        "validate",
+        help="Validate one strict content-addressed Context artifact.",
+    )
+    context_validate.add_argument("artifact", type=Path)
+    context_validate.add_argument("--json", action="store_true")
+    context_index = context_commands.add_parser(
+        "index",
+        help="Index explicit Manifest sources into a fresh Context Graph.",
+    )
+    context_index.add_argument("manifest", type=Path)
+    context_index.add_argument("--repository-root", type=Path, required=True)
+    context_index.add_argument("--owner-root", type=Path)
+    context_index.add_argument("--output", type=Path, required=True)
+    context_index.add_argument("--json", action="store_true")
+    context_select = context_commands.add_parser(
+        "select",
+        help="Select deterministic bounded context from a Graph and Query.",
+    )
+    context_select.add_argument("graph", type=Path)
+    context_select.add_argument("query", type=Path)
+    context_select.add_argument("--output", type=Path, required=True)
+    context_select.add_argument("--json", action="store_true")
+    context_snapshot = context_commands.add_parser(
+        "snapshot",
+        help="Re-observe selected sources and publish an exact Snapshot.",
+    )
+    context_snapshot.add_argument("graph", type=Path)
+    context_snapshot.add_argument("selection", type=Path)
+    context_snapshot.add_argument("--repository-root", type=Path, required=True)
+    context_snapshot.add_argument("--owner-root", type=Path)
+    context_snapshot.add_argument("--output", type=Path, required=True)
+    context_snapshot.add_argument("--json", action="store_true")
+    context_compare = context_commands.add_parser(
+        "compare",
+        help="Compare two exact Context Snapshots without side effects.",
+    )
+    context_compare.add_argument("base_snapshot", type=Path)
+    context_compare.add_argument("current_snapshot", type=Path)
+    context_compare.add_argument("--json", action="store_true")
+    context_compact = context_commands.add_parser(
+        "compact",
+        help="Create deterministic source-linked extracts from a Snapshot.",
+    )
+    context_compact.add_argument("snapshot", type=Path)
+    context_compact.add_argument("--repository-root", type=Path, required=True)
+    context_compact.add_argument("--owner-root", type=Path)
+    context_compact.add_argument("--output", type=Path, required=True)
+    context_compact.add_argument("--host-summary-proposal", type=Path)
+    context_compact.add_argument("--json", action="store_true")
+
     schema = subparsers.add_parser(
         "schema",
         help="Perform explicit non-destructive schema operations.",
@@ -533,6 +611,111 @@ def main(argv: Sequence[str] | None = None) -> int:
         status_payload = StatusService(ProjectValidator()).describe(args.project)
         _emit(status_payload, as_json=args.json)
         return 0 if status_payload["state"] == "ready" else 2
+
+    if args.command == "context":
+        try:
+            if args.context_command == "validate":
+                context_artifact = load_context_artifact(args.artifact)
+                _emit(
+                    {
+                        "artifact_type": context_artifact.artifact_type.value,
+                        "artifact_id": context_artifact.artifact_id,
+                        "valid": True,
+                    },
+                    as_json=args.json,
+                )
+                return 0
+            publisher = ExclusiveJSONPublisher()
+            if args.context_command == "index":
+                context_artifact = ContextIndexer(
+                    LocalContextSourceReader(),
+                    LocalContextCandidateVerifier(
+                        SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)
+                    ),
+                    publisher,
+                ).publish(
+                    load_context_artifact(args.manifest),
+                    repository_root=args.repository_root,
+                    owner_root=args.owner_root,
+                    output=args.output,
+                )
+            elif args.context_command == "select":
+                context_artifact = ContextSelector(
+                    CanonicalUTF8ByteEstimator()
+                ).select(
+                    load_context_artifact(args.graph),
+                    load_context_artifact(args.query),
+                )
+                publisher.publish(
+                    args.output,
+                    serialize_context_artifact(context_artifact),
+                )
+            elif args.context_command == "snapshot":
+                context_artifact = ContextSnapshotService(
+                    LocalContextSourceReader(),
+                    LocalContextCandidateVerifier(
+                        SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)
+                    ),
+                    CanonicalUTF8ByteEstimator(),
+                    publisher,
+                ).publish(
+                    load_context_artifact(args.graph),
+                    load_context_artifact(args.selection),
+                    repository_root=args.repository_root,
+                    owner_root=args.owner_root,
+                    output=args.output,
+                )
+            elif args.context_command == "compare":
+                delta = compare_context_snapshots(
+                    load_context_artifact(args.base_snapshot),
+                    load_context_artifact(args.current_snapshot),
+                )
+                _emit(delta.to_dict(), as_json=args.json)
+                return 0
+            else:
+                proposal = (
+                    None
+                    if args.host_summary_proposal is None
+                    else load_context_artifact(args.host_summary_proposal)
+                )
+                context_artifact = ContextCompactor(
+                    LocalContextSourceReader(),
+                    LocalContextCandidateVerifier(
+                        SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)
+                    ),
+                    CanonicalUTF8ByteEstimator(),
+                    publisher,
+                ).publish(
+                    load_context_artifact(args.snapshot),
+                    repository_root=args.repository_root,
+                    owner_root=args.owner_root,
+                    host_summary_artifact=proposal,
+                    output=args.output,
+                )
+        except (ContextAdapterError, ContextContractError, OSError):
+            if args.json:
+                _emit(
+                    {
+                        "error": "context-contract-invalid",
+                        "operation": args.context_command,
+                    },
+                    as_json=True,
+                )
+            else:
+                print(
+                    "ERROR: Context operation failed without overwriting output.",
+                    file=sys.stderr,
+                )
+            return 2
+        _emit(
+            {
+                "artifact_type": context_artifact.artifact_type.value,
+                "artifact_id": context_artifact.artifact_id,
+                "output": args.output.name,
+            },
+            as_json=args.json,
+        )
+        return 0
 
     if args.command == "goal-template":
         try:

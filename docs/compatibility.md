@@ -39,6 +39,21 @@ The public-release-candidate schema records offline local readiness only. A
 successful result is `LOCAL_READY`; it is never proof that Gate G5 ran or that
 publication occurred.
 
+M5 adds eight independent Context schema `1.0` contracts. They do not change or
+reinterpret any existing schema. Context consumers must validate the exact
+`artifact_type`, full content identity, and schema version. A Graph, Query,
+Selection, Snapshot, or Compaction from another candidate or identity chain is
+not compatible even when its JSON shape validates.
+
+Within the initial M5 schema `1.0`, Graph exclusions, the Selection's embedded
+Query and derived sensitivity, Snapshot exclusions, and downstream
+CandidateIdentity/sensitivity fields are identity-bearing. Compaction extracts
+also retain source identity, authority, sensitivity, and exact contradiction
+IDs. A consumer must not reconstruct or omit them. Snapshot producers additionally rerun the embedded
+Query and require exact Selection equality; structural schema validity alone
+does not establish semantic compatibility. Production Compaction requires
+explicit roots and reauthenticates a persisted Snapshot before use.
+
 ## Migration
 
 No migration is required from the M4 Public Beta CLI behavior. Existing
@@ -52,6 +67,20 @@ the selected-license release-candidate contract must:
 
 Downgrade, multi-hop, in-place, and automatic publication migrations remain
 unsupported.
+
+There is no pre-M5 Context schema to migrate. Adoption creates new immutable
+artifacts through the additive `context` namespace. Existing V1 commands and
+JSON remain unchanged. Context artifacts are never upgraded in place; a future
+schema version must preserve the historical file and produce a separately
+identified artifact.
+
+Missing source sensitivity has one conservative compatibility rule:
+canonicalize it to `owner-private` before source identity checking. No other
+missing Context field receives an inferred lower-trust value.
+
+The stable top-level `sdaqf.__all__` remains unchanged. Context domain and
+application modules are implementation details until a separately approved
+stable Python API contract is published.
 
 ## Deprecation
 

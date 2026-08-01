@@ -1,0 +1,113 @@
+{
+  "artifact_id": "CTX-SELECTION-3D7E2B0CCDD5C9E637505CBF13F434C4F8DE35100B22EAC4C0C0CC0C7313D5AC",
+  "artifact_type": "context-selection",
+  "content": {
+    "as_of": "2026-07-31T00:00:00Z",
+    "budget_bytes": 65536,
+    "candidate": {
+      "git_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "repository_digest": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "source_spec_sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+    },
+    "edge_cost_bytes": 872,
+    "excluded": [],
+    "graph_id": "CTX-GRAPH-D1FC9F96691D7B947FF3CAD08B27336C8E7C305F27E3A908B265D6A5CED96096",
+    "query": {
+      "allowed_edge_types": [
+        "contradicts",
+        "depends-on",
+        "derived-from",
+        "implements",
+        "references",
+        "supersedes",
+        "verifies"
+      ],
+      "as_of": "2026-07-31T00:00:00Z",
+      "budget": {
+        "budget_bytes": 65536,
+        "max_edges": 128,
+        "max_nodes": 64,
+        "max_traversal_depth": 4,
+        "unit": "canonical_utf8_bytes"
+      },
+      "candidate": {
+        "git_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "repository_digest": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+        "source_spec_sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+      },
+      "clearance": "public",
+      "graph_id": "CTX-GRAPH-D1FC9F96691D7B947FF3CAD08B27336C8E7C305F27E3A908B265D6A5CED96096",
+      "identifiers": [
+        "FR-M5-001"
+      ],
+      "required_node_ids": [
+        "CTX-NODE-CC3BAB26EB0DFBF46B4A91F502AC3C31E214573485EA9562B2F562AF3CD5F17C"
+      ],
+      "seed_node_ids": [],
+      "terms": [
+        "context",
+        "validate"
+      ]
+    },
+    "query_id": "CTX-QUERY-76204DB6D3EE80C6EE8998F1807311BFCA3437055632197008075364F0DABA91",
+    "selected": [
+      {
+        "cost_bytes": 929,
+        "node_id": "CTX-NODE-56D84380E522C62FC0B2411AD045A359AB2870078A9512850FA457F579190B49",
+        "rank": {
+          "authority_rank": 2,
+          "graph_distance": 0,
+          "lexical_score": 21,
+          "node_id": "CTX-NODE-56D84380E522C62FC0B2411AD045A359AB2870078A9512850FA457F579190B49",
+          "phase": 3,
+          "sensitivity_rank": 0
+        },
+        "reasons": [
+          "lexical"
+        ]
+      },
+      {
+        "cost_bytes": 917,
+        "node_id": "CTX-NODE-595683BB6C6EB82812B16CF16AD66F06ECDC3B2CCE085D8279C7DAE07C64E84E",
+        "rank": {
+          "authority_rank": 3,
+          "graph_distance": 1,
+          "lexical_score": 4,
+          "node_id": "CTX-NODE-595683BB6C6EB82812B16CF16AD66F06ECDC3B2CCE085D8279C7DAE07C64E84E",
+          "phase": 1,
+          "sensitivity_rank": 0
+        },
+        "reasons": [
+          "graph",
+          "lexical"
+        ]
+      },
+      {
+        "cost_bytes": 925,
+        "node_id": "CTX-NODE-CC3BAB26EB0DFBF46B4A91F502AC3C31E214573485EA9562B2F562AF3CD5F17C",
+        "rank": {
+          "authority_rank": 1,
+          "graph_distance": 0,
+          "lexical_score": 14,
+          "node_id": "CTX-NODE-CC3BAB26EB0DFBF46B4A91F502AC3C31E214573485EA9562B2F562AF3CD5F17C",
+          "phase": 0,
+          "sensitivity_rank": 0
+        },
+        "reasons": [
+          "identifier",
+          "lexical",
+          "required-reference"
+        ]
+      }
+    ],
+    "selected_edge_ids": [
+      "CTX-EDGE-00A00FE1BE1AD74FEEBF4D9E978AA39D341EB7D4B4A7BD58C6C01FE4AE7098A4",
+      "CTX-EDGE-03867DC2256A88F3D60FA32B872D26714D2797EDF077BD21B3F54356F915BDF3"
+    ],
+    "sensitivity": "public",
+    "traversal_truncated": false,
+    "unresolved_contradiction_ids": [],
+    "used_bytes": 3643
+  },
+  "schema_version": "1.0"
+}

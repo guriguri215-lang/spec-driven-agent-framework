@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/context-host-summary-proposal.schema.json",
+  "title": "Context Host Summary Proposal",
+  "type": "object",
+  "required": ["schema_version", "artifact_type", "artifact_id", "content"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "artifact_type": {"const": "context-host-summary-proposal"},
+    "artifact_id": {"$ref": "context-manifest.schema.json#/$defs/host_summary_id"},
+    "content": {
+      "type": "object",
+      "required": ["snapshot_id", "authority", "sensitivity", "claims"],
+      "properties": {
+        "snapshot_id": {"$ref": "context-manifest.schema.json#/$defs/snapshot_id"},
+        "authority": {"const": "untrusted-proposal"},
+        "sensitivity": {
+          "$ref": "context-manifest.schema.json#/$defs/adoptable_sensitivity"
+        },
+        "claims": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {"$ref": "#/$defs/claim"}
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "claim": {
+      "type": "object",
+      "required": ["claim", "source_node_ids", "extract_sha256s"],
+      "properties": {
+        "claim": {"type": "string", "minLength": 1, "maxLength": 4000},
+        "source_node_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {"$ref": "context-manifest.schema.json#/$defs/node_id"}
+        },
+        "extract_sha256s": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {"$ref": "context-manifest.schema.json#/$defs/sha256"}
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

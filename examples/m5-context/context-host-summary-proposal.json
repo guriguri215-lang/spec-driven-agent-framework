@@ -1,0 +1,21 @@
+{
+  "artifact_id": "CTX-HOST-SUMMARY-PROPOSAL-1AEE979D38EDAD5DB429ED863BB0FF4899987289FF960FFC49147475F11B2E20",
+  "artifact_type": "context-host-summary-proposal",
+  "content": {
+    "authority": "untrusted-proposal",
+    "claims": [
+      {
+        "claim": "The public fixture proposes a source-linked summary.",
+        "extract_sha256s": [
+          "D8A56B88F3DADD861F4CEF7535C760D3BA794AB24DC7ECCFD16FDA6548C182B9"
+        ],
+        "source_node_ids": [
+          "CTX-NODE-56D84380E522C62FC0B2411AD045A359AB2870078A9512850FA457F579190B49"
+        ]
+      }
+    ],
+    "sensitivity": "public",
+    "snapshot_id": "CTX-SNAPSHOT-60806B57F8C2C1B3E8AA059428C0FAD2D1629DD06B4E3A402F476497E4038A2C"
+  },
+  "schema_version": "1.0"
+}

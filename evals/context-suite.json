@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "suite_id": "M5-CONTEXT-PUBLIC-1",
+  "description": "Deterministic public Context Framework acceptance scenarios.",
+  "cases": [
+    {
+      "case_id": "M5-CTX-BUDGET",
+      "expected": "required-context-over-budget"
+    },
+    {
+      "case_id": "M5-CTX-CONTRADICTION",
+      "expected": "explicit-unresolved-closure"
+    },
+    {
+      "case_id": "M5-CTX-DETERMINISM",
+      "expected": "stable-full-sha256-identities"
+    },
+    {
+      "case_id": "M5-CTX-PROVENANCE",
+      "expected": "complete"
+    },
+    {
+      "case_id": "M5-CTX-REQUIRED-RECALL",
+      "expected": "100"
+    },
+    {
+      "case_id": "M5-CTX-SENSITIVITY",
+      "expected": "automatic-downgrade-rejected"
+    },
+    {
+      "case_id": "M5-CTX-STALE-REQUIRED",
+      "expected": "hard-blocker"
+    }
+  ]
+}

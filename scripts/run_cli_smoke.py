@@ -1,4 +1,4 @@
-"""Run the exact offline M0 through M4 CLI smoke contract."""
+"""Run the exact offline M0 through M5 CLI smoke contract."""
 
 from __future__ import annotations
 
@@ -12,14 +12,26 @@ import shutil
 import sys
 import tempfile
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
 from sdaqf.adapters.process import SubprocessRunner
+from sdaqf.application.context_contracts import (
+    artifact_from_value,
+    load_context_artifact,
+)
 from sdaqf.application.migrations import migration_root_identity
 from sdaqf.application.release_qa import GitInspector, source_target_for
 from sdaqf.application.workspace import is_reparse_point
 from sdaqf.cli import main
+from sdaqf.domain.context import (
+    ContextArtifactType,
+    ContextGraph,
+    ContextManifest,
+    ContextQuery,
+)
+from sdaqf.domain.quality import CandidateIdentity
 
 
 def _run(label: str, args: Sequence[str], *, json_output: bool = False) -> None:
@@ -1268,6 +1280,130 @@ def main_smoke() -> int:
                 ],
                 json_output=True,
             )
+            m5_examples = root / "examples" / "m5-context"
+            m5_graph = temporary / "m5-context-graph.json"
+            m5_manifest = temporary / "m5-context-manifest.json"
+            m5_query = temporary / "m5-context-query.json"
+            m5_selection = temporary / "m5-context-selection.json"
+            m5_snapshot = temporary / "m5-context-snapshot.json"
+            m5_compaction = temporary / "m5-context-compaction.json"
+            _run(
+                "M5 Context validation",
+                [
+                    "context",
+                    "validate",
+                    str(m5_examples / "context-manifest.json"),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            public_manifest = load_context_artifact(
+                m5_examples / "context-manifest.json",
+                expected_type=ContextArtifactType.MANIFEST,
+            )
+            if not isinstance(public_manifest.value, ContextManifest):
+                raise RuntimeError("M5 public Manifest has an invalid value.")
+            context_candidate = CandidateIdentity(
+                source_spec_sha256=(
+                    public_manifest.value.candidate.source_spec_sha256
+                ),
+                git_head=head,
+                repository_digest=repo_digest,
+            )
+            current_manifest = artifact_from_value(
+                ContextArtifactType.MANIFEST,
+                replace(public_manifest.value, candidate=context_candidate),
+            )
+            _write_json(m5_manifest, current_manifest.to_dict())
+            _run(
+                "M5 Context indexing",
+                [
+                    "context",
+                    "index",
+                    str(m5_manifest),
+                    "--repository-root",
+                    str(root),
+                    "--output",
+                    str(m5_graph),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            current_graph = load_context_artifact(
+                m5_graph,
+                expected_type=ContextArtifactType.GRAPH,
+            )
+            public_query = load_context_artifact(
+                m5_examples / "context-query.json",
+                expected_type=ContextArtifactType.QUERY,
+            )
+            if (
+                not isinstance(current_graph.value, ContextGraph)
+                or not isinstance(public_query.value, ContextQuery)
+            ):
+                raise RuntimeError("M5 public graph/query values are invalid.")
+            current_query = artifact_from_value(
+                ContextArtifactType.QUERY,
+                replace(
+                    public_query.value,
+                    candidate=context_candidate,
+                    graph_id=current_graph.artifact_id,
+                ),
+            )
+            _write_json(m5_query, current_query.to_dict())
+            _run(
+                "M5 Context selection",
+                [
+                    "context",
+                    "select",
+                    str(m5_graph),
+                    str(m5_query),
+                    "--output",
+                    str(m5_selection),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M5 Context snapshot",
+                [
+                    "context",
+                    "snapshot",
+                    str(m5_graph),
+                    str(m5_selection),
+                    "--repository-root",
+                    str(root),
+                    "--output",
+                    str(m5_snapshot),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M5 Context comparison",
+                [
+                    "context",
+                    "compare",
+                    str(m5_snapshot),
+                    str(m5_snapshot),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M5 Context compaction",
+                [
+                    "context",
+                    "compact",
+                    str(m5_snapshot),
+                    "--repository-root",
+                    str(root),
+                    "--output",
+                    str(m5_compaction),
+                    "--json",
+                ],
+                json_output=True,
+            )
             migrated_registry = temporary / "agent-registry-v2.json"
             current_tool_registry = m2 / "tool-registry.json"
             legacy_registry = (
@@ -1366,7 +1502,7 @@ def main_smoke() -> int:
                 and not is_reparse_point(m3_spec)
             ):
                 m3_spec.unlink()
-    print("PASS: offline M0 through M4 CLI smoke checks succeeded.")
+    print("PASS: offline M0 through M5 CLI smoke checks succeeded.")
     return 0
 
 

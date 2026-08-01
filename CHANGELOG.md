@@ -13,6 +13,19 @@ G5 remains `NOT_RUN`.
 
 ### Added
 
+- M5 immutable content-addressed Context Manifest, Graph, Query, Selection,
+  Snapshot, Compaction, host-summary proposal, and named quality contracts.
+- Additive `context validate`, `index`, `select`, `snapshot`, `compare`, and
+  `compact` CLI commands with bounded explicit roots and exclusive outputs.
+- Deterministic required/graph/identifier/lexical retrieval, contradiction
+  closure, canonical byte budgets, extractive compaction, eight schema 1.0
+  files, synthetic public fixtures, seven evaluation scenarios, and
+  `M5-CONTEXT-INTEGRITY`.
+- Persisted-Snapshot Compaction reauthentication through explicit roots,
+  canonical node source-identity recomputation, duplicate-source rejection,
+  complete pre-I/O in-memory Snapshot/HostProposal validation, and exact
+  source/contradiction metadata preservation. Final pre-publication candidate
+  verification is bound to the validated Compaction being serialized.
 - M0 Bootstrap Foundation repository structure.
 - Offline-first Python CLI vertical slice.
 - Initial deterministic domain models, schemas, samples, tests, and audits.
@@ -59,6 +72,18 @@ G5 remains `NOT_RUN`.
 
 ### Changed
 
+- Hardened the pre-release M5 candidate after independent review: Selection
+  replay, atomic contradiction closure, actual CandidateIdentity and provenance
+  verification, structural authority checks, exact optional exclusions,
+  downstream identity/sensitivity propagation, schema/runtime parity, and
+  executable evaluation cases now fail closed at their trust boundaries.
+- Re-observe immutable JSON at Index and Snapshot time, require a canonical
+  specification in standalone Snapshots, recompute Snapshot and Compaction
+  byte costs, align JSON Schema/runtime Unicode bounds, and return bounded CLI
+  errors when Git candidate inspection cannot start.
+- Authenticate persisted Snapshot sources again before Compaction, retain
+  source/authority/sensitivity and exact contradiction IDs in extracts, and
+  align ordinary Unicode text limits with JSON Schema character semantics.
 - Template compatibility defaults now target public API line `1.0.0`.
 - Historical release-candidate schema 1.0 remains unchanged and continues to
   represent only the unselected project-license state.

@@ -1,0 +1,171 @@
+{
+  "artifact_id": "CTX-GRAPH-D1FC9F96691D7B947FF3CAD08B27336C8E7C305F27E3A908B265D6A5CED96096",
+  "artifact_type": "context-graph",
+  "content": {
+    "candidate": {
+      "git_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "repository_digest": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "source_spec_sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+    },
+    "edges": [
+      {
+        "edge_id": "CTX-EDGE-00A00FE1BE1AD74FEEBF4D9E978AA39D341EB7D4B4A7BD58C6C01FE4AE7098A4",
+        "edge_type": "verifies",
+        "provenance": {
+          "producer": "repository",
+          "recorded_by": "M5-CONTEXT-INTEGRITY",
+          "references": [
+            {
+              "path": "examples/m5-context/sources/accepted-contract.md",
+              "sha256": "D8A56B88F3DADD861F4CEF7535C760D3BA794AB24DC7ECCFD16FDA6548C182B9"
+            }
+          ]
+        },
+        "source_node_id": "CTX-NODE-56D84380E522C62FC0B2411AD045A359AB2870078A9512850FA457F579190B49",
+        "target_node_id": "CTX-NODE-CC3BAB26EB0DFBF46B4A91F502AC3C31E214573485EA9562B2F562AF3CD5F17C"
+      },
+      {
+        "edge_id": "CTX-EDGE-03867DC2256A88F3D60FA32B872D26714D2797EDF077BD21B3F54356F915BDF3",
+        "edge_type": "references",
+        "provenance": {
+          "producer": "repository",
+          "recorded_by": "M5-CONTEXT-INTEGRITY",
+          "references": [
+            {
+              "path": "examples/m5-context/sources/specification.md",
+              "sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+            }
+          ]
+        },
+        "source_node_id": "CTX-NODE-CC3BAB26EB0DFBF46B4A91F502AC3C31E214573485EA9562B2F562AF3CD5F17C",
+        "target_node_id": "CTX-NODE-595683BB6C6EB82812B16CF16AD66F06ECDC3B2CCE085D8279C7DAE07C64E84E"
+      }
+    ],
+    "excluded_sources": [],
+    "manifest_id": "CTX-MANIFEST-7ECB272D665593AED3E1BFF65EDAC8A403A26EAC56BEB13B58A09B1A80A68F62",
+    "nodes": [
+      {
+        "authority": "accepted-public-contract",
+        "freshness": {
+          "kind": "candidate-bound",
+          "observed_at": null,
+          "valid_until": null
+        },
+        "identifiers": [
+          "M5-D1"
+        ],
+        "kind": "decision",
+        "labels": [
+          "contract",
+          "identity"
+        ],
+        "locator": {
+          "line_end": 3,
+          "line_start": 1,
+          "path": "examples/m5-context/sources/accepted-contract.md",
+          "root_scope": "repository",
+          "sha256": "D8A56B88F3DADD861F4CEF7535C760D3BA794AB24DC7ECCFD16FDA6548C182B9"
+        },
+        "node_id": "CTX-NODE-56D84380E522C62FC0B2411AD045A359AB2870078A9512850FA457F579190B49",
+        "provenance": {
+          "producer": "repository",
+          "recorded_by": "M5-CONTEXT-INTEGRITY",
+          "references": [
+            {
+              "path": "examples/m5-context/sources/accepted-contract.md",
+              "sha256": "D8A56B88F3DADD861F4CEF7535C760D3BA794AB24DC7ECCFD16FDA6548C182B9"
+            }
+          ]
+        },
+        "required": false,
+        "sensitivity": "public",
+        "source_id": "CTX-SOURCE-972BE98E396BD4D8E340A294901D53C1E5815B30A023C8AA28D584E62DA2E30D",
+        "text": "# Accepted contract\n\nContext snapshots are exact.\n",
+        "text_sha256": "D8A56B88F3DADD861F4CEF7535C760D3BA794AB24DC7ECCFD16FDA6548C182B9",
+        "title": "Accepted Context contract"
+      },
+      {
+        "authority": "verified-evidence",
+        "freshness": {
+          "kind": "candidate-bound",
+          "observed_at": null,
+          "valid_until": null
+        },
+        "identifiers": [
+          "EV-M5-PUBLIC"
+        ],
+        "kind": "evidence",
+        "labels": [
+          "evidence",
+          "pass"
+        ],
+        "locator": {
+          "line_end": 1,
+          "line_start": 1,
+          "path": "examples/m5-context/sources/verified-evidence.txt",
+          "root_scope": "repository",
+          "sha256": "4DE4993348334AA8952BEC7496EA8E0521ED0C992468893FC35A58B492B55767"
+        },
+        "node_id": "CTX-NODE-595683BB6C6EB82812B16CF16AD66F06ECDC3B2CCE085D8279C7DAE07C64E84E",
+        "provenance": {
+          "producer": "repository",
+          "recorded_by": "M5-CONTEXT-INTEGRITY",
+          "references": [
+            {
+              "path": "examples/m5-context/sources/verified-evidence.txt",
+              "sha256": "4DE4993348334AA8952BEC7496EA8E0521ED0C992468893FC35A58B492B55767"
+            }
+          ]
+        },
+        "required": false,
+        "sensitivity": "public",
+        "source_id": "CTX-SOURCE-5512965B631295B53D4B600D061747CB28CBAA7D11B6A2942BDA8219FBCDC8EE",
+        "text": "PASS: public fixture evidence is verified.\n",
+        "text_sha256": "4DE4993348334AA8952BEC7496EA8E0521ED0C992468893FC35A58B492B55767",
+        "title": "Verified public evidence"
+      },
+      {
+        "authority": "canonical-specification",
+        "freshness": {
+          "kind": "candidate-bound",
+          "observed_at": null,
+          "valid_until": null
+        },
+        "identifiers": [
+          "FR-M5-001"
+        ],
+        "kind": "specification",
+        "labels": [
+          "context",
+          "must"
+        ],
+        "locator": {
+          "line_end": 3,
+          "line_start": 1,
+          "path": "examples/m5-context/sources/specification.md",
+          "root_scope": "repository",
+          "sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+        },
+        "node_id": "CTX-NODE-CC3BAB26EB0DFBF46B4A91F502AC3C31E214573485EA9562B2F562AF3CD5F17C",
+        "provenance": {
+          "producer": "repository",
+          "recorded_by": "M5-CONTEXT-INTEGRITY",
+          "references": [
+            {
+              "path": "examples/m5-context/sources/specification.md",
+              "sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+            }
+          ]
+        },
+        "required": true,
+        "sensitivity": "public",
+        "source_id": "CTX-SOURCE-50CCB567B1EA07728A6E09C5C5D6823B53A709A1E1CCBFBE31E0596627B24D5C",
+        "text": "# Specification\n\nThe framework must validate context.\n",
+        "text_sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4",
+        "title": "Canonical specification"
+      }
+    ],
+    "sensitivity": "public"
+  },
+  "schema_version": "1.0"
+}

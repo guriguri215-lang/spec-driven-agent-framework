@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "suite_id": "M5-CONTEXT-PUBLIC-1",
+  "quality_report": {
+    "path": "examples/m5-context/context-quality-report.json",
+    "sha256": "41ECF9F4C214CC7346BB3C185629B0D36DB909E5F9BBA285A1F8E999C19A056F"
+  },
+  "cases": [
+    {
+      "case_id": "M5-CTX-BUDGET",
+      "passed": true,
+      "observed": "required-context-over-budget"
+    },
+    {
+      "case_id": "M5-CTX-CONTRADICTION",
+      "passed": true,
+      "observed": "explicit-unresolved-closure"
+    },
+    {
+      "case_id": "M5-CTX-DETERMINISM",
+      "passed": true,
+      "observed": "stable-full-sha256-identities"
+    },
+    {
+      "case_id": "M5-CTX-PROVENANCE",
+      "passed": true,
+      "observed": "complete"
+    },
+    {
+      "case_id": "M5-CTX-REQUIRED-RECALL",
+      "passed": true,
+      "observed": "100"
+    },
+    {
+      "case_id": "M5-CTX-SENSITIVITY",
+      "passed": true,
+      "observed": "automatic-downgrade-rejected"
+    },
+    {
+      "case_id": "M5-CTX-STALE-REQUIRED",
+      "passed": true,
+      "observed": "hard-blocker"
+    }
+  ]
+}

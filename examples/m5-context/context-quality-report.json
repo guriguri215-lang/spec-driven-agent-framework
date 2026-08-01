@@ -1,0 +1,26 @@
+{
+  "artifact_id": "CTX-QUALITY-REPORT-032845D077786A902666CF422CF98CA3942491950860E8710DD526806C22DEE4",
+  "artifact_type": "context-quality-report",
+  "content": {
+    "budget_bytes": 65536,
+    "candidate": {
+      "git_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "repository_digest": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "source_spec_sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+    },
+    "excluded_node_count": 0,
+    "provenance_complete_count": 3,
+    "provenance_missing_count": 0,
+    "redundant_bytes": 0,
+    "required_reference_recall": 100,
+    "selected_context_bytes": 3643,
+    "selected_node_count": 3,
+    "sensitivity": "public",
+    "sensitivity_violation_count": 0,
+    "snapshot_id": "CTX-SNAPSHOT-60806B57F8C2C1B3E8AA059428C0FAD2D1629DD06B4E3A402F476497E4038A2C",
+    "stale_required_count": 0,
+    "traversal_truncated": false,
+    "unresolved_contradiction_count": 0
+  },
+  "schema_version": "1.0"
+}

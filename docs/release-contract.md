@@ -22,6 +22,7 @@ python -m coverage report --include="src/sdaqf/domain/models.py,src/sdaqf/domain
 python -m coverage report --include="src/sdaqf/domain/orchestration.py,src/sdaqf/domain/tooling.py,src/sdaqf/adapters/process.py,src/sdaqf/application/orchestration.py,src/sdaqf/application/skills.py,src/sdaqf/application/tooling.py,src/sdaqf/application/checkpoints.py" --fail-under=90
 python -m coverage report --include="src/sdaqf/domain/quality.py,src/sdaqf/application/contracts.py,src/sdaqf/application/evidence.py,src/sdaqf/application/quality_gates.py,src/sdaqf/application/ui_validation.py,src/sdaqf/application/release_qa.py,src/sdaqf/application/handoffs.py" --fail-under=90
 python -m coverage report --include="src/sdaqf/domain/evaluation.py,src/sdaqf/domain/migrations.py,src/sdaqf/application/evaluation.py,src/sdaqf/application/migrations.py" --fail-under=90
+python -m coverage report --include="src/sdaqf/domain/context.py,src/sdaqf/ports/context.py,src/sdaqf/adapters/context.py,src/sdaqf/application/context_contracts.py,src/sdaqf/application/context_index.py,src/sdaqf/application/context_selection.py,src/sdaqf/application/context_compaction.py,src/sdaqf/application/context_quality.py" --fail-under=80
 python scripts/run_cli_smoke.py
 python -m sdaqf eval validate evals/comparison-suite.json --result evals/results/public-beta-comparison.json --json
 python scripts/check_workspace_boundary.py --repo . --expected-origin-url https://github.com/guriguri215-lang/spec-driven-agent-framework.git
@@ -48,6 +49,9 @@ output through the current strict loader and companion Tool Registry. The
 smoke supplies an exact generated single-use Owner migration-approval record
 and exercises its atomic repository-local consumption claim; production
 migration remains approval-bound.
+It additionally runs M5 Context validation, indexing, selection, Snapshot
+re-observation, structural comparison, and extractive compaction against the
+synthetic public fixture.
 The positive G4 fixture performs an actual `python -I -m pip --isolated`,
 no-index, no-build-isolation, no-dependency target installation and executes
 the installed module from that fresh target. It materializes only Git
@@ -90,6 +94,25 @@ actually run.
 
 ## Local commit gate
 
+- `python scripts/validate_m5_context.py` prints
+  `PASS: M5-CONTEXT-INTEGRITY` and reproduces all eight public Context
+  artifacts, seven named scenarios, the exact Snapshot, extractive Compaction,
+  and named non-aggregate quality report. Each scenario is executed locally;
+  checked-in `passed` fields are compared with generated observations and are
+  not treated as self-authenticating evidence.
+- M5 focused tests cover strict/runtime-schema parity, source/link/change
+  handling, identity chains, freshness, sensitivity, required budget and
+  selection ordering, contradictions, output collision, Snapshot
+  re-observation (including immutable JSON), fabricated Selection and
+  standalone Snapshot rejection, actual candidate verification, provenance
+  authority, persisted-Snapshot reauthentication, optional exclusions,
+  source/contradiction-preserving Compaction, host-summary authority, bounded
+  non-Git CLI failure, and public/private boundaries. The focused suite does not claim an
+  exhaustive cross-product of every numeric, filesystem, graph-topology, and
+  platform boundary; the complete suite and platform matrix remain separate
+  required gates.
+- The complete offline CLI smoke executes Context validate, index, select,
+  snapshot, compare, and compact without network or implicit private reads.
 - Every required check passes without a threshold reduction or ignored
   failure.
 - Independent read-only review returns GO with no unresolved Critical, High,

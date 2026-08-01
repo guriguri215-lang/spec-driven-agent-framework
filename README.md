@@ -3,12 +3,13 @@
 SDAQF is a specification-driven development and quality-assurance framework for
 Codex-assisted projects. This repository contains the M0 Bootstrap Foundation,
 M1 Requirements and Planning MVP, M2 Agent, Skill, and Tool Orchestration, and
-M3 Evidence, UI/UX, and Release QA, M4 Public Beta Hardening, and the local
-V1.0 release-candidate readiness contract: an
+M3 Evidence, UI/UX, and Release QA, M4 Public Beta Hardening, the local
+V1.0 release-candidate readiness contract, and the M5 Context Framework: an
 offline-first Python CLI, deterministic
 requirement, orchestration, evidence, review, UI-observation, release, and
 handoff contracts, representative evaluation projects, explicit schema
-migration, safety guidance, reusable agent skills, and local quality gates.
+migration, reproducible context snapshots, safety guidance, reusable agent
+skills, and local quality gates.
 
 The authoritative source for this bootstrap was a private Japanese
 specification. The public English baseline records its source digest without
@@ -98,6 +99,7 @@ copying private workspace state.
   and a read-only clean-Git observation.
 - Deterministic automated handoff creation and resume mismatch detection with a
   bounded next-session prompt that is recorded but never executed.
+
 - `evidence`, `gate implementation`, `gate review`, `ui`,
   `audit release-candidate`, and `handoff` CLI paths.
 
@@ -123,6 +125,35 @@ copying private workspace state.
 - Public contributor, evaluation, migration, architecture, extension,
   security, testing, and release-limit documentation.
 - `eval validate`, `eval compare`, and `schema migrate` CLI paths.
+
+## Implemented in M5
+
+- Immutable content-addressed Context Manifest, Graph, Query, Selection,
+  Snapshot, Compaction, host-summary proposal, and quality-report contracts.
+- Actual Git/repository/specification Candidate verification, digest-checked
+  provenance, structural authority rules, freshness, four-level sensitivity,
+  explicit roots, bounded source reads, strict immutable-JSON re-observation,
+  and exclusive output publication.
+- Deterministic required-reference, graph, identifier, and integer lexical
+  retrieval with stable tie-breaks, exact Graph/Snapshot exclusions, atomic
+  contradiction closure, and canonical UTF-8 byte budgets.
+- Self-validating Selection through an embedded exact Query and production
+  selector replay at Snapshot time; downstream artifacts preserve candidate
+  and highest sensitivity. Standalone Snapshot parsing requires the canonical
+  specification and recomputes selected costs from canonical node content.
+- Deterministic extractive compaction; source-linked host summaries remain
+  untrusted proposals, propagate higher sensitivity, and never become sole
+  decision authority. Persisted Snapshots are source/candidate-reobserved at
+  Compaction after complete pure in-memory artifact validation; canonical source
+  identities are preflighted before I/O, duplicates rejected, and source and
+  contradiction metadata preserved. Final pre-publication candidate verification
+  uses the validated Compaction candidate that will be serialized.
+- `context validate`, `index`, `select`, `snapshot`, `compare`, and `compact`
+  commands, synthetic public examples, seven executable evaluation scenarios,
+  and the named offline `M5-CONTEXT-INTEGRITY` validator.
+
+See [Context Framework](docs/context-framework.md) for the exact contracts and
+failure semantics.
 
 ## V1.0 release-candidate readiness
 

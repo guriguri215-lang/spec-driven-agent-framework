@@ -141,3 +141,28 @@ Every migrated record requires review before it becomes a project input,
 especially the conservative role and tool defaults. A migration does not grant
 Owner approval, technical sandbox approval, network access, publication, or a
 new security boundary.
+
+## M5 Context schema policy
+
+The eight Context schema `1.0` files are additive and have no predecessor.
+`context index`, `select`, `snapshot`, and `compact` create new immutable
+content-addressed files exclusively. They do not mutate, downgrade, or migrate
+an existing artifact.
+
+Canonical content, candidate identity, source digest, provenance, freshness,
+sensitivity, query identity, and selected identities are part of compatibility.
+Changing one produces a new full SHA-256 artifact ID. Copying an old ID into
+changed content fails validation.
+
+The initial schema `1.0` contract includes Graph `excluded_sources`, the exact
+Query embedded in Selection, Selection sensitivity, Snapshot exclusions, and
+CandidateIdentity/sensitivity propagation through Compaction and Quality
+Report, plus source/authority/sensitivity and contradiction metadata in every
+Compaction extract. Missing source sensitivity is parsed only through the conservative
+`owner-private` default before identity validation. These are validation rules,
+not an in-place migration from an earlier published Context artifact.
+
+A future Context schema change must use a new schema file/version, preserve the
+historical artifact, document source and target identities, and provide a
+separately approved explicit migration if conversion is necessary. Existing
+schema `1.0` meanings may not be silently extended.

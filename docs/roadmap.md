@@ -87,7 +87,7 @@ M5 through M8 extend the framework additively:
 
 ## M5: Context Framework
 
-Status: planned; architecture approved and implementation unapproved.
+Status: Owner-approved implementation candidate validated locally; exact-candidate independent review, Windows/Linux CI, and Git finalization pending.
 
 ### Objective
 

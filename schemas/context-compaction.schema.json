@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/context-compaction.schema.json",
+  "title": "Context Compaction",
+  "type": "object",
+  "required": ["schema_version", "artifact_type", "artifact_id", "content"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "artifact_type": {"const": "context-compaction"},
+    "artifact_id": {"$ref": "context-manifest.schema.json#/$defs/compaction_id"},
+    "content": {
+      "type": "object",
+      "required": [
+        "candidate",
+        "snapshot_id",
+        "sensitivity",
+        "budget_bytes",
+        "used_bytes",
+        "extracts",
+        "omitted_node_ids",
+        "unresolved_contradiction_ids",
+        "host_summary_proposal_id"
+      ],
+      "properties": {
+        "candidate": {"$ref": "context-manifest.schema.json#/$defs/candidate"},
+        "snapshot_id": {"$ref": "context-manifest.schema.json#/$defs/snapshot_id"},
+        "sensitivity": {
+          "$ref": "context-manifest.schema.json#/$defs/adoptable_sensitivity"
+        },
+        "budget_bytes": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 8388608
+        },
+        "used_bytes": {"type": "integer", "minimum": 0, "maximum": 8388608},
+        "extracts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/extract"}
+        },
+        "omitted_node_ids": {
+          "type": "array",
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {"$ref": "context-manifest.schema.json#/$defs/node_id"}
+        },
+        "unresolved_contradiction_ids": {
+          "type": "array",
+          "maxItems": 16384,
+          "uniqueItems": true,
+          "items": {"$ref": "context-manifest.schema.json#/$defs/edge_id"}
+        },
+        "host_summary_proposal_id": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "context-manifest.schema.json#/$defs/host_summary_id"}
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "extract": {
+      "type": "object",
+      "required": [
+        "node_id",
+        "source_id",
+        "text",
+        "text_sha256",
+        "authority",
+        "sensitivity",
+        "required",
+        "contradiction_ids",
+        "cost_bytes"
+      ],
+      "properties": {
+        "node_id": {"$ref": "context-manifest.schema.json#/$defs/node_id"},
+        "source_id": {"$ref": "context-manifest.schema.json#/$defs/source_id"},
+        "text": {"type": "string", "maxLength": 65536},
+        "text_sha256": {"$ref": "context-manifest.schema.json#/$defs/sha256"},
+        "authority": {"$ref": "context-manifest.schema.json#/$defs/authority"},
+        "sensitivity": {
+          "$ref": "context-manifest.schema.json#/$defs/adoptable_sensitivity"
+        },
+        "required": {"type": "boolean"},
+        "contradiction_ids": {
+          "type": "array",
+          "maxItems": 16384,
+          "uniqueItems": true,
+          "items": {"$ref": "context-manifest.schema.json#/$defs/edge_id"}
+        },
+        "cost_bytes": {"type": "integer", "minimum": 1, "maximum": 8388608}
+      },
+      "additionalProperties": false
+    }
+  }
+}

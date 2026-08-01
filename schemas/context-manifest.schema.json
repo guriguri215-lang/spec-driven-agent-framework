@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/context-manifest.schema.json",
+  "title": "Context Manifest",
+  "type": "object",
+  "required": ["schema_version", "artifact_type", "artifact_id", "content"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "artifact_type": {"const": "context-manifest"},
+    "artifact_id": {"$ref": "#/$defs/manifest_id"},
+    "content": {
+      "type": "object",
+      "required": ["candidate", "sensitivity", "sources", "relationships"],
+      "properties": {
+        "candidate": {"$ref": "#/$defs/candidate"},
+        "sensitivity": {"$ref": "#/$defs/adoptable_sensitivity"},
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/source"}
+        },
+        "relationships": {
+          "type": "array",
+          "maxItems": 16384,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/relationship"}
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9A-F]{64}$"},
+    "git_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "context_id": {
+      "type": "string",
+      "pattern": "^CTX-[A-Z-]+-[0-9A-F]{64}$"
+    },
+    "manifest_id": {
+      "type": "string",
+      "pattern": "^CTX-MANIFEST-[0-9A-F]{64}$"
+    },
+    "source_id": {
+      "type": "string",
+      "pattern": "^CTX-SOURCE-[0-9A-F]{64}$"
+    },
+    "node_id": {
+      "type": "string",
+      "pattern": "^CTX-NODE-[0-9A-F]{64}$"
+    },
+    "edge_id": {
+      "type": "string",
+      "pattern": "^CTX-EDGE-[0-9A-F]{64}$"
+    },
+    "graph_id": {
+      "type": "string",
+      "pattern": "^CTX-GRAPH-[0-9A-F]{64}$"
+    },
+    "query_id": {
+      "type": "string",
+      "pattern": "^CTX-QUERY-[0-9A-F]{64}$"
+    },
+    "selection_id": {
+      "type": "string",
+      "pattern": "^CTX-SELECTION-[0-9A-F]{64}$"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "pattern": "^CTX-SNAPSHOT-[0-9A-F]{64}$"
+    },
+    "compaction_id": {
+      "type": "string",
+      "pattern": "^CTX-COMPACTION-[0-9A-F]{64}$"
+    },
+    "host_summary_id": {
+      "type": "string",
+      "pattern": "^CTX-HOST-SUMMARY-PROPOSAL-[0-9A-F]{64}$"
+    },
+    "quality_id": {
+      "type": "string",
+      "pattern": "^CTX-QUALITY-REPORT-[0-9A-F]{64}$"
+    },
+    "timestamp_utc": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,6})?Z$"
+    },
+    "candidate": {
+      "type": "object",
+      "required": ["source_spec_sha256", "git_head", "repository_digest"],
+      "properties": {
+        "source_spec_sha256": {"$ref": "#/$defs/sha256"},
+        "git_head": {"$ref": "#/$defs/git_sha"},
+        "repository_digest": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "portable_path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240,
+      "pattern": "^(?!/)(?!.*//)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*(?:^|/)~)(?!.*\\.(?:/|$))(?!.*(?:^|/)(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$))[A-Za-z0-9._/-]+$"
+    },
+    "artifact_reference": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"$ref": "#/$defs/portable_path"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["producer", "recorded_by", "references"],
+      "properties": {
+        "producer": {"type": "string", "minLength": 1, "maxLength": 100},
+        "recorded_by": {"type": "string", "minLength": 1, "maxLength": 100},
+        "references": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/artifact_reference"}
+        }
+      },
+      "additionalProperties": false
+    },
+    "locator": {
+      "type": "object",
+      "required": ["root_scope", "path", "sha256", "line_start", "line_end"],
+      "properties": {
+        "root_scope": {"enum": ["repository", "owner"]},
+        "path": {"$ref": "#/$defs/portable_path"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "line_start": {"type": "integer", "minimum": 1, "maximum": 1000000},
+        "line_end": {"type": "integer", "minimum": 1, "maximum": 1000000}
+      },
+      "additionalProperties": false
+    },
+    "freshness": {
+      "type": "object",
+      "required": ["kind", "observed_at", "valid_until"],
+      "properties": {
+        "kind": {"enum": ["immutable", "candidate-bound", "expires-at"]},
+        "observed_at": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/timestamp_utc"}
+          ]
+        },
+        "valid_until": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/timestamp_utc"}
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {"kind": {"const": "expires-at"}},
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": {
+              "observed_at": {"$ref": "#/$defs/timestamp_utc"},
+              "valid_until": {"$ref": "#/$defs/timestamp_utc"}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {"enum": ["immutable", "candidate-bound"]}
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": {
+              "observed_at": {"type": "null"},
+              "valid_until": {"type": "null"}
+            }
+          }
+        }
+      ]
+    },
+    "authority": {
+      "enum": [
+        "owner-approved",
+        "canonical-specification",
+        "accepted-public-contract",
+        "verified-evidence",
+        "repository-record",
+        "untrusted-observation",
+        "untrusted-proposal"
+      ]
+    },
+    "sensitivity": {
+      "enum": [
+        "public",
+        "repository-private",
+        "owner-private",
+        "secret-or-prohibited"
+      ]
+    },
+    "adoptable_sensitivity": {
+      "enum": ["public", "repository-private", "owner-private"]
+    },
+    "source_kind": {
+      "enum": [
+        "specification",
+        "requirement",
+        "decision",
+        "design",
+        "source",
+        "test",
+        "evidence",
+        "finding",
+        "task",
+        "handoff",
+        "tool-observation",
+        "solver-artifact"
+      ]
+    },
+    "edge_type": {
+      "enum": [
+        "references",
+        "implements",
+        "verifies",
+        "depends-on",
+        "supersedes",
+        "contradicts",
+        "derived-from"
+      ]
+    },
+    "short_text_array": {
+      "type": "array",
+      "maxItems": 128,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1, "maxLength": 500}
+    },
+    "label_array": {
+      "type": "array",
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1, "maxLength": 500}
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "source_id",
+        "kind",
+        "title",
+        "locator",
+        "provenance",
+        "authority",
+        "freshness",
+        "identifiers",
+        "labels",
+        "required"
+      ],
+      "properties": {
+        "source_id": {"$ref": "#/$defs/source_id"},
+        "kind": {"$ref": "#/$defs/source_kind"},
+        "title": {"type": "string", "minLength": 1, "maxLength": 500},
+        "locator": {"$ref": "#/$defs/locator"},
+        "provenance": {"$ref": "#/$defs/provenance"},
+        "authority": {"$ref": "#/$defs/authority"},
+        "freshness": {"$ref": "#/$defs/freshness"},
+        "sensitivity": {"$ref": "#/$defs/adoptable_sensitivity"},
+        "identifiers": {"$ref": "#/$defs/short_text_array"},
+        "labels": {"$ref": "#/$defs/label_array"},
+        "required": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "relationship": {
+      "type": "object",
+      "required": ["edge_type", "source_id", "target_id", "provenance"],
+      "properties": {
+        "edge_type": {"$ref": "#/$defs/edge_type"},
+        "source_id": {"$ref": "#/$defs/source_id"},
+        "target_id": {"$ref": "#/$defs/source_id"},
+        "provenance": {"$ref": "#/$defs/provenance"}
+      },
+      "additionalProperties": false
+    }
+  }
+}
