@@ -1,0 +1,45 @@
+{
+  "artifact_id": "M6-EVENT-530A9D3793B5ECD9AB0FB9CDCCFCC42559A59B354B6E6A237F65B565F06B5D50",
+  "artifact_type": "scheduler-event",
+  "content": {
+    "actor": "scheduler",
+    "after_state": "running",
+    "approval_id": null,
+    "before_state": "ready",
+    "budget_deltas": {
+      "concurrency": 1,
+      "context_bytes": 8202,
+      "dispatches": 1,
+      "microunits": 0,
+      "solver_calls": 0,
+      "solver_steps": 0,
+      "tool_calls": 1
+    },
+    "candidate": {
+      "git_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "repository_digest": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "source_spec_sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+    },
+    "cause": "dispatch-intent",
+    "context_snapshot_id": "CTX-SNAPSHOT-60806B57F8C2C1B3E8AA059428C0FAD2D1629DD06B4E3A402F476497E4038A2C",
+    "graph_id": "M6-TASK-GRAPH-812F1666FD65A7A3251D6414346308EBC5BEA7FDEE488408A3A59BFDDA003BE6",
+    "lease_id": "M6-LEASE-3D0DEA45CDE6A5DCB4916C25F2868E20B91E57E21D44D1FE8A42977E3A10B62D",
+    "message_id": "M6-MESSAGE-CDBCD1C87CF689F227F1D89867E2C4DE4D0FD7A3BA932B211238DC6B3A817A52",
+    "previous_event_sha256": "6583F320E3CBDDC774667302811C86AFED64C94CAB261B2DF3D67F17B87CF6A9",
+    "reason": null,
+    "recorded_at": "2026-08-01T00:00:00Z",
+    "result_id": null,
+    "sequence": 2,
+    "task_id": "TSK-M6-DEMO",
+    "task_projection": {
+      "attempt": 1,
+      "blockers": [],
+      "dispatch_phase": "intent_pending",
+      "fence": 1,
+      "outcome": "none",
+      "state": "running",
+      "task_id": "TSK-M6-DEMO"
+    }
+  },
+  "schema_version": "1.0"
+}

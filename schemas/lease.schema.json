@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/lease.schema.json",
+  "title": "M6 Fenced Lease",
+  "type": "object",
+  "required": ["schema_version", "artifact_type", "artifact_id", "content"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "artifact_type": {"const": "lease"},
+    "artifact_id": {"$ref": "task-graph.schema.json#/$defs/lease_id"},
+    "content": {
+      "description": "Cross-field lease timing invariants (acquired_at <= heartbeat_at < expires_at and heartbeat_interval_seconds <= ttl_seconds / 2) are enforced by the authoritative scheduler store because JSON Schema draft 2020-12 cannot compare instance fields.",
+      "type": "object",
+      "required": [
+        "graph_id",
+        "task_id",
+        "candidate",
+        "context_snapshot_id",
+        "attempt",
+        "owner_id",
+        "fence",
+        "idempotency_key",
+        "acquired_at",
+        "heartbeat_at",
+        "expires_at",
+        "ttl_seconds",
+        "heartbeat_interval_seconds",
+        "status",
+        "release_outcome"
+      ],
+      "properties": {
+        "graph_id": {"$ref": "task-graph.schema.json#/$defs/task_graph_id"},
+        "task_id": {"$ref": "task-graph.schema.json#/$defs/task_id"},
+        "candidate": {"$ref": "task-graph.schema.json#/$defs/candidate"},
+        "context_snapshot_id": {
+          "$ref": "task-graph.schema.json#/$defs/context_snapshot_id"
+        },
+        "attempt": {"type": "integer", "minimum": 1, "maximum": 3},
+        "owner_id": {"$ref": "task-graph.schema.json#/$defs/host_or_worker_id"},
+        "fence": {"type": "integer", "minimum": 1, "maximum": 2147483647},
+        "idempotency_key": {
+          "$ref": "task-graph.schema.json#/$defs/idempotency_key"
+        },
+        "acquired_at": {"$ref": "task-graph.schema.json#/$defs/timestamp"},
+        "heartbeat_at": {"$ref": "task-graph.schema.json#/$defs/timestamp"},
+        "expires_at": {"$ref": "task-graph.schema.json#/$defs/timestamp"},
+        "ttl_seconds": {"type": "integer", "minimum": 30, "maximum": 3600},
+        "heartbeat_interval_seconds": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 300
+        },
+        "status": {"enum": ["current", "released", "expired", "rejected"]},
+        "release_outcome": {
+          "enum": ["none", "succeeded", "failed", "cancelled", "unknown"]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

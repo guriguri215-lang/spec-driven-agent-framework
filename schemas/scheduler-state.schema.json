@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/scheduler-state.schema.json",
+  "title": "M6 Scheduler State",
+  "type": "object",
+  "required": ["schema_version", "artifact_type", "artifact_id", "content"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "artifact_type": {"const": "scheduler-state"},
+    "artifact_id": {
+      "$ref": "task-graph.schema.json#/$defs/scheduler_state_id"
+    },
+    "content": {
+      "type": "object",
+      "required": [
+        "graph_id",
+        "candidate",
+        "tasks",
+        "ready_order",
+        "lease_ids",
+        "message_ids",
+        "budget_ledger_id",
+        "worktree_lease_ids",
+        "event_sequence",
+        "event_head_sha256"
+      ],
+      "properties": {
+        "graph_id": {"$ref": "task-graph.schema.json#/$defs/task_graph_id"},
+        "candidate": {"$ref": "task-graph.schema.json#/$defs/candidate"},
+        "tasks": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "required": [
+              "task_id",
+              "state",
+              "dispatch_phase",
+              "outcome",
+              "attempt",
+              "fence",
+              "blockers"
+            ],
+            "properties": {
+              "task_id": {"$ref": "task-graph.schema.json#/$defs/task_id"},
+              "state": {
+                "enum": [
+                  "planned",
+                  "ready",
+                  "running",
+                  "blocked",
+                  "verification",
+                  "completed",
+                  "rejected",
+                  "superseded"
+                ]
+              },
+              "dispatch_phase": {
+                "enum": [
+                  "not_dispatched",
+                  "intent_pending",
+                  "accepted",
+                  "cancellation_requested",
+                  "cancellation_acknowledged"
+                ]
+              },
+              "outcome": {
+                "enum": ["none", "succeeded", "failed", "cancelled", "unknown"]
+              },
+              "attempt": {"type": "integer", "minimum": 0, "maximum": 3},
+              "fence": {"type": "integer", "minimum": 0, "maximum": 2147483647},
+              "blockers": {
+                "type": "array",
+                "maxItems": 64,
+                "uniqueItems": true,
+                "items": {"$ref": "task-graph.schema.json#/$defs/blocker"}
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "ready_order": {
+          "type": "array",
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {"$ref": "task-graph.schema.json#/$defs/task_id"}
+        },
+        "lease_ids": {
+          "type": "array",
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {"$ref": "task-graph.schema.json#/$defs/lease_id"}
+        },
+        "message_ids": {
+          "type": "array",
+          "maxItems": 1000,
+          "uniqueItems": true,
+          "items": {"$ref": "task-graph.schema.json#/$defs/message_id"}
+        },
+        "budget_ledger_id": {
+          "$ref": "task-graph.schema.json#/$defs/budget_id"
+        },
+        "worktree_lease_ids": {
+          "type": "array",
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {"$ref": "task-graph.schema.json#/$defs/worktree_lease_id"}
+        },
+        "event_sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "event_head_sha256": {"$ref": "task-graph.schema.json#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

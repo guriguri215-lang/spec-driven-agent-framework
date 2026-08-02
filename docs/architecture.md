@@ -320,3 +320,77 @@ authenticate a different candidate after compaction.
 M5 adds no runtime dependency, SQLite state, scheduler, agent dispatch, solver,
 embedding/vector backend, OpenAI API, Agents SDK, or management UI. M6 consumes
 the exact validated Snapshot rather than sharing M5 storage internals.
+
+## M6 Multi-Agent Control Framework
+
+M6 preserves the existing layered boundary. Frozen scheduler values and enums
+live in `domain/scheduler.py`; five host/store/clock/artifact protocols live in
+`ports/scheduler.py`; strict contracts and deterministic services live in
+`application/scheduler*.py`; and `adapters/scheduler.py` supplies the local
+SQLite store, UTC clock, exclusive JSON publisher, and explicitly unsupported
+real-host adapters.
+
+The Task Graph binds full digests for the current M2 Agent Registry, Tool
+Registry, Orchestration Request, optional Worktree Plan, and one or more exact
+M5 Context Snapshots. Validation repeats the M2 plan and candidate, role,
+tool, reviewer, integrator, path-ownership, sensitivity, and Context identity
+checks. The scheduler never receives authority from agent-authored text.
+
+SQLite is the single mutable projection and uses application ID `0x53444151`,
+`user_version=1`, metadata schema `1.0`, rollback journaling, synchronous FULL,
+foreign keys, trusted schema off, zero busy wait, and explicit
+`BEGIN IMMEDIATE`. Portable messages, events, leases, budget snapshots, and
+worktree observations remain immutable content-addressed JSON. Events form a
+complete SHA-256 chain. Every task-bound event contains the full post-event task
+projection. Recovery validates immutable evidence, rebuilds every mutable
+projection in a fresh exact schema, and publishes only an evidence-equivalent
+database.
+
+Dispatch is at least once. Each attempt has one current owner, a monotonically
+increasing fence, an exact Context identity, and a stable idempotency key.
+The bounded TTL/heartbeat policy is selected once at database initialization,
+bound to the initialization event and recovery identity, and then reproduced
+independently for every Lease and dispatch payload.
+An approval-bound attempt first persists a provisional Lease and exposes its
+exact identity for external approval. Later ticks reuse its owner, attempt,
+fence, Lease ID, and idempotency key; an expired unactivated proposal rotates
+without consuming an execution attempt or concurrency reservation.
+Periodic heartbeats refresh a new portable Lease projection without changing
+the stable authority ID. Worktree dispatch and cooperative cancellation use
+explicit scheduler-to-host request messages and exact causal observations.
+Cancellation selects only a primary-adopted same-Lease intent for the current
+phase. Worktree observation live ingress and immutable replay share one exact
+authority derivation over the `not_dispatched` phase, task assignment, prior
+request, latest requested/observed Worktree, and latest active Lease. Every
+non-result cause is also checked against its complete Lease-history output:
+nonterminal observation emits none, terminal observation emits one exact
+release, and every Lease expiry equals its heartbeat plus the immutable TTL.
+Every
+operation that advances whole-second elapsed time first records
+one exact wall observation anchored to the initialization event.
+Only safe unambiguous read-only work may retry automatically. Foreign, stale,
+late, conflicting, sensitivity-downgraded, or causally incomplete messages are
+retained only as rejection events. Cancellation or an external effect that
+cannot be proven is `blocked/unknown`, never inferred as success.
+
+Task completion uses a closed contract: optional
+`evidence-reference-present`, required `agent-result-valid`, and completion of
+every declared review target. Unknown predicate text is rejected before
+initialization, and an unsatisfied predicate blocks verification. Mutable
+current Lease and Worktree row sets are compared with the exact sets implied
+by immutable histories, including missing-row detection. Budget reservations
+are reconstructed and settled per Lease attempt from immutable scheduler
+events, so acknowledgement, result, rejection, cancellation, and expiry are
+at most once and cannot debit another concurrent task. Effective concurrency
+is bounded by `max_concurrency`, which schema and runtime both require not to
+exceed `max_agents`.
+
+Public Lease and Mailbox schemas express all structurally representable
+constraints. Cross-field time ordering is rechecked at the authoritative
+scheduler boundary, where the related fields and transition clock are
+available, without weakening Lease TTL, heartbeat, or approval-window safety.
+
+The package emits typed host intents and consumes typed observations. It does
+not launch Codex, execute a process, create or integrate a worktree, access a
+network, or delete ambiguous state. Ten fixed-clock simulations exercise the
+real SQLite state machine offline.

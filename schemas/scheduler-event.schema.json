@@ -1,0 +1,270 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/scheduler-event.schema.json",
+  "title": "M6 Scheduler Event",
+  "type": "object",
+  "required": ["schema_version", "artifact_type", "artifact_id", "content"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "artifact_type": {"const": "scheduler-event"},
+    "artifact_id": {"$ref": "task-graph.schema.json#/$defs/event_id"},
+    "content": {
+      "type": "object",
+      "required": [
+        "sequence",
+        "previous_event_sha256",
+        "actor",
+        "cause",
+        "graph_id",
+        "task_id",
+        "candidate",
+        "context_snapshot_id",
+        "before_state",
+        "after_state",
+        "lease_id",
+        "message_id",
+        "result_id",
+        "approval_id",
+        "budget_deltas",
+        "task_projection",
+        "reason",
+        "recorded_at"
+      ],
+      "properties": {
+        "sequence": {"type": "integer", "minimum": 1, "maximum": 2147483647},
+        "previous_event_sha256": {
+          "$ref": "task-graph.schema.json#/$defs/sha256"
+        },
+        "actor": {"$ref": "#/$defs/path_free_text_100"},
+        "cause": {
+          "enum": [
+            "approval-consumed",
+            "approval-proposal-expired",
+            "approval-received",
+            "cancel-acknowledgement",
+            "cancel-request",
+            "capability-observed",
+            "dispatch-accepted",
+            "dispatch-approval-blocked",
+            "dispatch-budget-blocked",
+            "dispatch-intent",
+            "dispatch-rejected",
+            "duplicate-message",
+            "heartbeat",
+            "initialize",
+            "lease-expired",
+            "message-rejected",
+            "readiness-refreshed",
+            "result-received",
+            "result-terminal",
+            "verification-blocked",
+            "verification-completed",
+            "wall-time-observed",
+            "worktree-observed",
+            "worktree-request"
+          ]
+        },
+        "graph_id": {"$ref": "task-graph.schema.json#/$defs/task_graph_id"},
+        "task_id": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "task-graph.schema.json#/$defs/task_id"}
+          ]
+        },
+        "candidate": {"$ref": "task-graph.schema.json#/$defs/candidate"},
+        "context_snapshot_id": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "task-graph.schema.json#/$defs/context_snapshot_id"}
+          ]
+        },
+        "before_state": {"$ref": "#/$defs/nullable_state"},
+        "after_state": {"$ref": "#/$defs/nullable_state"},
+        "lease_id": {"$ref": "#/$defs/nullable_lease"},
+        "message_id": {"$ref": "#/$defs/nullable_message"},
+        "result_id": {"$ref": "#/$defs/nullable_message"},
+        "approval_id": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "pattern": "^APR-[A-Z0-9][A-Z0-9-]{0,95}$"}
+          ]
+        },
+        "budget_deltas": {
+          "type": "object",
+          "propertyNames": {
+            "enum": [
+              "concurrency",
+              "context_bytes",
+              "dispatches",
+              "microunits",
+              "retries",
+              "solver_calls",
+              "solver_steps",
+              "tool_calls",
+              "wall_time_seconds"
+            ]
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": -1000000000000000,
+            "maximum": 1000000000000000
+          }
+        },
+        "task_projection": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "task-graph.schema.json#/$defs/task_projection"}
+          ]
+        },
+        "reason": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/path_free_text"}
+          ]
+        },
+        "recorded_at": {"$ref": "task-graph.schema.json#/$defs/timestamp"}
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {"properties": {"task_id": {"type": "null"}}},
+          "then": {"properties": {"task_projection": {"type": "null"}}}
+        },
+        {
+          "if": {"not": {"properties": {"task_id": {"type": "null"}}}},
+          "then": {
+            "properties": {
+              "task_projection": {
+                "$ref": "task-graph.schema.json#/$defs/task_projection"
+              }
+            }
+          }
+        }
+      ],
+      "oneOf": [
+        {
+          "properties": {
+            "task_id": {"type": "null"},
+            "after_state": {"type": "null"},
+            "task_projection": {"type": "null"}
+          }
+        },
+        {
+          "properties": {
+            "task_id": {"$ref": "task-graph.schema.json#/$defs/task_id"},
+            "after_state": {"const": "planned"},
+            "task_projection": {"properties": {"state": {"const": "planned"}}}
+          }
+        },
+        {
+          "properties": {
+            "task_id": {"$ref": "task-graph.schema.json#/$defs/task_id"},
+            "after_state": {"const": "ready"},
+            "task_projection": {"properties": {"state": {"const": "ready"}}}
+          }
+        },
+        {
+          "properties": {
+            "task_id": {"$ref": "task-graph.schema.json#/$defs/task_id"},
+            "after_state": {"const": "running"},
+            "task_projection": {"properties": {"state": {"const": "running"}}}
+          }
+        },
+        {
+          "properties": {
+            "task_id": {"$ref": "task-graph.schema.json#/$defs/task_id"},
+            "after_state": {"const": "blocked"},
+            "task_projection": {"properties": {"state": {"const": "blocked"}}}
+          }
+        },
+        {
+          "properties": {
+            "task_id": {"$ref": "task-graph.schema.json#/$defs/task_id"},
+            "after_state": {"const": "verification"},
+            "task_projection": {
+              "properties": {"state": {"const": "verification"}}
+            }
+          }
+        },
+        {
+          "properties": {
+            "task_id": {"$ref": "task-graph.schema.json#/$defs/task_id"},
+            "after_state": {"const": "completed"},
+            "task_projection": {"properties": {"state": {"const": "completed"}}}
+          }
+        },
+        {
+          "properties": {
+            "task_id": {"$ref": "task-graph.schema.json#/$defs/task_id"},
+            "after_state": {"const": "rejected"},
+            "task_projection": {"properties": {"state": {"const": "rejected"}}}
+          }
+        },
+        {
+          "properties": {
+            "task_id": {"$ref": "task-graph.schema.json#/$defs/task_id"},
+            "after_state": {"const": "superseded"},
+            "task_projection": {"properties": {"state": {"const": "superseded"}}}
+          }
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "path_free_text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000,
+      "pattern": "^(?!\\s*$)[^\\u0000-\\u001F\\u007F\\u202A-\\u202E\\u2066-\\u2069]*$",
+      "allOf": [
+        {"not": {"pattern": "AKIA[0-9A-Z]{16}"}},
+        {"not": {"pattern": "gh[pousr]_[A-Za-z0-9]{20,}"}},
+        {
+          "not": {
+            "pattern": "-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"
+          }
+        },
+        {"not": {"pattern": "[A-Za-z]:[\\\\/]"}},
+        {
+          "not": {
+            "pattern": "/(?:[Ee][Tt][Cc]|[Hh][Oo][Mm][Ee]|[Oo][Pp][Tt]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee]|[Rr][Oo][Oo][Tt]|[Tt][Mm][Pp]|[Uu][Ss][Rr]|[Vv][Aa][Rr]|[Uu][Ss][Ee][Rr][Ss])(?:/|$)"
+          }
+        }
+      ]
+    },
+    "path_free_text_100": {
+      "$ref": "#/$defs/path_free_text",
+      "maxLength": 100
+    },
+    "nullable_state": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "enum": [
+            "planned",
+            "ready",
+            "running",
+            "blocked",
+            "verification",
+            "completed",
+            "rejected",
+            "superseded"
+          ]
+        }
+      ]
+    },
+    "nullable_lease": {
+      "oneOf": [
+        {"type": "null"},
+        {"$ref": "task-graph.schema.json#/$defs/lease_id"}
+      ]
+    },
+    "nullable_message": {
+      "oneOf": [
+        {"type": "null"},
+        {"$ref": "task-graph.schema.json#/$defs/message_id"}
+      ]
+    }
+  }
+}

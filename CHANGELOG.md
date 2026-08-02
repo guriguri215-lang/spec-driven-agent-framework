@@ -13,6 +13,69 @@ G5 remains `NOT_RUN`.
 
 ### Added
 
+- M6 content-addressed Task Graph, Scheduler State, Lease, Mailbox Message,
+  Scheduler Event, Budget Ledger, and Worktree Lease schema 1.0 contracts.
+- A transactional standard-library SQLite scheduler with fenced leases,
+  stable idempotency, strict current-fence result adoption, typed causal
+  mailboxes, hash-chained events, atomic budgets, approval consumption,
+  deterministic wait reports, and evidence-preserving fresh-output recovery.
+- Exact approval actors and atomic dual approval, periodic portable heartbeat
+  leases, scheduler-authored cancellation/worktree intents, result evidence
+  verification, full integer budget settlement, exact SQLite projection
+  reconciliation, and projection rebuilding from immutable evidence.
+- Persisted approval-proposal identities across ticks, closed evidence and
+  terminal predicate vocabularies, enforced review-target completion,
+  history-derived exact current Lease/Worktree row sets, attempt-scoped
+  settlement, and matching schema/runtime enforcement that concurrency cannot
+  exceed the agent limit.
+- Closed causal and event-transition vocabularies, expire-before-ingest Lease
+  authority, exact dispatch-parent phase checks, semantic recovery replay,
+  per-host capability isolation, atomic delayed-dispatch approval consumption,
+  complete Worktree Lease lifecycle/reuse, and one typed durable wait-for
+  projection shared by production status, CLI, and simulation.
+- Total cause-dispatched replay for all 24 Scheduler Event causes, exact
+  immutable scheduler-egress reconstruction, budget-before-approval admission,
+  expiry-bound cancellation, durable stall reporting in simulation/evaluation,
+  and schema/runtime parity for safe text and capability identity.
+- Exact result-to-verification semantic replay, complete scheduler-egress
+  envelope/causal/observed-worktree authority, an event-derived Budget Ledger
+  reducer with exact intermediate snapshots and retry deltas, and same-Lease
+  delayed worktree admission that preserves and consumes the original approval
+  exactly once. `M6-SCHEDULER-SAFETY` now also exercises deliberate rehashed
+  result, egress, and budget-history corruption through no-output recovery.
+- Exact non-result cause replay for acknowledgement, heartbeat, cancellation,
+  Worktree, expiry, readiness, approval, blocker, and Lease-history authority;
+  one compatible primary adoption event for every immutable mailbox row; and
+  independently rederived dispatch reservations, result-usage ceilings,
+  wall-time deltas, and admission blockers. Recovery now rejects self-consistent
+  rehashed policy reversals, orphan authority rows, and forged budget causes
+  before creating output.
+- Initialization-bound immutable Lease policy; whole-object provisional and
+  active Lease reconstruction; one complete cause-derived Worktree history row;
+  current-phase, primary-adopted same-Lease cancellation parents; and
+  initialization-anchored nondecreasing wall-time replay. Missing, extra,
+  moved, smaller, larger, or creation-drifted wall evidence and recurrent
+  Lease/Worktree/cancellation forgeries now fail before commit or recovery
+  publication.
+- One shared live/replay Worktree-observation authority reducer now binds the
+  exact `not_dispatched` phase, task assignment, causal request, latest
+  requested/observed Worktree, and latest active Lease. Fully rehashed foreign
+  paths, post-dispatch observations, and old or released Lease observations
+  fail before fresh recovery publication.
+- Non-result replay now centrally classifies every cause's complete Lease-
+  history output: a nonterminal Worktree observation must emit zero Lease rows,
+  while its terminal form retains one exact release. Every Lease also proves
+  `expires_at = heartbeat_at + ttl`; a content-addressed observation-linked
+  current row that live execution never emitted fails before recovery.
+- Portable Task Graph path and text parity for Windows reserved/trailing-dot
+  components, single-line secret-safe strings, and pre-resolution symlink,
+  junction, and reparse-ancestor rejection.
+- Additive `agents schedule`, `agents mailbox`, `agents recover`, and
+  `agents simulate` CLI paths, ten real-state-machine offline scenarios,
+  synthetic public evidence, M0-through-M6 CLI smoke, and
+  `M6-SCHEDULER-SAFETY` with negative contract parity, deliberate corruption
+  recovery, durable scenario assertions, and 90 percent critical coverage
+  enforcement.
 - M5 immutable content-addressed Context Manifest, Graph, Query, Selection,
   Snapshot, Compaction, host-summary proposal, and named quality contracts.
 - Additive `context validate`, `index`, `select`, `snapshot`, `compare`, and

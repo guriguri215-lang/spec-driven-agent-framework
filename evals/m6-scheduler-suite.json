@@ -1,0 +1,85 @@
+{
+  "schema_version": "1.0",
+  "suite_id": "M6-SCHEDULER-PUBLIC-1",
+  "description": "Deterministic offline scheduler safety scenarios using the real SQLite state machine.",
+  "cases": [
+    {
+      "case_id": "success",
+      "expected_outcome": "completed-after-verification",
+      "expected_wait_kind": "clear",
+      "expected_blockers": []
+    },
+    {
+      "case_id": "worker-crash-after-dispatch",
+      "expected_outcome": "running-with-current-fenced-lease",
+      "expected_wait_kind": "stall",
+      "expected_blockers": [
+        "task:TSK-M6-DEMO->lease:M6-LEASE-3D0DEA45CDE6A5DCB4916C25F2868E20B91E57E21D44D1FE8A42977E3A10B62D:dispatch-ack"
+      ]
+    },
+    {
+      "case_id": "host-timeout",
+      "expected_outcome": "safe-read-only-attempt-redispatched",
+      "expected_wait_kind": "stall",
+      "expected_blockers": [
+        "task:TSK-M6-DEMO->lease:M6-LEASE-58FA066632039C23ED3AC2DE0312313F72E5D2C35FE91B6C7FC665AC8990615B:dispatch-ack"
+      ]
+    },
+    {
+      "case_id": "result-disagreement",
+      "expected_outcome": "first-result-adopted-conflict-rejected",
+      "expected_wait_kind": "clear",
+      "expected_blockers": []
+    },
+    {
+      "case_id": "wait-for-deadlock",
+      "expected_outcome": "deadlock-reported-without-speculation",
+      "expected_wait_kind": "deadlock",
+      "expected_blockers": [
+        "capability:unassigned:task:TSK-WAIT-A",
+        "task:TSK-WAIT-A",
+        "capability:unassigned:task:TSK-WAIT-B",
+        "task:TSK-WAIT-B"
+      ]
+    },
+    {
+      "case_id": "budget-exhaustion",
+      "expected_outcome": "one-running-one-budget-blocked",
+      "expected_wait_kind": "stall",
+      "expected_blockers": [
+        "task:TSK-M6-DEMO->lease:M6-LEASE-56E53E58A7419B68D5DC010CCC9BA39362B72AD605A947EF8ADFA43C418C2CC4:dispatch-ack",
+        "task:TSK-SECOND->budget:scheduler"
+      ]
+    },
+    {
+      "case_id": "missing-capability",
+      "expected_outcome": "blocked-missing-capability",
+      "expected_wait_kind": "stall",
+      "expected_blockers": [
+        "task:TSK-M6-DEMO->capability:unassigned:unavailable-capability"
+      ]
+    },
+    {
+      "case_id": "duplicate-and-late-result",
+      "expected_outcome": "duplicate-idempotent-late-rejected",
+      "expected_wait_kind": "clear",
+      "expected_blockers": []
+    },
+    {
+      "case_id": "cancellation-unknown",
+      "expected_outcome": "blocked-unknown-cancellation",
+      "expected_wait_kind": "stall",
+      "expected_blockers": [
+        "task:TSK-M6-DEMO->blocker:cancellation-ambiguous:TSK-M6-DEMO"
+      ]
+    },
+    {
+      "case_id": "ambiguous-external-effect",
+      "expected_outcome": "blocked-unknown-no-automatic-retry",
+      "expected_wait_kind": "stall",
+      "expected_blockers": [
+        "task:TSK-M6-DEMO->blocker:ambiguous-external-effect:TSK-M6-DEMO"
+      ]
+    }
+  ]
+}

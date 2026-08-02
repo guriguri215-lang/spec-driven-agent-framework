@@ -1,0 +1,26 @@
+{
+  "artifact_id": "M6-LEASE-3D0DEA45CDE6A5DCB4916C25F2868E20B91E57E21D44D1FE8A42977E3A10B62D",
+  "artifact_type": "lease",
+  "content": {
+    "acquired_at": "2026-08-01T00:00:00Z",
+    "attempt": 1,
+    "candidate": {
+      "git_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "repository_digest": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "source_spec_sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+    },
+    "context_snapshot_id": "CTX-SNAPSHOT-60806B57F8C2C1B3E8AA059428C0FAD2D1629DD06B4E3A402F476497E4038A2C",
+    "expires_at": "2026-08-01T00:01:00Z",
+    "fence": 1,
+    "graph_id": "M6-TASK-GRAPH-812F1666FD65A7A3251D6414346308EBC5BEA7FDEE488408A3A59BFDDA003BE6",
+    "heartbeat_at": "2026-08-01T00:00:00Z",
+    "heartbeat_interval_seconds": 15,
+    "idempotency_key": "IDEM-051E895E82EB2C77D3C43F45B43E98FD40CB0BFF708B4F389A71736D8BA7DEBF",
+    "owner_id": "HST-SIMULATOR",
+    "release_outcome": "none",
+    "status": "current",
+    "task_id": "TSK-M6-DEMO",
+    "ttl_seconds": 60
+  },
+  "schema_version": "1.0"
+}

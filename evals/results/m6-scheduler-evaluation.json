@@ -1,0 +1,113 @@
+{
+  "schema_version": "1.0",
+  "suite_id": "M6-SCHEDULER-PUBLIC-1",
+  "task_graph": {
+    "artifact_id": "M6-TASK-GRAPH-812F1666FD65A7A3251D6414346308EBC5BEA7FDEE488408A3A59BFDDA003BE6",
+    "path": "examples/m6-scheduler/task-graph.json",
+    "sha256": "98EE532A965D6E10131B26F759020B31313C8AAAD10E5DF8453B7053B2561E3E"
+  },
+  "cases": [
+    {
+      "case_id": "success",
+      "deterministic_digest": "FB66D2DF85ABA31F70E6700A3B1A6D441E889081ACD7FCAA117417EC2BF1296F",
+      "observed_outcome": "completed-after-verification",
+      "observed_wait_kind": "clear",
+      "observed_blockers": [],
+      "passed": true
+    },
+    {
+      "case_id": "worker-crash-after-dispatch",
+      "deterministic_digest": "561BE18BAD2E5DDFBEFFF20EDB50305011EE7E130A6F70BAA0EC3CD15D64126C",
+      "observed_outcome": "running-with-current-fenced-lease",
+      "observed_wait_kind": "stall",
+      "observed_blockers": [
+        "task:TSK-M6-DEMO->lease:M6-LEASE-3D0DEA45CDE6A5DCB4916C25F2868E20B91E57E21D44D1FE8A42977E3A10B62D:dispatch-ack"
+      ],
+      "passed": true
+    },
+    {
+      "case_id": "host-timeout",
+      "deterministic_digest": "6C138B8EFE8A04B775B1AB2066783C5A0B162E60AF53E83B17790BA71364DBA9",
+      "observed_outcome": "safe-read-only-attempt-redispatched",
+      "observed_wait_kind": "stall",
+      "observed_blockers": [
+        "task:TSK-M6-DEMO->lease:M6-LEASE-58FA066632039C23ED3AC2DE0312313F72E5D2C35FE91B6C7FC665AC8990615B:dispatch-ack"
+      ],
+      "passed": true
+    },
+    {
+      "case_id": "result-disagreement",
+      "deterministic_digest": "0D1093449ABF7A341D28DAE66BD86033449A5C52E7DEDAE6876B73EBACB9DC42",
+      "observed_outcome": "first-result-adopted-conflict-rejected",
+      "observed_wait_kind": "clear",
+      "observed_blockers": [],
+      "passed": true
+    },
+    {
+      "case_id": "wait-for-deadlock",
+      "deterministic_digest": "4538F26124B69CF691086BD5C4AAD4DF0AE18729EE91DFBC542307DF96F9BDB1",
+      "observed_outcome": "deadlock-reported-without-speculation",
+      "observed_wait_kind": "deadlock",
+      "observed_blockers": [
+        "capability:unassigned:task:TSK-WAIT-A",
+        "task:TSK-WAIT-A",
+        "capability:unassigned:task:TSK-WAIT-B",
+        "task:TSK-WAIT-B"
+      ],
+      "passed": true
+    },
+    {
+      "case_id": "budget-exhaustion",
+      "deterministic_digest": "F3E6E639AA1863754488A442832B90967BAB625A82C9D3A0592B3F51A1BA7C93",
+      "observed_outcome": "one-running-one-budget-blocked",
+      "observed_wait_kind": "stall",
+      "observed_blockers": [
+        "task:TSK-M6-DEMO->lease:M6-LEASE-56E53E58A7419B68D5DC010CCC9BA39362B72AD605A947EF8ADFA43C418C2CC4:dispatch-ack",
+        "task:TSK-SECOND->budget:scheduler"
+      ],
+      "passed": true
+    },
+    {
+      "case_id": "missing-capability",
+      "deterministic_digest": "97CD0EC1CA3FED9B7903B75819BBDDB5EDEB6D3E66AEBD55E17927FBB45B079B",
+      "observed_outcome": "blocked-missing-capability",
+      "observed_wait_kind": "stall",
+      "observed_blockers": [
+        "task:TSK-M6-DEMO->capability:unassigned:unavailable-capability"
+      ],
+      "passed": true
+    },
+    {
+      "case_id": "duplicate-and-late-result",
+      "deterministic_digest": "D1C6E0B9FD987EB0CD460F93785C99A4E30D7F804268544E8894ABA086837471",
+      "observed_outcome": "duplicate-idempotent-late-rejected",
+      "observed_wait_kind": "clear",
+      "observed_blockers": [],
+      "passed": true
+    },
+    {
+      "case_id": "cancellation-unknown",
+      "deterministic_digest": "DD232976B394727EFDD966838A9DC1938658656EE7197E94E5CB6F15E040CB91",
+      "observed_outcome": "blocked-unknown-cancellation",
+      "observed_wait_kind": "stall",
+      "observed_blockers": [
+        "task:TSK-M6-DEMO->blocker:cancellation-ambiguous:TSK-M6-DEMO"
+      ],
+      "passed": true
+    },
+    {
+      "case_id": "ambiguous-external-effect",
+      "deterministic_digest": "4CF90FE882984139EF3DE6C50F1480867B44D32C04FA2EC805CA3B9E50B07269",
+      "observed_outcome": "blocked-unknown-no-automatic-retry",
+      "observed_wait_kind": "stall",
+      "observed_blockers": [
+        "task:TSK-M6-DEMO->blocker:ambiguous-external-effect:TSK-M6-DEMO"
+      ],
+      "passed": true
+    }
+  ],
+  "disposition_counts": {
+    "failed": 0,
+    "passed": 10
+  }
+}

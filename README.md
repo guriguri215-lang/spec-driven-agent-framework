@@ -4,11 +4,12 @@ SDAQF is a specification-driven development and quality-assurance framework for
 Codex-assisted projects. This repository contains the M0 Bootstrap Foundation,
 M1 Requirements and Planning MVP, M2 Agent, Skill, and Tool Orchestration, and
 M3 Evidence, UI/UX, and Release QA, M4 Public Beta Hardening, the local
-V1.0 release-candidate readiness contract, and the M5 Context Framework: an
+V1.0 release-candidate readiness contract, the M5 Context Framework, and the
+M6 Multi-Agent Control Framework: an
 offline-first Python CLI, deterministic
 requirement, orchestration, evidence, review, UI-observation, release, and
 handoff contracts, representative evaluation projects, explicit schema
-migration, reproducible context snapshots, safety guidance, reusable agent
+migration, reproducible context snapshots, durable offline scheduling, safety guidance, reusable agent
 skills, and local quality gates.
 
 The authoritative source for this bootstrap was a private Japanese
@@ -155,6 +156,37 @@ copying private workspace state.
 See [Context Framework](docs/context-framework.md) for the exact contracts and
 failure semantics.
 
+## Implemented in M6
+
+- Seven immutable content-addressed scheduler artifacts: Task Graph, Scheduler
+  State, Lease, Mailbox Message, Scheduler Event, Budget Ledger, and Worktree
+  Lease.
+- A standard-library SQLite schema-1 store with exclusive initialization,
+  `BEGIN IMMEDIATE`, rollback journaling, full synchronization, foreign keys,
+  exact schema/projection validation, hash-chained events, fenced single-owner
+  leases, and evidence-driven fresh-output projection recovery.
+- At-least-once host intents with stable attempt idempotency, strict current
+  fence adoption, bounded typed mailboxes, exact M2/M5 input binding,
+  transactional integer reservation/usage budgets, exact external approval
+  actors, causal worktree/cancellation requests, periodic portable heartbeat
+  leases, and truthful blocked/unknown ambiguity.
+- Approval-bound dispatch persists one provisional Lease before accepting an
+  exact external decision and reuses that identity across later ticks. Closed
+  evidence/result/review completion predicates, history-derived exact current
+  Lease and Worktree projections, and attempt-scoped budget settlement prevent
+  guessed approvals, omitted projection rows, false completion, and
+  cross-attempt reservation debit.
+- Host-agnostic `agents schedule`, `agents mailbox`, `agents recover`, and
+  `agents simulate` CLI paths. The package emits intents but never launches an
+  agent, mutates a Git worktree, or claims exactly-once execution.
+- Ten deterministic offline scenarios executed through the real SQLite state
+  machine, seven public schema/example pairs, a negative parity corpus,
+  deliberate projection-corruption recovery, and the named
+  `M6-SCHEDULER-SAFETY` validator.
+
+See [Multi-Agent Control Framework](docs/multi-agent-control-framework.md) for
+the exact state, lease, mailbox, recovery, and host-authority contracts.
+
 ## V1.0 release-candidate readiness
 
 - Distribution/runtime version `1.0.0rc1`, targeting public API line `1.0.0`.
@@ -184,6 +216,8 @@ The pinned development dependency and license record is in
 ### Not implemented for the release candidate
 
 - Automatic Git worktree creation, deletion, or integration.
+- A packaged real agent/session dispatcher. M6 exposes host ports and durable
+  intent/observation contracts only.
 - A management UI or automatic browser installation and launch. The offline
   core validates browser observations recorded by a host capability.
 - Gate G5 publication or automatic release publication.

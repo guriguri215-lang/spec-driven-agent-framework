@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/budget-ledger.schema.json",
+  "title": "M6 Budget Ledger",
+  "type": "object",
+  "required": ["schema_version", "artifact_type", "artifact_id", "content"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "artifact_type": {"const": "budget-ledger"},
+    "artifact_id": {"$ref": "task-graph.schema.json#/$defs/budget_id"},
+    "content": {
+      "type": "object",
+      "required": [
+        "graph_id",
+        "limits",
+        "reserved",
+        "used",
+        "availability",
+        "blocker_codes",
+        "event_sequence"
+      ],
+      "properties": {
+        "graph_id": {"$ref": "task-graph.schema.json#/$defs/task_graph_id"},
+        "limits": {"$ref": "task-graph.schema.json#/$defs/budget"},
+        "reserved": {"$ref": "task-graph.schema.json#/$defs/resource_counts"},
+        "used": {"$ref": "task-graph.schema.json#/$defs/resource_counts"},
+        "availability": {
+          "type": "object",
+          "required": [
+            "concurrency",
+            "context_bytes",
+            "dispatches",
+            "microunits",
+            "retries",
+            "solver_calls",
+            "solver_steps",
+            "tool_calls",
+            "wall_time_seconds"
+          ],
+          "propertyNames": {
+            "enum": [
+              "concurrency",
+              "context_bytes",
+              "dispatches",
+              "microunits",
+              "retries",
+              "solver_calls",
+              "solver_steps",
+              "tool_calls",
+              "wall_time_seconds"
+            ]
+          },
+          "additionalProperties": {"enum": ["available", "not_available"]}
+        },
+        "blocker_codes": {"$ref": "task-graph.schema.json#/$defs/string_set"},
+        "event_sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

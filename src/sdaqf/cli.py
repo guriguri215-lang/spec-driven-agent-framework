@@ -1,4 +1,4 @@
-"""Command-line interface for the offline M0 through M5 framework."""
+"""Command-line interface for the offline M0 through M6 framework."""
 
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ from sdaqf.adapters.context import (
     LocalContextSourceReader,
 )
 from sdaqf.adapters.process import SubprocessRunner
+from sdaqf.adapters.scheduler import SchedulerAdapterError
 from sdaqf.application.approvals import ApprovalContractError, ApprovalLoader
 from sdaqf.application.baselines import BaselineContractError, load_baseline
 from sdaqf.application.checkpoints import (
@@ -82,6 +83,10 @@ from sdaqf.application.release_qa import (
 )
 from sdaqf.application.requirements import SpecificationError, SpecificationIngestor
 from sdaqf.application.requirements_gate import RequirementsGateService
+from sdaqf.application.scheduler import SchedulerService
+from sdaqf.application.scheduler_contracts import SchedulerContractError
+from sdaqf.application.scheduler_recovery import SchedulerRecoveryService
+from sdaqf.application.scheduler_simulation import SCENARIOS, SchedulerSimulationService
 from sdaqf.application.skills import (
     SkillContractError,
     evaluate_templates,
@@ -104,6 +109,7 @@ from sdaqf.application.ui_validation import (
 from sdaqf.application.validation import ProjectValidator
 from sdaqf.application.workspace import WorkspaceInitializer, is_reparse_point
 from sdaqf.domain.quality import CandidateIdentity, GitObservation
+from sdaqf.domain.scheduler import TaskGraph
 from sdaqf.domain.tooling import ExecutionContext, ToolObservationStatus
 
 
@@ -141,16 +147,12 @@ def build_parser() -> argparse.ArgumentParser:
     goal.add_argument("milestone", help="Milestone identifier, such as M1.")
     goal.add_argument("--output", type=Path, help="Optional new output file.")
 
-    ingest = subparsers.add_parser(
-        "ingest", help="Ingest an untrusted Markdown specification."
-    )
+    ingest = subparsers.add_parser("ingest", help="Ingest an untrusted Markdown specification.")
     ingest.add_argument("specification", type=Path, help="Markdown specification.")
     ingest.add_argument("--output", type=Path, help="Optional new baseline JSON file.")
     ingest.add_argument("--json", action="store_true", help="Emit the baseline as JSON.")
 
-    compare = subparsers.add_parser(
-        "compare", help="Compare two validated requirement baselines."
-    )
+    compare = subparsers.add_parser("compare", help="Compare two validated requirement baselines.")
     compare.add_argument("previous", type=Path, help="Previous baseline JSON.")
     compare.add_argument("current", type=Path, help="Current baseline JSON.")
     compare.add_argument(
@@ -201,12 +203,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         help="Explicit objective identifier; repeat to assess multi-objective work.",
     )
-    standard_prompt.add_argument(
-        "--output", type=Path, help="Optional new Markdown output file."
-    )
-    standard_prompt.add_argument(
-        "--json", action="store_true", help="Emit mode metadata as JSON."
-    )
+    standard_prompt.add_argument("--output", type=Path, help="Optional new Markdown output file.")
+    standard_prompt.add_argument("--json", action="store_true", help="Emit mode metadata as JSON.")
 
     gate = subparsers.add_parser("gate", help="Evaluate a deterministic quality Gate.")
     gate_subparsers = gate.add_subparsers(dest="gate_name", required=True)
@@ -387,6 +385,97 @@ def build_parser() -> argparse.ArgumentParser:
     agents_result.add_argument("result", type=Path)
     agents_result.add_argument("--registry", type=Path, required=True)
     agents_result.add_argument("--json", action="store_true")
+    agents_schedule = agent_commands.add_parser(
+        "schedule",
+        help="Validate and advance durable host-agnostic scheduler state.",
+    )
+    schedule_commands = agents_schedule.add_subparsers(
+        dest="schedule_command",
+        required=True,
+    )
+    schedule_validate = schedule_commands.add_parser(
+        "validate",
+        help="Validate a Task Graph and all exact referenced inputs.",
+    )
+    schedule_validate.add_argument("task_graph", type=Path)
+    schedule_validate.add_argument("--root", type=Path, required=True)
+    schedule_validate.add_argument("--json", action="store_true")
+    schedule_init = schedule_commands.add_parser(
+        "init",
+        help="Exclusively initialize a fresh scheduler database.",
+    )
+    schedule_init.add_argument("task_graph", type=Path)
+    schedule_init.add_argument("--root", type=Path, required=True)
+    schedule_init.add_argument("--state", type=Path, required=True)
+    schedule_init.add_argument("--json", action="store_true")
+    schedule_tick = schedule_commands.add_parser(
+        "tick",
+        help="Run one bounded scheduler transaction without host dispatch.",
+    )
+    schedule_tick.add_argument("state", type=Path)
+    schedule_tick.add_argument("--root", type=Path, required=True)
+    schedule_tick.add_argument("--host-id", required=True)
+    schedule_tick.add_argument("--message", action="append", default=[], type=Path)
+    schedule_tick.add_argument("--json", action="store_true")
+    schedule_status = schedule_commands.add_parser(
+        "status",
+        help="Inspect the validated current scheduler projection.",
+    )
+    schedule_status.add_argument("state", type=Path)
+    schedule_status.add_argument("--root", type=Path, required=True)
+    schedule_status.add_argument("--json", action="store_true")
+    schedule_export = schedule_commands.add_parser(
+        "export",
+        help="Exclusively publish a bounded deterministic JSON export.",
+    )
+    schedule_export.add_argument("state", type=Path)
+    schedule_export.add_argument("--root", type=Path, required=True)
+    schedule_export.add_argument(
+        "--kind",
+        choices=("state", "leases", "messages", "events", "budget", "worktrees"),
+        required=True,
+    )
+    schedule_export.add_argument("--output", type=Path, required=True)
+    schedule_export.add_argument("--after-sequence", type=int, default=0)
+    schedule_export.add_argument("--limit", type=int, default=1000)
+    schedule_export.add_argument("--json", action="store_true")
+    agents_mailbox = agent_commands.add_parser(
+        "mailbox",
+        help="Inspect bounded scheduler mailbox messages.",
+    )
+    mailbox_commands = agents_mailbox.add_subparsers(
+        dest="mailbox_command",
+        required=True,
+    )
+    mailbox_inspect = mailbox_commands.add_parser(
+        "inspect",
+        help="Inspect messages without mutating scheduler state.",
+    )
+    mailbox_inspect.add_argument("state", type=Path)
+    mailbox_inspect.add_argument("--root", type=Path, required=True)
+    mailbox_inspect.add_argument("--task")
+    mailbox_inspect.add_argument(
+        "--direction",
+        choices=("scheduler_to_host", "host_to_scheduler", "owner_to_scheduler"),
+    )
+    mailbox_inspect.add_argument("--limit", type=int, default=100)
+    mailbox_inspect.add_argument("--json", action="store_true")
+    agents_recover = agent_commands.add_parser(
+        "recover",
+        help="Recover a validated scheduler database only to a fresh output.",
+    )
+    agents_recover.add_argument("state", type=Path)
+    agents_recover.add_argument("--root", type=Path, required=True)
+    agents_recover.add_argument("--output", type=Path, required=True)
+    agents_recover.add_argument("--json", action="store_true")
+    agents_simulate = agent_commands.add_parser(
+        "simulate",
+        help="Execute one deterministic offline scheduler scenario.",
+    )
+    agents_simulate.add_argument("task_graph", type=Path)
+    agents_simulate.add_argument("--root", type=Path, required=True)
+    agents_simulate.add_argument("--scenario", choices=SCENARIOS, required=True)
+    agents_simulate.add_argument("--json", action="store_true")
 
     skills = subparsers.add_parser(
         "skills",
@@ -640,9 +729,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     output=args.output,
                 )
             elif args.context_command == "select":
-                context_artifact = ContextSelector(
-                    CanonicalUTF8ByteEstimator()
-                ).select(
+                context_artifact = ContextSelector(CanonicalUTF8ByteEstimator()).select(
                     load_context_artifact(args.graph),
                     load_context_artifact(args.query),
                 )
@@ -761,9 +848,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             comparison = BaselineComparator().compare(
                 previous,
                 current,
-                approvals=tuple(
-                    ApprovalLoader().load(path) for path in args.approval
-                ),
+                approvals=tuple(ApprovalLoader().load(path) for path in args.approval),
             )
             if args.output is not None:
                 _write_new_file(args.output, _json_text(comparison.to_dict()))
@@ -806,11 +891,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command in {"goal", "prompt"}:
         try:
             prompt_baseline = load_baseline(args.baseline)
-            requested_mode = (
-                PromptMode.GOAL
-                if args.command == "goal"
-                else PromptMode(args.mode)
-            )
+            requested_mode = PromptMode.GOAL if args.command == "goal" else PromptMode(args.mode)
             if args.command == "goal" and args.objective is not None:
                 explicit_objectives = (args.objective,)
             elif args.command == "prompt" and args.objective:
@@ -844,20 +925,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             gate_baseline = load_baseline(args.baseline)
             gate_comparison: BaselineDiff | None = None
             if args.approval and args.previous is None:
-                raise ApprovalContractError(
-                    "Approval records require a previous baseline."
-                )
+                raise ApprovalContractError("Approval records require a previous baseline.")
             if args.previous is not None:
                 gate_comparison = BaselineComparator().compare(
                     load_baseline(args.previous),
                     gate_baseline,
-                    approvals=tuple(
-                        ApprovalLoader().load(path) for path in args.approval
-                    ),
+                    approvals=tuple(ApprovalLoader().load(path) for path in args.approval),
                 )
-            result = RequirementsGateService().evaluate(
-                gate_baseline, comparison=gate_comparison
-            )
+            result = RequirementsGateService().evaluate(gate_baseline, comparison=gate_comparison)
         except (ApprovalContractError, BaselineContractError):
             print("ERROR: requirements Gate input is invalid.", file=sys.stderr)
             return 2
@@ -875,9 +950,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             if source_digest != baseline.source.sha256:
                 raise ContractError("Specification does not match the baseline.")
-            git = GitInspector(
-                SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)
-            ).inspect(root)
+            git = GitInspector(SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)).inspect(
+                root
+            )
             _require_specification_candidate(root, args.specification, git)
             result = ImplementationEvidenceGateService().evaluate(
                 baseline,
@@ -902,9 +977,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             if source_digest != baseline.source.sha256:
                 raise ContractError("Specification does not match the baseline.")
-            git = GitInspector(
-                SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)
-            ).inspect(root)
+            git = GitInspector(SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)).inspect(
+                root
+            )
             _require_specification_candidate(root, args.specification, git)
             result = IndependentReviewGateService().evaluate(
                 load_independent_review(args.review),
@@ -912,10 +987,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 candidate=_candidate_identity(source_digest, git),
                 changed_paths=git.changed_paths,
                 candidate_paths=git.publication_paths,
-                approvals=tuple(
-                    FindingAcceptanceLoader().load(path)
-                    for path in args.approval
-                ),
+                approvals=tuple(FindingAcceptanceLoader().load(path) for path in args.approval),
             )
         except (BaselineContractError, ContractError, OSError):
             print("ERROR: independent review Gate input is invalid.", file=sys.stderr)
@@ -936,9 +1008,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             if source_digest != baseline.source.sha256:
                 raise ContractError("Specification does not match the baseline.")
-            git = GitInspector(
-                SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)
-            ).inspect(root)
+            git = GitInspector(SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)).inspect(
+                root
+            )
             _require_specification_candidate(root, args.specification, git)
             identity = _candidate_identity(source_digest, git)
             g1 = RequirementsGateService().evaluate(baseline)
@@ -1018,9 +1090,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             if source_digest != manifest.source_spec_sha256:
                 raise ContractError("Specification does not match the manifest.")
-            git = GitInspector(
-                SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)
-            ).inspect(root)
+            git = GitInspector(SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)).inspect(
+                root
+            )
             _require_specification_candidate(root, args.specification, git)
             candidate_identity = _candidate_identity(
                 source_digest,
@@ -1044,9 +1116,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             baseline = load_baseline(args.baseline)
             ledger = load_evidence_ledger(args.ledger)
             review = load_independent_review(args.review)
-            approvals = tuple(
-                FindingAcceptanceLoader().load(path) for path in args.approval
-            )
+            approvals = tuple(FindingAcceptanceLoader().load(path) for path in args.approval)
             manifest = load_manifest_ui(args.manifest)
             source_digest = inspect_specification(
                 root,
@@ -1058,9 +1128,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 or source_digest != manifest.source_spec_sha256
             ):
                 raise ContractError("Specification identity is inconsistent.")
-            git = GitInspector(
-                SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)
-            ).inspect(root)
+            git = GitInspector(SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)).inspect(
+                root
+            )
             _require_specification_candidate(root, args.specification, git)
             candidate_identity = _candidate_identity(source_digest, git)
             g2 = ImplementationEvidenceGateService().evaluate(
@@ -1112,9 +1182,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             if source_digest != baseline.source.sha256:
                 raise ContractError("Handoff specification does not match the baseline.")
-            git = GitInspector(
-                SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)
-            ).inspect(root)
+            git = GitInspector(SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)).inspect(
+                root
+            )
             _require_specification_candidate(root, args.specification, git)
             candidate_identity = _candidate_identity(source_digest, git)
             if args.handoff_command == "create":
@@ -1153,6 +1223,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     if args.command == "agents":
+        if args.agent_command in {"schedule", "mailbox", "recover", "simulate"}:
+            return _run_m6_scheduler(args)
         try:
             agent_registry = load_agent_registry(args.registry)
             if args.agent_command in {"validate", "plan"}:
@@ -1171,9 +1243,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             if args.agent_command == "plan":
                 request = load_orchestration_request(args.request)
                 worktree = (
-                    None
-                    if args.worktree_plan is None
-                    else load_worktree_plan(args.worktree_plan)
+                    None if args.worktree_plan is None else load_worktree_plan(args.worktree_plan)
                 )
                 orchestration_plan = AgentOrchestrator().plan(
                     agent_registry,
@@ -1240,15 +1310,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 raise ToolContractError("Unknown tool.")
             observation = ToolService(
                 SubprocessRunner(timeout_seconds=5, output_limit=4_096),
-                consumption_store=ExecutionApprovalConsumptionStore.for_registry(
-                    args.registry
-                ),
+                consumption_store=ExecutionApprovalConsumptionStore.for_registry(args.registry),
             ).check(
                 tool,
-                approvals=tuple(
-                    ExecutionApprovalLoader().load(path)
-                    for path in args.approval
-                ),
+                approvals=tuple(ExecutionApprovalLoader().load(path) for path in args.approval),
             )
         except ToolContractError:
             print("ERROR: Tool Registry or tool name is invalid.", file=sys.stderr)
@@ -1366,11 +1431,7 @@ def _m3_state_path(
     """Require an exact regular path below repository-local ignored M3 state."""
 
     state = root / ".sdaqf"
-    if (
-        not state.is_dir()
-        or state.is_symlink()
-        or is_reparse_point(state)
-    ):
+    if not state.is_dir() or state.is_symlink() or is_reparse_point(state):
         raise ContractError("M3 state directory must be regular and repository-local.")
     candidate = path if path.is_absolute() else root / path
     try:
@@ -1386,9 +1447,7 @@ def _m3_state_path(
         if not current.is_dir() or current.is_symlink() or is_reparse_point(current):
             raise ContractError("M3 state parents must be regular directories.")
     if require_existing and (
-        not resolved.is_file()
-        or resolved.is_symlink()
-        or is_reparse_point(resolved)
+        not resolved.is_file() or resolved.is_symlink() or is_reparse_point(resolved)
     ):
         raise ContractError("M3 state input must be a regular file.")
     return resolved
@@ -1418,6 +1477,120 @@ def _require_specification_candidate(
         raise ContractError("Specification is outside the publication candidate.") from exc
     if relative not in git.publication_paths:
         raise ContractError("Specification is absent from the Git publication candidate.")
+
+
+def _run_m6_scheduler(args: argparse.Namespace) -> int:
+    """Run one additive M6 scheduler command with bounded failure output."""
+
+    service = SchedulerService()
+    operation = args.agent_command
+    if operation == "schedule":
+        operation = f"schedule-{args.schedule_command}"
+    elif operation == "mailbox":
+        operation = f"mailbox-{args.mailbox_command}"
+    try:
+        if args.agent_command == "schedule" and args.schedule_command == "validate":
+            artifact = service.validate_graph(args.task_graph, args.root)
+            graph = artifact.value
+            assert isinstance(graph, TaskGraph)
+            _emit(
+                {
+                    "artifact_id": artifact.artifact_id,
+                    "tasks": len(graph.tasks),
+                    "valid": True,
+                },
+                as_json=args.json,
+            )
+            return 0
+        if args.agent_command == "schedule" and args.schedule_command == "init":
+            state = service.initialize(args.task_graph, args.root, args.state)
+            _emit(
+                {
+                    "artifact_id": state.artifact_id,
+                    "state": args.state.name,
+                    "valid": True,
+                },
+                as_json=args.json,
+            )
+            return 0
+        if args.agent_command == "schedule" and args.schedule_command == "tick":
+            tick = service.tick(
+                args.state,
+                args.root,
+                args.host_id,
+                tuple(args.message),
+            )
+            _emit(tick.to_dict(), as_json=args.json)
+            return 0
+        if args.agent_command == "schedule" and args.schedule_command == "status":
+            state = service.status(args.state, args.root)
+            wait_report = service.wait_report(args.state, args.root)
+            _emit(
+                {"state": state.to_dict(), "wait_report": wait_report.to_dict()},
+                as_json=args.json,
+            )
+            return 0
+        if args.agent_command == "schedule" and args.schedule_command == "export":
+            export_result = service.export(
+                args.state,
+                args.root,
+                args.kind,
+                args.output,
+                after_sequence=args.after_sequence,
+                limit=args.limit,
+            )
+            _emit(export_result, as_json=args.json)
+            return 0
+        if args.agent_command == "mailbox":
+            messages = service.inspect_mailbox(
+                args.state,
+                args.root,
+                task_id=args.task,
+                direction=args.direction,
+                limit=args.limit,
+            )
+            _emit(
+                {
+                    "count": len(messages),
+                    "messages": [item.to_dict() for item in messages],
+                },
+                as_json=args.json,
+            )
+            return 0
+        if args.agent_command == "recover":
+            state = SchedulerRecoveryService().recover(
+                args.state,
+                args.root,
+                args.output,
+            )
+            _emit(
+                {
+                    "artifact_id": state.artifact_id,
+                    "output": args.output.name,
+                    "valid": True,
+                },
+                as_json=args.json,
+            )
+            return 0
+        simulation_result = SchedulerSimulationService().run(
+            args.task_graph,
+            args.root,
+            args.scenario,
+        )
+        _emit(simulation_result.to_dict(), as_json=args.json)
+        return 0
+    except (SchedulerAdapterError, SchedulerContractError, OSError, ValueError):
+        if args.json:
+            _emit(
+                {"error": "m6-scheduler-invalid", "operation": operation},
+                as_json=True,
+            )
+        else:
+            print(
+                "ERROR: M6 scheduler operation failed without overwriting output.",
+                file=sys.stderr,
+            )
+        return 2
 
 
 def _write_new_file(path: Path, content: str) -> None:

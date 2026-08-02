@@ -28,21 +28,13 @@ def test_m4_public_schemas_and_fixtures_match() -> None:
     )
     validator.validate(
         "evaluation-result.schema.json",
-        json.loads(
-            (evals / "results" / "public-beta-comparison.json").read_text(
-                encoding="utf-8"
-            )
-        ),
+        json.loads((evals / "results" / "public-beta-comparison.json").read_text(encoding="utf-8")),
     )
     for project in ("offline-config", "secure-export", "ui-issue-tracker"):
         project_root = evals / "projects" / project
         validator.validate(
             "evaluation-expectation.schema.json",
-            json.loads(
-                (project_root / "expected-normalized.json").read_text(
-                    encoding="utf-8"
-                )
-            ),
+            json.loads((project_root / "expected-normalized.json").read_text(encoding="utf-8")),
         )
         for run in ("structured-run.json", "unstructured-run.json"):
             validator.validate(
@@ -67,20 +59,14 @@ def test_m4_migration_examples_preserve_legacy_and_current_contracts() -> None:
             json.loads((examples / fixture).read_text(encoding="utf-8")),
         )
 
-    assert load_agent_registry(
-        examples / "agent-registry-v2.json"
-    ).schema_version == "2.0"
-    assert load_tool_registry(
-        examples / "tool-registry-v2.json"
-    ).schema_version == "2.0"
+    assert load_agent_registry(examples / "agent-registry-v2.json").schema_version == "2.0"
+    assert load_tool_registry(examples / "tool-registry-v2.json").schema_version == "2.0"
 
 
 def test_platform_evidence_is_complete_and_truthful_about_verification() -> None:
     root = repository_root()
     evidence = json.loads(
-        (
-            root / "docs" / "evidence" / "M4-platform-evidence.json"
-        ).read_text(encoding="utf-8")
+        (root / "docs" / "evidence" / "M4-platform-evidence.json").read_text(encoding="utf-8")
     )
     LocalSchemaValidator(root / "schemas").validate(
         "platform-evidence.schema.json",
@@ -88,23 +74,17 @@ def test_platform_evidence_is_complete_and_truthful_about_verification() -> None
     )
 
     matrix = evidence["matrix"]
-    assert {
-        (item["platform"], item["python"])
-        for item in matrix
-    } == {
+    assert {(item["platform"], item["python"]) for item in matrix} == {
         ("windows", "3.12"),
         ("windows", "3.13"),
         ("linux", "3.12"),
         ("linux", "3.13"),
     }
     candidate = evidence["candidate"]
-    workflow = root / candidate["workflow_path"]
-    assert candidate["workflow_sha256"] == hashlib.sha256(
-        workflow.read_bytes()
-    ).hexdigest().upper()
-    normalized_workflow = " ".join(
-        workflow.read_text(encoding="utf-8").split()
-    )
+    assert candidate["workflow_path"] == ".github/workflows/ci.yml"
+    workflow = root / "docs" / "evidence" / "M4-ci-workflow.yml"
+    assert candidate["workflow_sha256"] == hashlib.sha256(workflow.read_bytes()).hexdigest().upper()
+    normalized_workflow = " ".join(workflow.read_text(encoding="utf-8").split())
     for item in matrix:
         if item["status"] == "PASS":
             assert candidate["git_head"] is not None
@@ -146,13 +126,9 @@ def test_platform_evidence_is_complete_and_truthful_about_verification() -> None
 
 def test_m4_plan_traces_requirements_and_criteria() -> None:
     root = repository_root()
-    plan = (
-        root
-        / "docs"
-        / "exec-plans"
-        / "active"
-        / "M4-public-beta-hardening.md"
-    ).read_text(encoding="utf-8")
+    plan = (root / "docs" / "exec-plans" / "active" / "M4-public-beta-hardening.md").read_text(
+        encoding="utf-8"
+    )
 
     for number in range(1, 8):
         assert f"`FR-EVL-{number:03d}`" in plan
@@ -174,13 +150,9 @@ def test_m4_plan_traces_requirements_and_criteria() -> None:
 
 def test_m4_public_documentation_covers_contributor_and_release_boundaries() -> None:
     root = repository_root()
-    contributor = (root / "docs" / "contributor-guide.md").read_text(
-        encoding="utf-8"
-    )
+    contributor = (root / "docs" / "contributor-guide.md").read_text(encoding="utf-8")
     evaluation = (root / "docs" / "evaluation.md").read_text(encoding="utf-8")
-    migration = (root / "docs" / "schema-migrations.md").read_text(
-        encoding="utf-8"
-    )
+    migration = (root / "docs" / "schema-migrations.md").read_text(encoding="utf-8")
     release = (root / "docs" / "release-contract.md").read_text(encoding="utf-8")
 
     for term in (
@@ -228,6 +200,4 @@ def test_v1_keeps_runtime_dependencies_empty_and_selects_exact_apache_license() 
     assert (root / "LICENSE").exists()
     assert (root / "NOTICE").exists()
     assert not (root / "LICENSE.md").exists()
-    assert "licensed under Apache License 2.0" in (root / "README.md").read_text(
-        encoding="utf-8"
-    )
+    assert "licensed under Apache License 2.0" in (root / "README.md").read_text(encoding="utf-8")

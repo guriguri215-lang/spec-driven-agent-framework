@@ -166,3 +166,25 @@ A future Context schema change must use a new schema file/version, preserve the
 historical artifact, document source and target identities, and provide a
 separately approved explicit migration if conversion is necessary. Existing
 schema `1.0` meanings may not be silently extended.
+
+## M6 scheduler schema policy
+
+The seven scheduler JSON schema `1.0` files are additive and
+content-addressed. There is no predecessor and no implicit conversion from an
+M2 plan or M5 Snapshot. Existing Agent Result, registry, request, worktree,
+approval, Context, evidence, review, and handoff meanings remain unchanged.
+
+The SQLite store is identified by application ID `0x53444151`,
+`user_version=1`, and metadata schema `1.0`. The implementation rejects an
+unknown version, extra or missing table, trigger/view, corrupt integrity check,
+broken event chain, or inconsistent immutable projection. It never performs
+an in-place upgrade or opportunistic repair.
+
+`agents recover` validates the exact source schema and immutable evidence,
+copies only immutable graph/event/message/history records into a fresh schema,
+and rebuilds all mutable projections from those records. It then validates the
+rebuilt database, compares immutable evidence, and exclusively publishes a
+fresh named output. The source is not changed. Existing output, ambiguous
+publication, damaged immutable evidence, or evidence drift fails closed. A
+future M6 migration needs a new version, preserved source, explicit
+compatibility contract, separate approval, and new evidence.

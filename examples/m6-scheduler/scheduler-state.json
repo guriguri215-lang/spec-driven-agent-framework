@@ -1,0 +1,35 @@
+{
+  "artifact_id": "M6-SCHEDULER-STATE-AA4A04225B81D72E962512F8C48E1C88415670F67DF6D2AAC28B828A1FBB41FD",
+  "artifact_type": "scheduler-state",
+  "content": {
+    "budget_ledger_id": "M6-BUDGET-LEDGER-45C4FB6F42C238CB2A77118A8796FE704D6D60D5F134DB648D1D2B21E5890A16",
+    "candidate": {
+      "git_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "repository_digest": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "source_spec_sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+    },
+    "event_head_sha256": "58C0AFBCCEE265D457F1F9121AD255F6E1654AB369C7F6CBCB71DE4E80E0FE12",
+    "event_sequence": 2,
+    "graph_id": "M6-TASK-GRAPH-812F1666FD65A7A3251D6414346308EBC5BEA7FDEE488408A3A59BFDDA003BE6",
+    "lease_ids": [
+      "M6-LEASE-3D0DEA45CDE6A5DCB4916C25F2868E20B91E57E21D44D1FE8A42977E3A10B62D"
+    ],
+    "message_ids": [
+      "M6-MESSAGE-CDBCD1C87CF689F227F1D89867E2C4DE4D0FD7A3BA932B211238DC6B3A817A52"
+    ],
+    "ready_order": [],
+    "tasks": [
+      {
+        "attempt": 1,
+        "blockers": [],
+        "dispatch_phase": "intent_pending",
+        "fence": 1,
+        "outcome": "none",
+        "state": "running",
+        "task_id": "TSK-M6-DEMO"
+      }
+    ],
+    "worktree_lease_ids": []
+  },
+  "schema_version": "1.0"
+}

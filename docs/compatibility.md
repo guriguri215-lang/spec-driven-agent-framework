@@ -54,6 +54,19 @@ Query and require exact Selection equality; structural schema validity alone
 does not establish semantic compatibility. Production Compaction requires
 explicit roots and reauthenticates a persisted Snapshot before use.
 
+M6 adds seven independent scheduler schema `1.0` contracts. They are additive
+and do not reinterpret an Agent Result, M2 registry/request/worktree record,
+M5 Context artifact, Gate, approval, checkpoint, or handoff. Task Graphs are
+compatible only with the exact referenced M2/M5 bytes and candidate identity.
+Mailbox and result adoption additionally requires the exact graph, task,
+Context Snapshot, attempt, lease, fence, idempotency key, sensitivity, and
+causal parent identities.
+
+The SQLite database is a local implementation detail, not a portable public
+schema. Compatibility requires application ID `0x53444151`, `user_version=1`,
+and metadata schema `1.0`. Unknown versions and altered table shape fail
+closed. There is no in-place or automatic database migration.
+
 ## Migration
 
 No migration is required from the M4 Public Beta CLI behavior. Existing
@@ -81,6 +94,14 @@ missing Context field receives an inferred lower-trust value.
 The stable top-level `sdaqf.__all__` remains unchanged. Context domain and
 application modules are implementation details until a separately approved
 stable Python API contract is published.
+
+There is no pre-M6 scheduler artifact or database to migrate. Adoption creates
+a fresh database from a validated Task Graph. Recovery also writes only a
+fresh output after exact source-schema and immutable-evidence validation,
+rebuilds every mutable projection, and requires evidence equivalence before
+exclusive publication. A future scheduler schema or SQLite version must
+preserve the old source and use a separately documented, explicitly approved
+conversion.
 
 ## Deprecation
 

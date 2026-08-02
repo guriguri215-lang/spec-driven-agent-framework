@@ -1,0 +1,459 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/task-graph.schema.json",
+  "title": "M6 Task Graph",
+  "type": "object",
+  "required": ["schema_version", "artifact_type", "artifact_id", "content"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "artifact_type": {"const": "task-graph"},
+    "artifact_id": {"$ref": "#/$defs/task_graph_id"},
+    "content": {
+      "type": "object",
+      "required": [
+        "candidate",
+        "agent_registry",
+        "tool_registry",
+        "orchestration_request",
+        "worktree_plan",
+        "contexts",
+        "budget",
+        "tasks"
+      ],
+      "properties": {
+        "candidate": {"$ref": "#/$defs/candidate"},
+        "agent_registry": {"$ref": "#/$defs/reference"},
+        "tool_registry": {"$ref": "#/$defs/reference"},
+        "orchestration_request": {"$ref": "#/$defs/reference"},
+        "worktree_plan": {
+          "oneOf": [{"type": "null"}, {"$ref": "#/$defs/reference"}]
+        },
+        "contexts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/context_binding"}
+        },
+        "budget": {"$ref": "#/$defs/budget"},
+        "tasks": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/task"}
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9A-F]{64}$"},
+    "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "safe_path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$",
+      "allOf": [
+        {"not": {"pattern": "(?:^|/)~"}},
+        {"not": {"pattern": "\\.(?:/|$)"}},
+        {
+          "not": {
+            "pattern": "(?:^|/)(?:[Aa][Uu][Xx]|[Cc][Oo][Nn]|[Nn][Uu][Ll]|[Pp][Rr][Nn]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.[A-Za-z0-9._-]*)?(?:/|$)"
+          }
+        }
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,6})?Z$"
+    },
+    "task_graph_id": {
+      "type": "string",
+      "pattern": "^M6-TASK-GRAPH-[0-9A-F]{64}$"
+    },
+    "scheduler_state_id": {
+      "type": "string",
+      "pattern": "^M6-SCHEDULER-STATE-[0-9A-F]{64}$"
+    },
+    "lease_id": {
+      "type": "string",
+      "pattern": "^M6-LEASE-[0-9A-F]{64}$"
+    },
+    "message_id": {
+      "type": "string",
+      "pattern": "^M6-MESSAGE-[0-9A-F]{64}$"
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^M6-EVENT-[0-9A-F]{64}$"
+    },
+    "budget_id": {
+      "type": "string",
+      "pattern": "^M6-BUDGET-LEDGER-[0-9A-F]{64}$"
+    },
+    "worktree_lease_id": {
+      "type": "string",
+      "pattern": "^M6-WORKTREE-LEASE-[0-9A-F]{64}$"
+    },
+    "task_id": {
+      "type": "string",
+      "pattern": "^TSK-[A-Z0-9][A-Z0-9-]{0,63}$"
+    },
+    "host_or_worker_id": {
+      "type": "string",
+      "pattern": "^(?:HST|WRK)-[A-Z0-9][A-Z0-9-]{0,63}$"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "pattern": "^IDEM-[0-9A-F]{64}$"
+    },
+    "context_snapshot_id": {
+      "type": "string",
+      "pattern": "^CTX-SNAPSHOT-[0-9A-F]{64}$"
+    },
+    "candidate": {
+      "type": "object",
+      "required": ["source_spec_sha256", "git_head", "repository_digest"],
+      "properties": {
+        "source_spec_sha256": {"$ref": "#/$defs/sha256"},
+        "git_head": {"$ref": "#/$defs/commit"},
+        "repository_digest": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "reference": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"$ref": "#/$defs/safe_path"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "sensitivity": {
+      "enum": ["public", "repository-private", "owner-private"]
+    },
+    "context_binding": {
+      "type": "object",
+      "required": ["artifact_id", "path", "sha256", "sensitivity", "candidate"],
+      "properties": {
+        "artifact_id": {"$ref": "#/$defs/context_snapshot_id"},
+        "path": {"$ref": "#/$defs/safe_path"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "sensitivity": {"$ref": "#/$defs/sensitivity"},
+        "candidate": {"$ref": "#/$defs/candidate"}
+      },
+      "additionalProperties": false
+    },
+    "budget": {
+      "type": "object",
+      "required": [
+        "max_agents",
+        "max_concurrency",
+        "max_reasoning_effort",
+        "max_dispatches",
+        "max_retries",
+        "max_wall_time_seconds",
+        "max_tool_calls",
+        "max_context_bytes_per_dispatch",
+        "max_context_bytes_total",
+        "max_solver_calls",
+        "max_solver_steps",
+        "cost"
+      ],
+      "properties": {
+        "max_agents": {"type": "integer", "minimum": 1, "maximum": 16},
+        "max_concurrency": {"type": "integer", "minimum": 1, "maximum": 16},
+        "max_reasoning_effort": {"enum": ["low", "medium", "high"]},
+        "max_dispatches": {"type": "integer", "minimum": 1, "maximum": 4096},
+        "max_retries": {"type": "integer", "minimum": 0, "maximum": 1024},
+        "max_wall_time_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 604800
+        },
+        "max_tool_calls": {"type": "integer", "minimum": 0, "maximum": 100000},
+        "max_context_bytes_per_dispatch": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 8388608
+        },
+        "max_context_bytes_total": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 34359738368
+        },
+        "max_solver_calls": {"type": "integer", "minimum": 0, "maximum": 1024},
+        "max_solver_steps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "cost": {
+          "type": "object",
+          "required": ["status", "currency", "max_microunits"],
+          "properties": {
+            "status": {"enum": ["available", "not_available"]},
+            "currency": {
+              "oneOf": [
+                {"type": "null"},
+                {"type": "string", "pattern": "^[A-Z]{3}$"}
+              ]
+            },
+            "max_microunits": {
+              "oneOf": [
+                {"type": "null"},
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000000000000
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "allOf": [
+            {
+              "if": {"properties": {"status": {"const": "available"}}},
+              "then": {
+                "properties": {
+                  "currency": {"type": "string", "pattern": "^[A-Z]{3}$"},
+                  "max_microunits": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000000000000
+                  }
+                }
+              }
+            },
+            {
+              "if": {"properties": {"status": {"const": "not_available"}}},
+              "then": {
+                "properties": {
+                  "currency": {"type": "null"},
+                  "max_microunits": {"type": "null"}
+                }
+              }
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {"if": {"properties": {"max_agents": {"const": 1}}, "required": ["max_agents"]}, "then": {"properties": {"max_concurrency": {"maximum": 1}}}},
+        {"if": {"properties": {"max_agents": {"const": 2}}, "required": ["max_agents"]}, "then": {"properties": {"max_concurrency": {"maximum": 2}}}},
+        {"if": {"properties": {"max_agents": {"const": 3}}, "required": ["max_agents"]}, "then": {"properties": {"max_concurrency": {"maximum": 3}}}},
+        {"if": {"properties": {"max_agents": {"const": 4}}, "required": ["max_agents"]}, "then": {"properties": {"max_concurrency": {"maximum": 4}}}},
+        {"if": {"properties": {"max_agents": {"const": 5}}, "required": ["max_agents"]}, "then": {"properties": {"max_concurrency": {"maximum": 5}}}},
+        {"if": {"properties": {"max_agents": {"const": 6}}, "required": ["max_agents"]}, "then": {"properties": {"max_concurrency": {"maximum": 6}}}},
+        {"if": {"properties": {"max_agents": {"const": 7}}, "required": ["max_agents"]}, "then": {"properties": {"max_concurrency": {"maximum": 7}}}},
+        {"if": {"properties": {"max_agents": {"const": 8}}, "required": ["max_agents"]}, "then": {"properties": {"max_concurrency": {"maximum": 8}}}},
+        {"if": {"properties": {"max_agents": {"const": 9}}, "required": ["max_agents"]}, "then": {"properties": {"max_concurrency": {"maximum": 9}}}},
+        {"if": {"properties": {"max_agents": {"const": 10}}, "required": ["max_agents"]}, "then": {"properties": {"max_concurrency": {"maximum": 10}}}},
+        {"if": {"properties": {"max_agents": {"const": 11}}, "required": ["max_agents"]}, "then": {"properties": {"max_concurrency": {"maximum": 11}}}},
+        {"if": {"properties": {"max_agents": {"const": 12}}, "required": ["max_agents"]}, "then": {"properties": {"max_concurrency": {"maximum": 12}}}},
+        {"if": {"properties": {"max_agents": {"const": 13}}, "required": ["max_agents"]}, "then": {"properties": {"max_concurrency": {"maximum": 13}}}},
+        {"if": {"properties": {"max_agents": {"const": 14}}, "required": ["max_agents"]}, "then": {"properties": {"max_concurrency": {"maximum": 14}}}},
+        {"if": {"properties": {"max_agents": {"const": 15}}, "required": ["max_agents"]}, "then": {"properties": {"max_concurrency": {"maximum": 15}}}}
+      ],
+      "additionalProperties": false
+    },
+    "string_set": {
+      "type": "array",
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500,
+        "pattern": "^(?!\\s*$)[^\\r\\n\\u0000-\\u001F\\u007F]*$",
+        "allOf": [
+          {"not": {"pattern": "AKIA[0-9A-Z]{16}"}},
+          {"not": {"pattern": "gh[pousr]_[A-Za-z0-9]{20,}"}},
+          {
+            "not": {
+              "pattern": "-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"
+            }
+          }
+        ]
+      }
+    },
+    "path_set": {
+      "type": "array",
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/safe_path"}
+    },
+    "task_id_set": {
+      "type": "array",
+      "maxItems": 4096,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/task_id"}
+    },
+    "task": {
+      "type": "object",
+      "required": [
+        "task_id",
+        "kind",
+        "dependencies",
+        "role_id",
+        "context_snapshot_id",
+        "required_tools",
+        "required_capabilities",
+        "owned_paths",
+        "worktree_assignment",
+        "effect_kind",
+        "approval_stops",
+        "evidence_predicate",
+        "review_targets",
+        "terminal_predicate",
+        "wave",
+        "max_attempts"
+      ],
+      "properties": {
+        "task_id": {"$ref": "#/$defs/task_id"},
+        "kind": {
+          "enum": [
+            "discovery",
+            "implementation",
+            "test",
+            "tool",
+            "review",
+            "integration",
+            "solver",
+            "handoff"
+          ]
+        },
+        "dependencies": {"$ref": "#/$defs/task_id_set"},
+        "role_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,63}$"
+        },
+        "context_snapshot_id": {"$ref": "#/$defs/context_snapshot_id"},
+        "required_tools": {"$ref": "#/$defs/string_set"},
+        "required_capabilities": {"$ref": "#/$defs/string_set"},
+        "owned_paths": {"$ref": "#/$defs/path_set"},
+        "worktree_assignment": {
+          "oneOf": [{"type": "null"}, {"$ref": "#/$defs/safe_path"}]
+        },
+        "effect_kind": {
+          "enum": ["read_only", "local_write", "external", "destructive"]
+        },
+        "approval_stops": {
+          "type": "array",
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {"enum": ["owner", "technical_sandbox"]}
+        },
+        "evidence_predicate": {
+          "type": "array",
+          "maxItems": 1,
+          "uniqueItems": true,
+          "items": {"const": "evidence-reference-present"}
+        },
+        "review_targets": {"$ref": "#/$defs/task_id_set"},
+        "terminal_predicate": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "uniqueItems": true,
+          "items": {"const": "agent-result-valid"}
+        },
+        "wave": {"type": "integer", "minimum": 0, "maximum": 4096},
+        "max_attempts": {"type": "integer", "minimum": 1, "maximum": 3}
+      },
+      "additionalProperties": false
+    },
+    "blocker": {
+      "type": "object",
+      "required": ["code", "references"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1, "maxLength": 100},
+        "references": {"$ref": "#/$defs/string_set"}
+      },
+      "additionalProperties": false
+    },
+    "resource_counts": {
+      "type": "object",
+      "required": [
+        "concurrency",
+        "context_bytes",
+        "dispatches",
+        "microunits",
+        "retries",
+        "solver_calls",
+        "solver_steps",
+        "tool_calls",
+        "wall_time_seconds"
+      ],
+      "propertyNames": {
+        "enum": [
+          "concurrency",
+          "context_bytes",
+          "dispatches",
+          "microunits",
+          "retries",
+          "solver_calls",
+          "solver_steps",
+          "tool_calls",
+          "wall_time_seconds"
+        ]
+      },
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 1000000000000000
+      }
+    },
+    "task_projection": {
+      "type": "object",
+      "required": [
+        "task_id",
+        "state",
+        "dispatch_phase",
+        "outcome",
+        "attempt",
+        "fence",
+        "blockers"
+      ],
+      "properties": {
+        "task_id": {"$ref": "#/$defs/task_id"},
+        "state": {
+          "enum": [
+            "planned",
+            "ready",
+            "running",
+            "blocked",
+            "verification",
+            "completed",
+            "rejected",
+            "superseded"
+          ]
+        },
+        "dispatch_phase": {
+          "enum": [
+            "not_dispatched",
+            "intent_pending",
+            "accepted",
+            "cancellation_requested",
+            "cancellation_acknowledged"
+          ]
+        },
+        "outcome": {
+          "enum": ["none", "succeeded", "failed", "cancelled", "unknown"]
+        },
+        "attempt": {"type": "integer", "minimum": 0, "maximum": 3},
+        "fence": {"type": "integer", "minimum": 0, "maximum": 2147483647},
+        "blockers": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/blocker"}
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -23,7 +23,10 @@ python -m coverage report --include="src/sdaqf/domain/orchestration.py,src/sdaqf
 python -m coverage report --include="src/sdaqf/domain/quality.py,src/sdaqf/application/contracts.py,src/sdaqf/application/evidence.py,src/sdaqf/application/quality_gates.py,src/sdaqf/application/ui_validation.py,src/sdaqf/application/release_qa.py,src/sdaqf/application/handoffs.py" --fail-under=90
 python -m coverage report --include="src/sdaqf/domain/evaluation.py,src/sdaqf/domain/migrations.py,src/sdaqf/application/evaluation.py,src/sdaqf/application/migrations.py" --fail-under=90
 python -m coverage report --include="src/sdaqf/domain/context.py,src/sdaqf/ports/context.py,src/sdaqf/adapters/context.py,src/sdaqf/application/context_contracts.py,src/sdaqf/application/context_index.py,src/sdaqf/application/context_selection.py,src/sdaqf/application/context_compaction.py,src/sdaqf/application/context_quality.py" --fail-under=80
+python -m coverage report --include="src/sdaqf/domain/scheduler.py,src/sdaqf/ports/scheduler.py,src/sdaqf/adapters/scheduler.py,src/sdaqf/application/scheduler_contracts.py,src/sdaqf/application/scheduler.py,src/sdaqf/application/scheduler_recovery.py,src/sdaqf/application/scheduler_simulation.py" --fail-under=90
 python scripts/run_cli_smoke.py
+python scripts/validate_m5_context.py
+python scripts/validate_m6_scheduler.py
 python -m sdaqf eval validate evals/comparison-suite.json --result evals/results/public-beta-comparison.json --json
 python scripts/check_workspace_boundary.py --repo . --expected-origin-url https://github.com/guriguri215-lang/spec-driven-agent-framework.git
 python scripts/audit_repository.py --root . --workspace-parent ..
@@ -52,6 +55,10 @@ migration remains approval-bound.
 It additionally runs M5 Context validation, indexing, selection, Snapshot
 re-observation, structural comparison, and extractive compaction against the
 synthetic public fixture.
+It also validates and initializes an M6 Task Graph, advances and inspects the
+SQLite state, exports events, inspects the mailbox, recovers to a fresh state,
+and runs a deterministic real-state-machine simulation without dispatching a
+host effect.
 The positive G4 fixture performs an actual `python -I -m pip --isolated`,
 no-index, no-build-isolation, no-dependency target installation and executes
 the installed module from that fresh target. It materializes only Git
@@ -78,10 +85,10 @@ known-limitations sections.
 ## Continuous integration parity
 
 Every Windows/Linux and Python 3.12/3.13 matrix job runs pytest, Ruff, strict
-mypy, total and M1/M2 critical branch coverage, both repository audits, the Git
+mypy, total and M1/M2/M6 critical branch coverage, both repository audits, the Git
 workspace boundary, installed dependency consistency, and the exact CLI smoke
 script. Full pytest and smoke therefore exercise M4 on every existing matrix
-job without a workflow change. The M3 and M4 critical thresholds are
+job. The matrix also runs `M6-SCHEDULER-SAFETY`. The M3, M4, and M5 critical thresholds are
 additional local Gates; changing the GitHub workflow remains outside M4
 authorization. CI uses only immutable pinned GitHub Action commits and installs
 no runtime dependency.
@@ -94,6 +101,33 @@ actually run.
 
 ## Local commit gate
 
+- `python scripts/validate_m6_scheduler.py` prints
+  `PASS: M6-SCHEDULER-SAFETY` and validates all seven positive runtime/schema
+  artifact pairs, positive and negative structural runtime/schema parity,
+  authoritative cross-field time safety, exact SQLite identity and schema
+  shape, one-owner concurrent claiming, deliberate mutable projection
+  corruption followed by immutable-evidence reconstruction, all ten durable-
+  state-backed deterministic scenarios, recorded evaluation parity, and the
+  unchanged stable top-level exports.
+- M6 focused tests cover strict envelopes, exact M2/M5 binding, DAG and path
+  invariants, protected-transition revalidation, Agent Result/evidence
+  consistency, transactional state, exact schema/projection reconciliation,
+  fencing, periodic heartbeat/expiry, idempotent and conflicting messages,
+  exact approval actors, persisted approval-proposal identity across real clock
+  gaps, and atomic dual consumption; closed evidence/result/review completion
+  predicates; sensitivity parity; deep artifact immutability; agent/concurrency
+  ordering parity; attempt-scoped integer reservation settlement;
+  exact current Lease/Worktree set reconciliation; causal cancellation and
+  worktree intents; immutable initialization-bound Lease policy; exact
+  cause-derived Worktree history cardinality; initialization-anchored wall-time
+  observation; old-attempt cancellation rejection; exact Worktree-observation
+  phase, assignment, prior-request, and current-Lease authority under fully
+  rehashed foreign-path, post-dispatch, and old-Lease corruption; exact
+  non-result Lease-history output cardinality and heartbeat-plus-TTL expiry
+  derivation under a content-addressed extra-current-row corruption; ambiguity
+  and late-result rejection; corruption recovery;
+  CLI confinement/collision; and real-state-machine simulation. M6 critical
+  branch coverage is at least 90 percent.
 - `python scripts/validate_m5_context.py` prints
   `PASS: M5-CONTEXT-INTEGRITY` and reproduces all eight public Context
   artifacts, seven named scenarios, the exact Snapshot, extractive Compaction,

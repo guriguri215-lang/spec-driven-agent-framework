@@ -87,7 +87,7 @@ M5 through M8 extend the framework additively:
 
 ## M5: Context Framework
 
-Status: Owner-approved implementation candidate validated locally; exact-candidate independent review, Windows/Linux CI, and Git finalization pending.
+Status: Second exact-candidate independent review returned NO-GO with 0 Critical, 4 High, 2 Medium, and 1 Low finding; all seven findings are remediated and the fresh full local Release Contract passes, while a new independent review, Windows/Linux CI, and Git finalization remain pending.
 
 ### Objective
 
@@ -155,7 +155,7 @@ reproducible context snapshots with explicit selection and exclusion reasons.
 
 ## M6: Multi-Agent Control Framework
 
-Status: planned; depends on M5.
+Status: Owner-approved implementation candidate validated locally; exact-candidate independent review, Windows/Linux CI, and Git finalization pending.
 
 ### Objective
 

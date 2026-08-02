@@ -1,0 +1,23 @@
+{
+  "artifact_id": "M6-WORKTREE-LEASE-D31E7F0F0277FECA054EB8447A220AFA206B5D8FBF2CA2F46BA457EF85D5C247",
+  "artifact_type": "worktree-lease",
+  "content": {
+    "ambiguous": false,
+    "base_commit": "eff9e3abfa6aff3e22d71b23140e838cd222832a",
+    "fence": 1,
+    "graph_id": "M6-TASK-GRAPH-812F1666FD65A7A3251D6414346308EBC5BEA7FDEE488408A3A59BFDDA003BE6",
+    "integration_state": "verified",
+    "observed_digest": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+    "owned_paths": ["src/sdaqf"],
+    "owner_id": "HST-SIMULATOR",
+    "recovery_guidance": "Preserve the worktree and require an exact host observation.",
+    "status": "observed",
+    "task_id": "TSK-M6-DEMO",
+    "worktree": "worktrees/implementation",
+    "worktree_plan": {
+      "path": "examples/m2-orchestration/worktree-plan.json",
+      "sha256": "B0930D096EE91F4913E3C0B1897813B47B43B1900511868D55AD41C024A7F4CE"
+    }
+  },
+  "schema_version": "1.0"
+}

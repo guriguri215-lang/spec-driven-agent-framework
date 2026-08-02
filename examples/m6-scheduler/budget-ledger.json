@@ -1,0 +1,61 @@
+{
+  "artifact_id": "M6-BUDGET-LEDGER-45C4FB6F42C238CB2A77118A8796FE704D6D60D5F134DB648D1D2B21E5890A16",
+  "artifact_type": "budget-ledger",
+  "content": {
+    "availability": {
+      "concurrency": "available",
+      "context_bytes": "available",
+      "dispatches": "available",
+      "microunits": "not_available",
+      "retries": "available",
+      "solver_calls": "available",
+      "solver_steps": "available",
+      "tool_calls": "available",
+      "wall_time_seconds": "available"
+    },
+    "blocker_codes": [],
+    "event_sequence": 2,
+    "graph_id": "M6-TASK-GRAPH-812F1666FD65A7A3251D6414346308EBC5BEA7FDEE488408A3A59BFDDA003BE6",
+    "limits": {
+      "cost": {
+        "currency": null,
+        "max_microunits": null,
+        "status": "not_available"
+      },
+      "max_agents": 2,
+      "max_concurrency": 2,
+      "max_context_bytes_per_dispatch": 8388608,
+      "max_context_bytes_total": 16777216,
+      "max_dispatches": 16,
+      "max_reasoning_effort": "high",
+      "max_retries": 4,
+      "max_solver_calls": 0,
+      "max_solver_steps": 0,
+      "max_tool_calls": 16,
+      "max_wall_time_seconds": 3600
+    },
+    "reserved": {
+      "concurrency": 1,
+      "context_bytes": 8202,
+      "dispatches": 0,
+      "microunits": 0,
+      "retries": 0,
+      "solver_calls": 0,
+      "solver_steps": 0,
+      "tool_calls": 1,
+      "wall_time_seconds": 0
+    },
+    "used": {
+      "concurrency": 0,
+      "context_bytes": 0,
+      "dispatches": 1,
+      "microunits": 0,
+      "retries": 0,
+      "solver_calls": 0,
+      "solver_steps": 0,
+      "tool_calls": 0,
+      "wall_time_seconds": 0
+    }
+  },
+  "schema_version": "1.0"
+}

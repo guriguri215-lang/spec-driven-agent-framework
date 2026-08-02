@@ -1,4 +1,4 @@
-"""Run the exact offline M0 through M5 CLI smoke contract."""
+"""Run the exact offline M0 through M6 CLI smoke contract."""
 
 from __future__ import annotations
 
@@ -267,11 +267,7 @@ def _record_install_trace(
         timeout_seconds=60,
         output_limit=64 * 1024,
     ).run([sys.executable, *execution_command[1:]])
-    if (
-        execution.returncode != 0
-        or execution.stdout_truncated
-        or execution.stderr_truncated
-    ):
+    if execution.returncode != 0 or execution.stdout_truncated or execution.stderr_truncated:
         raise RuntimeError("installed-module execution smoke failed.")
     return {
         "schema_version": "1.0",
@@ -281,9 +277,7 @@ def _record_install_trace(
         "started_at": started.isoformat(),
         "finished_at": finished.isoformat(),
         "duration_ms": result.duration_ms,
-        "executable_sha256": hashlib.sha256(
-            Path(sys.executable).read_bytes()
-        ).hexdigest().upper(),
+        "executable_sha256": hashlib.sha256(Path(sys.executable).read_bytes()).hexdigest().upper(),
         "python_version": platform.python_version(),
         "stdout_sha256": hashlib.sha256(result.stdout.encode()).hexdigest().upper(),
         "stderr_sha256": hashlib.sha256(result.stderr.encode()).hexdigest().upper(),
@@ -296,12 +290,8 @@ def _record_install_trace(
         "execution_command": execution_command,
         "execution_returncode": execution.returncode,
         "execution_duration_ms": execution.duration_ms,
-        "execution_stdout_sha256": hashlib.sha256(
-            execution.stdout.encode()
-        ).hexdigest().upper(),
-        "execution_stderr_sha256": hashlib.sha256(
-            execution.stderr.encode()
-        ).hexdigest().upper(),
+        "execution_stdout_sha256": hashlib.sha256(execution.stdout.encode()).hexdigest().upper(),
+        "execution_stderr_sha256": hashlib.sha256(execution.stderr.encode()).hexdigest().upper(),
         "git_head": git_head,
         "repository_digest": repository_digest,
     }
@@ -368,11 +358,7 @@ def _clean_materialization_outputs(
 ) -> None:
     """Remove only generated outputs from the owned source snapshot."""
 
-    if (
-        not source_root.is_dir()
-        or source_root.is_symlink()
-        or is_reparse_point(source_root)
-    ):
+    if not source_root.is_dir() or source_root.is_symlink() or is_reparse_point(source_root):
         raise RuntimeError("materialized source changed identity during installation.")
     generated: list[Path] = []
     for path in source_root.rglob("*"):
@@ -385,8 +371,7 @@ def _clean_materialization_outputs(
             path.name in {".eggs", "__pycache__", "build", "dist"}
             or path.name.casefold().endswith(".egg-info")
         ) and not any(
-            item == relative or item.startswith(f"{relative}/")
-            for item in publication_paths
+            item == relative or item.startswith(f"{relative}/") for item in publication_paths
         ):
             generated.append(path)
     for path in sorted(generated, key=lambda item: len(item.parts), reverse=True):
@@ -402,8 +387,7 @@ def _run_positive_g4_smoke(parent: Path) -> None:
     for name in ("README.md", "CONTRIBUTING.md", "SECURITY.md", "CHANGELOG.md"):
         (release_root / name).write_text(f"# {name}\n", encoding="utf-8")
     (release_root / "README.md").write_text(
-        "# Smoke release\n\n## Installation\n\nOffline.\n\n"
-        "## Known limitations\n\nFixture only.\n",
+        "# Smoke release\n\n## Installation\n\nOffline.\n\n## Known limitations\n\nFixture only.\n",
         encoding="utf-8",
     )
     (docs / "release-contract.md").write_text(
@@ -416,11 +400,11 @@ def _run_positive_g4_smoke(parent: Path) -> None:
     )
     (release_root / "pyproject.toml").write_text(
         "[build-system]\n"
-        "requires = [\"setuptools==83.0.0\"]\n"
-        "build-backend = \"setuptools.build_meta\"\n\n"
+        'requires = ["setuptools==83.0.0"]\n'
+        'build-backend = "setuptools.build_meta"\n\n'
         "[project]\n"
-        "name = \"smoke\"\n"
-        "version = \"0.0.0\"\n"
+        'name = "smoke"\n'
+        'version = "0.0.0"\n'
         "dependencies = []\n",
         encoding="utf-8",
     )
@@ -484,9 +468,9 @@ def _run_positive_g4_smoke(parent: Path) -> None:
         )
         baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
         criterion_id = baseline["requirements"][0]["acceptance_criteria"][0]["id"]
-        git = GitInspector(
-            SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)
-        ).inspect(release_root)
+        git = GitInspector(SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)).inspect(
+            release_root
+        )
         identity = {
             "source_spec_sha256": baseline["source"]["sha256"],
             "git_head": git.head,
@@ -561,9 +545,7 @@ def _run_positive_g4_smoke(parent: Path) -> None:
                         "type": "SOURCE_REVIEW",
                         "status": "PASS",
                         "command": ["git", "diff", "--check"],
-                        "artifacts": [
-                            _artifact(".sdaqf/diff.txt", artifacts["diff.txt"])
-                        ],
+                        "artifacts": [_artifact(".sdaqf/diff.txt", artifacts["diff.txt"])],
                         "recorded_at": "2026-07-29T00:00:00+00:00",
                     },
                     {
@@ -922,9 +904,9 @@ def main_smoke() -> int:
             requirement = baseline_payload["requirements"][0]
             criterion_id = requirement["acceptance_criteria"][0]["id"]
             m3_ledger = temporary / "m3-ledger.json"
-            git = GitInspector(
-                SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)
-            ).inspect(root)
+            git = GitInspector(SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)).inspect(
+                root
+            )
             head = git.head
             repo_digest = git.repository_digest
             claim_id = "CLM-FR-SMOKE-001"
@@ -994,9 +976,7 @@ def main_smoke() -> int:
                             "environment": {"os": "smoke"},
                             "commit": head,
                             "repository_digest": repo_digest,
-                            "artifacts": [
-                                _artifact(f"{relative_temp}/diff.txt", diff_content)
-                            ],
+                            "artifacts": [_artifact(f"{relative_temp}/diff.txt", diff_content)],
                             "recorded_at": "2026-07-29T00:00:00+00:00",
                         },
                         {
@@ -1063,9 +1043,7 @@ def main_smoke() -> int:
                     "read_only": True,
                     "areas": ["regression", "security", "maintainability"],
                     "findings": [],
-                    "reviewed_paths": list(
-                        git.changed_paths or git.publication_paths
-                    ),
+                    "reviewed_paths": list(git.changed_paths or git.publication_paths),
                     "changed_paths": [],
                 },
             )
@@ -1260,12 +1238,7 @@ def main_smoke() -> int:
                     "validate",
                     str(root / "evals" / "comparison-suite.json"),
                     "--result",
-                    str(
-                        root
-                        / "evals"
-                        / "results"
-                        / "public-beta-comparison.json"
-                    ),
+                    str(root / "evals" / "results" / "public-beta-comparison.json"),
                     "--json",
                 ],
                 json_output=True,
@@ -1304,9 +1277,7 @@ def main_smoke() -> int:
             if not isinstance(public_manifest.value, ContextManifest):
                 raise RuntimeError("M5 public Manifest has an invalid value.")
             context_candidate = CandidateIdentity(
-                source_spec_sha256=(
-                    public_manifest.value.candidate.source_spec_sha256
-                ),
+                source_spec_sha256=(public_manifest.value.candidate.source_spec_sha256),
                 git_head=head,
                 repository_digest=repo_digest,
             )
@@ -1337,9 +1308,8 @@ def main_smoke() -> int:
                 m5_examples / "context-query.json",
                 expected_type=ContextArtifactType.QUERY,
             )
-            if (
-                not isinstance(current_graph.value, ContextGraph)
-                or not isinstance(public_query.value, ContextQuery)
+            if not isinstance(current_graph.value, ContextGraph) or not isinstance(
+                public_query.value, ContextQuery
             ):
                 raise RuntimeError("M5 public graph/query values are invalid.")
             current_query = artifact_from_value(
@@ -1406,37 +1376,33 @@ def main_smoke() -> int:
             )
             migrated_registry = temporary / "agent-registry-v2.json"
             current_tool_registry = m2 / "tool-registry.json"
-            legacy_registry = (
-                root
-                / "examples"
-                / "m4-migration"
-                / "agent-registry-v1.json"
-            )
+            legacy_registry = root / "examples" / "m4-migration" / "agent-registry-v1.json"
             migration_approval = temporary / "migration-approval.json"
             migration_scope = {
                 "contract": "agent-registry",
                 "root_sha256": migration_root_identity(root.resolve()),
                 "source_path": legacy_registry.relative_to(root).as_posix(),
-                "source_sha256": hashlib.sha256(
-                    legacy_registry.read_bytes()
-                ).hexdigest().upper(),
+                "source_sha256": hashlib.sha256(legacy_registry.read_bytes()).hexdigest().upper(),
                 "output_path": migrated_registry.relative_to(root).as_posix(),
-                "tool_registry_path": current_tool_registry.relative_to(
-                    root
-                ).as_posix(),
-                "tool_registry_sha256": hashlib.sha256(
-                    current_tool_registry.read_bytes()
-                ).hexdigest().upper(),
+                "tool_registry_path": current_tool_registry.relative_to(root).as_posix(),
+                "tool_registry_sha256": hashlib.sha256(current_tool_registry.read_bytes())
+                .hexdigest()
+                .upper(),
                 "source_version": "1.0",
                 "target_version": "2.0",
             }
-            migration_approval_id = "APR-M4-CLI-" + hashlib.sha256(
-                json.dumps(
-                    migration_scope,
-                    sort_keys=True,
-                    separators=(",", ":"),
-                ).encode("utf-8")
-            ).hexdigest().upper()[:16]
+            migration_approval_id = (
+                "APR-M4-CLI-"
+                + hashlib.sha256(
+                    json.dumps(
+                        migration_scope,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode("utf-8")
+                )
+                .hexdigest()
+                .upper()[:16]
+            )
             _write_json(
                 migration_approval,
                 {
@@ -1493,6 +1459,125 @@ def main_smoke() -> int:
                 ],
                 json_output=True,
             )
+            m6_examples = root / "examples" / "m6-scheduler"
+            m6_graph = m6_examples / "task-graph.json"
+            m6_state = temporary / "m6-scheduler.sqlite3"
+            m6_export = temporary / "m6-events.json"
+            m6_recovered = temporary / "m6-recovered.sqlite3"
+            _run(
+                "M6 Task Graph validation",
+                [
+                    "agents",
+                    "schedule",
+                    "validate",
+                    str(m6_graph),
+                    "--root",
+                    str(root),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M6 scheduler initialization",
+                [
+                    "agents",
+                    "schedule",
+                    "init",
+                    str(m6_graph),
+                    "--root",
+                    str(root),
+                    "--state",
+                    str(m6_state),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M6 scheduler tick",
+                [
+                    "agents",
+                    "schedule",
+                    "tick",
+                    str(m6_state),
+                    "--root",
+                    str(root),
+                    "--host-id",
+                    "HST-CLI-SMOKE",
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M6 scheduler status",
+                [
+                    "agents",
+                    "schedule",
+                    "status",
+                    str(m6_state),
+                    "--root",
+                    str(root),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M6 mailbox inspection",
+                [
+                    "agents",
+                    "mailbox",
+                    "inspect",
+                    str(m6_state),
+                    "--root",
+                    str(root),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M6 scheduler export",
+                [
+                    "agents",
+                    "schedule",
+                    "export",
+                    str(m6_state),
+                    "--root",
+                    str(root),
+                    "--kind",
+                    "events",
+                    "--output",
+                    str(m6_export),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M6 scheduler recovery",
+                [
+                    "agents",
+                    "recover",
+                    str(m6_state),
+                    "--root",
+                    str(root),
+                    "--output",
+                    str(m6_recovered),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M6 scheduler simulation",
+                [
+                    "agents",
+                    "simulate",
+                    str(m6_graph),
+                    "--root",
+                    str(root),
+                    "--scenario",
+                    "success",
+                    "--json",
+                ],
+                json_output=True,
+            )
         finally:
             os.chdir(previous)
             if (
@@ -1502,7 +1587,7 @@ def main_smoke() -> int:
                 and not is_reparse_point(m3_spec)
             ):
                 m3_spec.unlink()
-    print("PASS: offline M0 through M5 CLI smoke checks succeeded.")
+    print("PASS: offline M0 through M6 CLI smoke checks succeeded.")
     return 0
 
 

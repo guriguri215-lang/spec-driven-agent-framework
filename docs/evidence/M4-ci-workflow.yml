@@ -51,13 +51,6 @@ jobs:
           python -m coverage report
           --include="src/sdaqf/domain/orchestration.py,src/sdaqf/domain/tooling.py,src/sdaqf/adapters/process.py,src/sdaqf/application/orchestration.py,src/sdaqf/application/skills.py,src/sdaqf/application/tooling.py,src/sdaqf/application/checkpoints.py"
           --fail-under=90
-      - name: Check M6 critical coverage
-        run: >-
-          python -m coverage report
-          --include="src/sdaqf/domain/scheduler.py,src/sdaqf/ports/scheduler.py,src/sdaqf/adapters/scheduler.py,src/sdaqf/application/scheduler_contracts.py,src/sdaqf/application/scheduler.py,src/sdaqf/application/scheduler_recovery.py,src/sdaqf/application/scheduler_simulation.py"
-          --fail-under=90
-      - name: Validate M6 scheduler safety
-        run: python scripts/validate_m6_scheduler.py
       - name: Audit workspace boundary
         run: >-
           python scripts/check_workspace_boundary.py
