@@ -52,6 +52,13 @@ from sdaqf.domain.scheduler import (
     TaskState,
     WorktreeLease,
 )
+from sdaqf.domain.solver import (
+    LoadedSolverArtifact,
+    SolverArtifactType,
+    SolverProblemKind,
+    SolverResultStatus,
+    SolverVerificationOutcome,
+)
 
 __all__ = [
     "AcceptanceCriterion",
@@ -79,6 +86,7 @@ __all__ = [
     "GateCheck",
     "GateResult",
     "Lease",
+    "LoadedSolverArtifact",
     "MailboxMessage",
     "MessageDirection",
     "MessageType",
@@ -91,6 +99,10 @@ __all__ = [
     "SchedulerEvent",
     "SchedulerState",
     "Sensitivity",
+    "SolverArtifactType",
+    "SolverProblemKind",
+    "SolverResultStatus",
+    "SolverVerificationOutcome",
     "SourceKind",
     "SourceMetadata",
     "SourceTrace",

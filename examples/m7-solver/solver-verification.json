@@ -1,0 +1,78 @@
+{
+  "artifact_id": "M7-SOLVER-VERIFICATION-26578FE32694AB3D715D7FE531450C03E09DC099CF178183742B30C051BD7847",
+  "artifact_type": "solver-verification",
+  "content": {
+    "adoption_allowed": true,
+    "candidate": {
+      "git_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "repository_digest": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "source_spec_sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+    },
+    "checks": [
+      {
+        "check_id": "adapter-provenance",
+        "passed": true
+      },
+      {
+        "check_id": "identity-bindings",
+        "passed": true
+      },
+      {
+        "check_id": "lease-authority",
+        "passed": true
+      },
+      {
+        "check_id": "objective-evidence",
+        "passed": true
+      },
+      {
+        "check_id": "proof-disposition",
+        "passed": true
+      },
+      {
+        "check_id": "required-claim",
+        "passed": true
+      },
+      {
+        "check_id": "resource-accounting",
+        "passed": true
+      },
+      {
+        "check_id": "witness-feasibility",
+        "passed": true
+      }
+    ],
+    "context_snapshot_id": "CTX-SNAPSHOT-60806B57F8C2C1B3E8AA059428C0FAD2D1629DD06B4E3A402F476497E4038A2C",
+    "contract_id": "M7-SOLVER-CONTRACT-2FB4A1B257CBC46A638604B7EF9AE2B71E419B7E7EBA5941CDD1CAA8EE821C5C",
+    "graph_id": "M6-TASK-GRAPH-85785C92116AF0B34BC7AB17B0499B7C3B483A02A49B24AB9DB01177909DECF8",
+    "lease": {
+      "attempt": 1,
+      "dispatch_message_id": "M6-MESSAGE-33911014ED12D951A56454838E2871F843E3735C34F8561952120DAD777F24CC",
+      "expires_at": "2030-01-01T00:01:00Z",
+      "fence": 1,
+      "graph_id": "M6-TASK-GRAPH-85785C92116AF0B34BC7AB17B0499B7C3B483A02A49B24AB9DB01177909DECF8",
+      "host_id": "HST-M7-TEST",
+      "idempotency_key": "IDEM-41CA950618314EE411A48470719507BECE3474F045DEF0AB7ADF318DA5BB635E",
+      "lease_id": "M6-LEASE-E3A3452274C293B75D65A7220C3F76D15060080B702BCC6BE5B9AB08CCAFCA80",
+      "reserved_solver_calls": 1,
+      "reserved_solver_steps": 32,
+      "task_id": "TSK-M6-DEMO"
+    },
+    "outcome": "verified",
+    "reasons": [],
+    "request": {
+      "path": "examples/m7-solver/solver-request.json",
+      "sha256": "D8F948B737E73043712FE6E4CB735C8D1B827F6FB3F8668B46E1F21D0DC617B6"
+    },
+    "request_id": "M7-SOLVER-REQUEST-096DDE709749D732C022158E6961D76B94552F1A482E44DFCA3B34A4CFA6FA65",
+    "result": {
+      "path": "examples/m7-solver/solver-result.json",
+      "sha256": "B744C6D89C7A413DD163CF575A797A361CE00FF978DBE28715191287E8C6CA18"
+    },
+    "result_id": "M7-SOLVER-RESULT-82387EF4E862F4A7F7A290C75ED5CFF0100F7562568E3D18A0398FD18370099E",
+    "sensitivity": "public",
+    "task_id": "TSK-M6-DEMO",
+    "verification_steps": 16
+  },
+  "schema_version": "1.0"
+}

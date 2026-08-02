@@ -15,16 +15,24 @@ from sdaqf.adapters.scheduler import (
     UnsupportedAgentHost,
     UnsupportedWorktreeHost,
 )
+from sdaqf.adapters.solver import (
+    FiniteDomainReferenceAdapter,
+    SQLiteSolverLeaseEvidenceReader,
+    SystemSolverClock,
+)
 
 __all__ = [
     "CanonicalUTF8ByteEstimator",
     "ExclusiveJSONPublisher",
     "ExclusiveSchedulerArtifactStore",
+    "FiniteDomainReferenceAdapter",
     "LocalContextCandidateVerifier",
     "LocalContextSourceReader",
     "SQLiteSchedulerStore",
+    "SQLiteSolverLeaseEvidenceReader",
     "SubprocessRunner",
     "SystemSchedulerClock",
+    "SystemSolverClock",
     "SystemUTCClock",
     "UnsupportedAgentHost",
     "UnsupportedWorktreeHost",

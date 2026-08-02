@@ -1,0 +1,82 @@
+{
+  "artifact_id": "M6-TASK-GRAPH-85785C92116AF0B34BC7AB17B0499B7C3B483A02A49B24AB9DB01177909DECF8",
+  "artifact_type": "task-graph",
+  "content": {
+    "agent_registry": {
+      "path": "examples/m2-orchestration/agent-registry.json",
+      "sha256": "D89C9B14C6C0B49056D601107FE236F6616C9BE61214CC11205D99AFEC1BACA8"
+    },
+    "budget": {
+      "cost": {
+        "currency": null,
+        "max_microunits": null,
+        "status": "not_available"
+      },
+      "max_agents": 2,
+      "max_concurrency": 2,
+      "max_context_bytes_per_dispatch": 8388608,
+      "max_context_bytes_total": 16777216,
+      "max_dispatches": 16,
+      "max_reasoning_effort": "high",
+      "max_retries": 4,
+      "max_solver_calls": 1,
+      "max_solver_steps": 32,
+      "max_tool_calls": 16,
+      "max_wall_time_seconds": 3600
+    },
+    "candidate": {
+      "git_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "repository_digest": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "source_spec_sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+    },
+    "contexts": [
+      {
+        "artifact_id": "CTX-SNAPSHOT-60806B57F8C2C1B3E8AA059428C0FAD2D1629DD06B4E3A402F476497E4038A2C",
+        "candidate": {
+          "git_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "repository_digest": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+          "source_spec_sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+        },
+        "path": "examples/m5-context/context-snapshot.json",
+        "sensitivity": "public",
+        "sha256": "5451B8D5C76A61A1B1D9337D8EA6FC4FD9F7E82B79F0CDEB3FCC4E276488F19C"
+      }
+    ],
+    "orchestration_request": {
+      "path": "examples/m2-orchestration/orchestration-request.json",
+      "sha256": "A2ECD193B02069251FC7DE463EFE34296FC80AEC59933AF98DDEE78E38593922"
+    },
+    "tasks": [
+      {
+        "approval_stops": [],
+        "context_snapshot_id": "CTX-SNAPSHOT-60806B57F8C2C1B3E8AA059428C0FAD2D1629DD06B4E3A402F476497E4038A2C",
+        "dependencies": [],
+        "effect_kind": "read_only",
+        "evidence_predicate": [
+          "evidence-reference-present"
+        ],
+        "kind": "solver",
+        "max_attempts": 2,
+        "owned_paths": [],
+        "required_capabilities": [
+          "m7-solver-v1@M7-SOLVER-CONTRACT-2FB4A1B257CBC46A638604B7EF9AE2B71E419B7E7EBA5941CDD1CAA8EE821C5C@16@16"
+        ],
+        "required_tools": [],
+        "review_targets": [],
+        "role_id": "implementer",
+        "task_id": "TSK-M6-DEMO",
+        "terminal_predicate": [
+          "agent-result-valid"
+        ],
+        "wave": 0,
+        "worktree_assignment": null
+      }
+    ],
+    "tool_registry": {
+      "path": "examples/m2-orchestration/tool-registry.json",
+      "sha256": "880351AEFC7AE00C2D1E62F7300D8336EF286B27E39627DA3EC2D5D2BD8C20A0"
+    },
+    "worktree_plan": null
+  },
+  "schema_version": "1.0"
+}

@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/solver-result.schema.json",
+  "title": "M7 Solver Result",
+  "type": "object",
+  "required": ["schema_version", "artifact_type", "artifact_id", "content"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "artifact_type": {"const": "solver-result"},
+    "artifact_id": {"$ref": "solver-registry.schema.json#/$defs/result_id"},
+    "content": {
+      "type": "object",
+      "required": [
+        "sensitivity", "request", "request_id", "contract_id", "candidate", "graph_id",
+        "task_id", "context_snapshot_id", "adapter_id", "adapter_version",
+        "license_expression", "provenance", "lease", "status", "witness",
+        "objective_value", "objective_interval", "tolerance", "proof_disposition",
+        "resources", "diagnostic_code"
+      ],
+      "properties": {
+        "sensitivity": {"$ref": "solver-registry.schema.json#/$defs/sensitivity"},
+        "request": {"$ref": "solver-registry.schema.json#/$defs/reference"},
+        "request_id": {"$ref": "solver-registry.schema.json#/$defs/request_id"},
+        "contract_id": {"$ref": "solver-registry.schema.json#/$defs/contract_id"},
+        "candidate": {"$ref": "solver-registry.schema.json#/$defs/candidate"},
+        "graph_id": {"$ref": "solver-registry.schema.json#/$defs/graph_id"},
+        "task_id": {"$ref": "solver-registry.schema.json#/$defs/task_id"},
+        "context_snapshot_id": {"$ref": "solver-registry.schema.json#/$defs/context_id"},
+        "adapter_id": {"$ref": "solver-registry.schema.json#/$defs/slug"},
+        "adapter_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+        "license_expression": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9.+-]{0,63}$"},
+        "provenance": {"type": "array", "minItems": 1, "maxItems": 64, "uniqueItems": true, "items": {"$ref": "solver-registry.schema.json#/$defs/reference"}},
+        "lease": {"$ref": "solver-registry.schema.json#/$defs/lease"},
+        "status": {"enum": ["satisfiable", "unsatisfiable", "feasible", "infeasible", "optimal", "bounded", "timeout", "unavailable", "unknown", "error"]},
+        "witness": {"oneOf": [{"type": "null"}, {"$ref": "solver-registry.schema.json#/$defs/witness"}]},
+        "objective_value": {"oneOf": [{"type": "null"}, {"type": "integer", "minimum": -1000000000000000, "maximum": 1000000000000000}]},
+        "objective_interval": {"oneOf": [{"type": "null"}, {"$ref": "solver-registry.schema.json#/$defs/interval"}]},
+        "tolerance": {"$ref": "solver-registry.schema.json#/$defs/tolerance"},
+        "proof_disposition": {"enum": ["none", "witness", "objective-bound", "exhaustive-enumeration"]},
+        "resources": {"$ref": "solver-registry.schema.json#/$defs/resources"},
+        "diagnostic_code": {"oneOf": [{"type": "null"}, {"enum": ["adapter-unavailable", "adapter-error", "request-timeout", "lease-deadline", "step-limit"]}]}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"enum": ["satisfiable", "feasible", "bounded", "optimal"]}}},
+          "then": {"properties": {"witness": {"not": {"type": "null"}}}}
+        },
+        {
+          "if": {"properties": {"status": {"enum": ["unsatisfiable", "infeasible"]}}},
+          "then": {"properties": {"witness": {"type": "null"}, "proof_disposition": {"const": "exhaustive-enumeration"}}}
+        },
+        {
+          "if": {"properties": {"status": {"enum": ["feasible", "bounded", "optimal"]}}},
+          "then": {"properties": {"objective_value": {"not": {"type": "null"}}}}
+        },
+        {
+          "if": {"properties": {"status": {"enum": ["satisfiable", "unsatisfiable"]}}},
+          "then": {"properties": {"objective_value": {"type": "null"}, "objective_interval": {"type": "null"}}}
+        },
+        {
+          "if": {"properties": {"status": {"const": "bounded"}}},
+          "then": {"properties": {"objective_interval": {"not": {"type": "null"}}, "proof_disposition": {"const": "objective-bound"}}}
+        },
+        {
+          "if": {"properties": {"status": {"const": "optimal"}}},
+          "then": {"properties": {"objective_interval": {"not": {"type": "null"}}, "proof_disposition": {"const": "exhaustive-enumeration"}}}
+        },
+        {
+          "if": {"properties": {"status": {"enum": ["satisfiable", "feasible"]}}},
+          "then": {"properties": {"proof_disposition": {"const": "witness"}}}
+        },
+        {
+          "if": {"properties": {"status": {"enum": ["timeout", "unavailable", "unknown", "error"]}}},
+          "then": {"properties": {"proof_disposition": {"const": "none"}, "diagnostic_code": {"not": {"type": "null"}}}}
+        },
+        {
+          "if": {"properties": {"status": {"enum": ["satisfiable", "unsatisfiable", "feasible", "infeasible", "optimal", "bounded"]}}},
+          "then": {"properties": {"diagnostic_code": {"type": "null"}}}
+        },
+        {
+          "if": {"properties": {"status": {"const": "unavailable"}}},
+          "then": {"properties": {"resources": {"properties": {"solver_calls": {"const": 0}, "solver_steps": {"const": 0}}}}}
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/solver-request.schema.json",
+  "title": "M7 Solver Request",
+  "type": "object",
+  "required": ["schema_version", "artifact_type", "artifact_id", "content"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "artifact_type": {"const": "solver-request"},
+    "artifact_id": {"$ref": "solver-registry.schema.json#/$defs/request_id"},
+    "content": {
+      "type": "object",
+      "required": [
+        "sensitivity", "registry", "registry_id", "adapter_id", "contract_id",
+        "task_graph", "graph_id", "task_id", "candidate", "context_snapshot",
+        "context_snapshot_id", "problem", "required_claim", "tolerance", "resource_policy"
+      ],
+      "properties": {
+        "sensitivity": {"$ref": "solver-registry.schema.json#/$defs/sensitivity"},
+        "registry": {"$ref": "solver-registry.schema.json#/$defs/reference"},
+        "registry_id": {"$ref": "solver-registry.schema.json#/$defs/registry_id"},
+        "adapter_id": {"$ref": "solver-registry.schema.json#/$defs/slug"},
+        "contract_id": {"$ref": "solver-registry.schema.json#/$defs/contract_id"},
+        "task_graph": {"$ref": "solver-registry.schema.json#/$defs/reference"},
+        "graph_id": {"$ref": "solver-registry.schema.json#/$defs/graph_id"},
+        "task_id": {"$ref": "solver-registry.schema.json#/$defs/task_id"},
+        "candidate": {"$ref": "solver-registry.schema.json#/$defs/candidate"},
+        "context_snapshot": {"$ref": "solver-registry.schema.json#/$defs/reference"},
+        "context_snapshot_id": {"$ref": "solver-registry.schema.json#/$defs/context_id"},
+        "problem": {"$ref": "solver-registry.schema.json#/$defs/problem"},
+        "required_claim": {"enum": ["decision", "feasible", "bounded", "optimal"]},
+        "tolerance": {"$ref": "solver-registry.schema.json#/$defs/tolerance"},
+        "resource_policy": {"$ref": "solver-registry.schema.json#/$defs/resource_policy"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"problem": {"properties": {"problem_kind": {"const": "finite-domain-feasibility"}}}}},
+          "then": {"properties": {"required_claim": {"const": "decision"}, "problem": {"properties": {"objective": {"type": "null"}}}}}
+        },
+        {
+          "if": {"properties": {"problem": {"properties": {"problem_kind": {"const": "finite-domain-optimization"}}}}},
+          "then": {"properties": {"required_claim": {"enum": ["feasible", "bounded", "optimal"]}, "problem": {"properties": {"objective": {"not": {"type": "null"}}}}}}
+        },
+        {
+          "if": {"properties": {"problem": {"properties": {"profile": {"const": "boolean-sat"}}}}},
+          "then": {"properties": {"problem": {"properties": {"problem_kind": {"const": "finite-domain-feasibility"}}}}}
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

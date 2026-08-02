@@ -1,4 +1,4 @@
-"""Command-line interface for the offline M0 through M6 framework."""
+"""Command-line interface for the offline M0 through M7 framework."""
 
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ from sdaqf.adapters.context import (
 )
 from sdaqf.adapters.process import SubprocessRunner
 from sdaqf.adapters.scheduler import SchedulerAdapterError
+from sdaqf.adapters.solver import SolverAdapterError
 from sdaqf.application.approvals import ApprovalContractError, ApprovalLoader
 from sdaqf.application.baselines import BaselineContractError, load_baseline
 from sdaqf.application.checkpoints import (
@@ -93,6 +94,9 @@ from sdaqf.application.skills import (
     load_template_registry,
     validate_skills,
 )
+from sdaqf.application.solver import SolverService
+from sdaqf.application.solver_contracts import SolverContractError
+from sdaqf.application.solver_verification import SolverVerificationService
 from sdaqf.application.status import StatusService
 from sdaqf.application.tooling import (
     ExecutionApprovalConsumptionStore,
@@ -627,6 +631,61 @@ def build_parser() -> argparse.ArgumentParser:
     context_compact.add_argument("--output", type=Path, required=True)
     context_compact.add_argument("--host-summary-proposal", type=Path)
     context_compact.add_argument("--json", action="store_true")
+
+    solver = subparsers.add_parser(
+        "solver",
+        help="Validate and run bounded deterministic M7 solver contracts.",
+    )
+    solver_commands = solver.add_subparsers(dest="solver_command", required=True)
+    solver_registry = solver_commands.add_parser(
+        "registry", help="Validate a strict Solver Registry."
+    )
+    solver_registry_commands = solver_registry.add_subparsers(
+        dest="solver_registry_command", required=True
+    )
+    solver_registry_validate = solver_registry_commands.add_parser(
+        "validate", help="Validate one Registry and exact provenance."
+    )
+    solver_registry_validate.add_argument("registry", type=Path)
+    solver_registry_validate.add_argument("--root", type=Path, required=True)
+    solver_registry_validate.add_argument("--json", action="store_true")
+    solver_request = solver_commands.add_parser("request", help="Validate a strict Solver Request.")
+    solver_request_commands = solver_request.add_subparsers(
+        dest="solver_request_command", required=True
+    )
+    solver_request_validate = solver_request_commands.add_parser(
+        "validate", help="Validate exact Registry, Task Graph, and Context bindings."
+    )
+    solver_request_validate.add_argument("request", type=Path)
+    solver_request_validate.add_argument("--registry", type=Path, required=True)
+    solver_request_validate.add_argument("--task-graph", type=Path, required=True)
+    solver_request_validate.add_argument("--root", type=Path, required=True)
+    solver_request_validate.add_argument("--json", action="store_true")
+    solver_run = solver_commands.add_parser(
+        "run", help="Run one authorized standard-library finite-domain solve."
+    )
+    solver_run.add_argument("request", type=Path)
+    solver_run.add_argument("--registry", type=Path, required=True)
+    solver_run.add_argument("--task-graph", type=Path, required=True)
+    solver_run.add_argument("--state", type=Path, required=True)
+    solver_run.add_argument("--root", type=Path, required=True)
+    solver_run.add_argument("--host-id", required=True)
+    solver_run.add_argument("--lease-id", required=True)
+    solver_run.add_argument("--output", type=Path, required=True)
+    solver_run.add_argument("--json", action="store_true")
+    solver_verify = solver_commands.add_parser(
+        "verify", help="Independently verify one exact Solver Result."
+    )
+    solver_verify.add_argument("result", type=Path)
+    solver_verify.add_argument("--request", type=Path, required=True)
+    solver_verify.add_argument("--registry", type=Path, required=True)
+    solver_verify.add_argument("--task-graph", type=Path, required=True)
+    solver_verify.add_argument("--state", type=Path, required=True)
+    solver_verify.add_argument("--root", type=Path, required=True)
+    solver_verify.add_argument("--host-id", required=True)
+    solver_verify.add_argument("--lease-id", required=True)
+    solver_verify.add_argument("--output", type=Path, required=True)
+    solver_verify.add_argument("--json", action="store_true")
 
     schema = subparsers.add_parser(
         "schema",
@@ -1267,6 +1326,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             print("ERROR: agent orchestration input is invalid.", file=sys.stderr)
             return 2
 
+    if args.command == "solver":
+        return _run_m7_solver(args)
+
     if args.command == "skills" and args.skill_command == "validate":
         try:
             skill_records = validate_skills(
@@ -1588,6 +1650,107 @@ def _run_m6_scheduler(args: argparse.Namespace) -> int:
         else:
             print(
                 "ERROR: M6 scheduler operation failed without overwriting output.",
+                file=sys.stderr,
+            )
+        return 2
+
+
+def _run_m7_solver(args: argparse.Namespace) -> int:
+    """Run one additive M7 command with bounded failure output."""
+
+    operation = args.solver_command
+    if operation == "registry":
+        operation = "registry-validate"
+    elif operation == "request":
+        operation = "request-validate"
+    try:
+        service = SolverService()
+        if args.solver_command == "registry":
+            artifact = service.validate_registry(args.registry, args.root)
+            value = artifact.value
+            assert hasattr(value, "adapters")
+            _emit(
+                {
+                    "artifact_id": artifact.artifact_id,
+                    "adapters": len(value.adapters),
+                    "valid": True,
+                },
+                as_json=args.json,
+            )
+            return 0
+        if args.solver_command == "request":
+            artifact, _, adapter = service.validate_request(
+                args.request, args.registry, args.task_graph, args.root
+            )
+            _emit(
+                {
+                    "artifact_id": artifact.artifact_id,
+                    "adapter_id": adapter.adapter_id,
+                    "valid": True,
+                },
+                as_json=args.json,
+            )
+            return 0
+        if args.solver_command == "run":
+            artifact = service.run(
+                args.request,
+                args.registry,
+                args.task_graph,
+                args.state,
+                args.root,
+                args.host_id,
+                args.lease_id,
+                args.output,
+            )
+            value = artifact.value
+            assert hasattr(value, "status")
+            _emit(
+                {
+                    "artifact_id": artifact.artifact_id,
+                    "status": value.status.value,
+                    "output": args.output.name,
+                },
+                as_json=args.json,
+            )
+            return 0
+        artifact = SolverVerificationService().verify(
+            args.result,
+            args.request,
+            args.registry,
+            args.task_graph,
+            args.state,
+            args.root,
+            args.host_id,
+            args.lease_id,
+            args.output,
+        )
+        value = artifact.value
+        assert hasattr(value, "outcome") and hasattr(value, "adoption_allowed")
+        _emit(
+            {
+                "artifact_id": artifact.artifact_id,
+                "outcome": value.outcome.value,
+                "adoption_allowed": value.adoption_allowed,
+                "output": args.output.name,
+            },
+            as_json=args.json,
+        )
+        return 0 if value.outcome.value != "rejected" else 2
+    except (
+        ContextAdapterError,
+        SolverAdapterError,
+        SolverContractError,
+        OSError,
+        ValueError,
+    ):
+        if getattr(args, "json", False):
+            _emit(
+                {"error": "m7-solver-invalid", "operation": operation},
+                as_json=True,
+            )
+        else:
+            print(
+                "ERROR: M7 solver operation failed without overwriting output.",
                 file=sys.stderr,
             )
         return 2

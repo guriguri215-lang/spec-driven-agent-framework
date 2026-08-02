@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "suite_id": "M7-SOLVER-PUBLIC-1",
+  "description": "Closed truthful Solver Result status and independent verification expectations.",
+  "cases": [
+    {"case_id": "satisfiable", "expected_status": "satisfiable", "expected_verification": "verified", "expected_adoption": true},
+    {"case_id": "unsatisfiable", "expected_status": "unsatisfiable", "expected_verification": "verified", "expected_adoption": true},
+    {"case_id": "feasible", "expected_status": "feasible", "expected_verification": "verified", "expected_adoption": true},
+    {"case_id": "infeasible", "expected_status": "infeasible", "expected_verification": "verified", "expected_adoption": false},
+    {"case_id": "optimal", "expected_status": "optimal", "expected_verification": "verified", "expected_adoption": true},
+    {"case_id": "bounded", "expected_status": "bounded", "expected_verification": "verified", "expected_adoption": true},
+    {"case_id": "timeout", "expected_status": "timeout", "expected_verification": "inconclusive", "expected_adoption": false},
+    {"case_id": "unavailable", "expected_status": "unavailable", "expected_verification": "inconclusive", "expected_adoption": false},
+    {"case_id": "unknown", "expected_status": "unknown", "expected_verification": "inconclusive", "expected_adoption": false},
+    {"case_id": "error", "expected_status": "error", "expected_verification": "inconclusive", "expected_adoption": false}
+  ]
+}

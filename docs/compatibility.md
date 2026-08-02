@@ -67,6 +67,38 @@ schema. Compatibility requires application ID `0x53444151`, `user_version=1`,
 and metadata schema `1.0`. Unknown versions and altered table shape fail
 closed. There is no in-place or automatic database migration.
 
+M7 adds four independent Solver Registry, Request, Result, and Verification
+schema `1.0` contracts. They are additive and do not reinterpret M2 Tool
+Registry or approval records, M5 Context artifacts, M6 Task Graphs, Leases,
+messages, budgets, events, or Agent Results. Compatibility requires the exact
+artifact IDs and referenced bytes, operational contract ID, candidate,
+Context, graph, task, adapter, resource policy, and Lease reservation. Shape
+compatibility alone is insufficient. Scheduler adoption additionally requires
+the current Task Graph identity, task ID, and unique solver capability token;
+evidence from another operational contract is incompatible. Solve and
+Verification step limits are independent and cannot be treated as pooled
+capacity. The exact referenced raw Result byte length must remain within the
+Request `max_result_bytes` policy during live adoption, history validation, and
+recovery; canonical typed content with an oversized on-disk representation is
+incompatible. A `rejected` Solver Verification is incompatible with every M6
+Task Result outcome; a failed task remains compatible with truthful
+`inconclusive` or verified-but-claim-unsatisfied evidence.
+
+The initial M7 contract uses exact finite integers and exact-zero tolerance.
+The two problem kinds, three profiles, five constraints, ten statuses, proof
+dispositions, verification outcomes, numeric-domain declaration, and complete
+reference-adapter D2 limits are closed. M7 Lease host IDs use the exact M6
+`HST-` grammar, and solver task IDs use the exact M6 `TSK-` grammar, including
+their maximum lengths. Solver sensitivity labels are exactly the M5 labels;
+`internal`, `confidential`, and `restricted` are not M7 compatibility aliases.
+Solver references also reuse the exact M6 portable-path exclusions, and
+embedded Lease expiry timestamps use the exact M6 RFC 3339 UTC `Z` grammar;
+Windows reserved paths, trailing-dot paths, and `+00:00` timestamp aliases are
+not compatible schema `1.0` representations.
+Adding an approximate numeric theory, new status, executable external adapter,
+or different proof meaning requires a new contract version; it must not be
+silently accepted as schema `1.0`.
+
 ## Migration
 
 No migration is required from the M4 Public Beta CLI behavior. Existing
@@ -102,6 +134,14 @@ rebuilds every mutable projection, and requires evidence equivalence before
 exclusive publication. A future scheduler schema or SQLite version must
 preserve the old source and use a separately documented, explicitly approved
 conversion.
+
+There is no pre-M7 Solver artifact to migrate. Adoption creates new immutable
+artifacts through the additive `solver` namespace. Existing V1, M2, M5, and M6
+records remain unchanged. A future Solver version must preserve schema `1.0`
+files and evidence, produce separately identified artifacts, document proof
+and adoption compatibility, and use a separately approved explicit conversion
+if conversion is possible. Optional external-adapter Registry data never
+migrates into process authority or reusable approval.
 
 ## Deprecation
 

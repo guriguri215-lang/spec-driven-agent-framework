@@ -1,0 +1,85 @@
+{
+  "artifact_id": "M7-SOLVER-RESULT-82387EF4E862F4A7F7A290C75ED5CFF0100F7562568E3D18A0398FD18370099E",
+  "artifact_type": "solver-result",
+  "content": {
+    "adapter_id": "stdlib-finite-domain-v1",
+    "adapter_version": "1.0.0",
+    "candidate": {
+      "git_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "repository_digest": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "source_spec_sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+    },
+    "context_snapshot_id": "CTX-SNAPSHOT-60806B57F8C2C1B3E8AA059428C0FAD2D1629DD06B4E3A402F476497E4038A2C",
+    "contract_id": "M7-SOLVER-CONTRACT-2FB4A1B257CBC46A638604B7EF9AE2B71E419B7E7EBA5941CDD1CAA8EE821C5C",
+    "diagnostic_code": null,
+    "graph_id": "M6-TASK-GRAPH-85785C92116AF0B34BC7AB17B0499B7C3B483A02A49B24AB9DB01177909DECF8",
+    "lease": {
+      "attempt": 1,
+      "dispatch_message_id": "M6-MESSAGE-33911014ED12D951A56454838E2871F843E3735C34F8561952120DAD777F24CC",
+      "expires_at": "2030-01-01T00:01:00Z",
+      "fence": 1,
+      "graph_id": "M6-TASK-GRAPH-85785C92116AF0B34BC7AB17B0499B7C3B483A02A49B24AB9DB01177909DECF8",
+      "host_id": "HST-M7-TEST",
+      "idempotency_key": "IDEM-41CA950618314EE411A48470719507BECE3474F045DEF0AB7ADF318DA5BB635E",
+      "lease_id": "M6-LEASE-E3A3452274C293B75D65A7220C3F76D15060080B702BCC6BE5B9AB08CCAFCA80",
+      "reserved_solver_calls": 1,
+      "reserved_solver_steps": 32,
+      "task_id": "TSK-M6-DEMO"
+    },
+    "license_expression": "Apache-2.0",
+    "objective_interval": {
+      "lower": 2,
+      "upper": 2
+    },
+    "objective_value": 2,
+    "proof_disposition": "exhaustive-enumeration",
+    "provenance": [
+      {
+        "path": "LICENSE",
+        "sha256": "C71D239DF91726FC519C6EB72D318EC65820627232B2F796219E87DCF35D0AB4"
+      },
+      {
+        "path": "pyproject.toml",
+        "sha256": "76D9C29018CA8A3040F0EBF4BD608A7AAB3E186AC4D68AF8D8824AF3FC6B3394"
+      }
+    ],
+    "request": {
+      "path": "examples/m7-solver/solver-request.json",
+      "sha256": "D8F948B737E73043712FE6E4CB735C8D1B827F6FB3F8668B46E1F21D0DC617B6"
+    },
+    "request_id": "M7-SOLVER-REQUEST-096DDE709749D732C022158E6961D76B94552F1A482E44DFCA3B34A4CFA6FA65",
+    "resources": {
+      "constraint_checks": 16,
+      "elapsed_milliseconds": 0,
+      "search_space_size": 16,
+      "solver_calls": 1,
+      "solver_steps": 16,
+      "step_limit": 16,
+      "termination_reason": "search-exhausted",
+      "timeout_milliseconds": null,
+      "unvisited_assignments": 0,
+      "visited_assignments": 16
+    },
+    "sensitivity": "public",
+    "status": "optimal",
+    "task_id": "TSK-M6-DEMO",
+    "tolerance": {
+      "absolute": 0,
+      "kind": "exact",
+      "relative": 0
+    },
+    "witness": {
+      "assignments": [
+        {
+          "value": 0,
+          "variable_id": "START_A"
+        },
+        {
+          "value": 2,
+          "variable_id": "START_B"
+        }
+      ]
+    }
+  },
+  "schema_version": "1.0"
+}

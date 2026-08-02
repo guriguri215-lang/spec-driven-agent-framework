@@ -4,13 +4,14 @@ SDAQF is a specification-driven development and quality-assurance framework for
 Codex-assisted projects. This repository contains the M0 Bootstrap Foundation,
 M1 Requirements and Planning MVP, M2 Agent, Skill, and Tool Orchestration, and
 M3 Evidence, UI/UX, and Release QA, M4 Public Beta Hardening, the local
-V1.0 release-candidate readiness contract, the M5 Context Framework, and the
-M6 Multi-Agent Control Framework: an
+V1.0 release-candidate readiness contract, the M5 Context Framework, the
+M6 Multi-Agent Control Framework, and the M7 Mathematical Solver Framework: an
 offline-first Python CLI, deterministic
 requirement, orchestration, evidence, review, UI-observation, release, and
 handoff contracts, representative evaluation projects, explicit schema
-migration, reproducible context snapshots, durable offline scheduling, safety guidance, reusable agent
-skills, and local quality gates.
+migration, reproducible context snapshots, durable offline scheduling, bounded
+verified finite-domain computation, safety guidance, reusable agent skills,
+and local quality gates.
 
 The authoritative source for this bootstrap was a private Japanese
 specification. The public English baseline records its source digest without
@@ -187,6 +188,32 @@ failure semantics.
 See [Multi-Agent Control Framework](docs/multi-agent-control-framework.md) for
 the exact state, lease, mailbox, recovery, and host-authority contracts.
 
+## Implemented in M7
+
+- Four immutable content-addressed Solver Registry, Request, Result, and
+  Verification schema `1.0` contracts with strict runtime/schema parity.
+- Two finite-domain problem kinds, three profiles, five typed constraint kinds,
+  exact integer arithmetic, exact-zero tolerance, canonical ordering, and
+  bounded resource policies.
+- A mandatory dependency-free deterministic reference adapter with truthful
+  satisfiable, unsatisfiable, feasible, infeasible, optimal, bounded, timeout,
+  unavailable, unknown, and error dispositions.
+- Independent witness, objective, bound, exhaustive-proof, adapter,
+  provenance, resource, candidate, Context, task, and current-or-historical
+  Lease verification. Only a verified Result satisfying the required claim is
+  adoptable.
+- Exact M6 capability reservation, Task Result evidence, budget settlement,
+  store validation, and fresh-output recovery replay.
+- Additive `solver registry validate`, `solver request validate`, `solver run`,
+  and `solver verify` CLI paths, public examples, ten production evaluation
+  cases, and the named offline `M7-SOLVER-EVIDENCE` validator.
+- Optional external CLI adapters are representable only with exact Tool
+  Registry, version observation, license, provenance, no-network, and fresh
+  single-use approval requirements. M7 does not execute them.
+
+See [Mathematical Solver Framework](docs/mathematical-solver-framework.md) for
+the exact problem, result, verification, M5/M6, and external-tool boundaries.
+
 ## V1.0 release-candidate readiness
 
 - Distribution/runtime version `1.0.0rc1`, targeting public API line `1.0.0`.
@@ -225,7 +252,9 @@ The pinned development dependency and license record is in
   1.0-to-2.0 routes.
 - A blinded, randomized, independently replicated, statistically powered, or
   cost-comparable Codex benchmark.
-- Solver, OpenAI API, or Agents SDK integrations.
+- Executable third-party or hosted solver, OpenAI API, or Agents SDK
+  integrations. M7's only executable solver is the bounded standard-library
+  reference adapter.
 - GitHub repository creation, remotes, pushes, pull requests, issues, tags, or
   releases.
 - Production deployment.
@@ -275,6 +304,8 @@ python -m sdaqf handoff create handoff-input.json --baseline baseline.json --led
 python -m sdaqf eval validate evals/comparison-suite.json --result evals/results/public-beta-comparison.json --json
 python -m sdaqf eval compare evals/comparison-suite.json --json
 python -m sdaqf schema migrate --contract agent-registry --from-version 1.0 --to-version 2.0 examples/m4-migration/agent-registry-v1.json --output migrated-agent-registry.json --approval .sdaqf/migration-approval.json --tool-registry examples/m4-migration/tool-registry-v2.json --json
+python -m sdaqf solver registry validate examples/m7-solver/solver-registry.json --root . --json
+python -m sdaqf solver request validate examples/m7-solver/solver-request.json --registry examples/m7-solver/solver-registry.json --task-graph examples/m7-solver/task-graph.json --root . --json
 ```
 
 ## Safety boundaries

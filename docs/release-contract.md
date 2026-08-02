@@ -24,9 +24,11 @@ python -m coverage report --include="src/sdaqf/domain/quality.py,src/sdaqf/appli
 python -m coverage report --include="src/sdaqf/domain/evaluation.py,src/sdaqf/domain/migrations.py,src/sdaqf/application/evaluation.py,src/sdaqf/application/migrations.py" --fail-under=90
 python -m coverage report --include="src/sdaqf/domain/context.py,src/sdaqf/ports/context.py,src/sdaqf/adapters/context.py,src/sdaqf/application/context_contracts.py,src/sdaqf/application/context_index.py,src/sdaqf/application/context_selection.py,src/sdaqf/application/context_compaction.py,src/sdaqf/application/context_quality.py" --fail-under=80
 python -m coverage report --include="src/sdaqf/domain/scheduler.py,src/sdaqf/ports/scheduler.py,src/sdaqf/adapters/scheduler.py,src/sdaqf/application/scheduler_contracts.py,src/sdaqf/application/scheduler.py,src/sdaqf/application/scheduler_recovery.py,src/sdaqf/application/scheduler_simulation.py" --fail-under=90
+python -m coverage report --include="src/sdaqf/domain/solver.py,src/sdaqf/ports/solver.py,src/sdaqf/adapters/solver.py,src/sdaqf/application/solver_contracts.py,src/sdaqf/application/solver.py,src/sdaqf/application/solver_verification.py" --fail-under=90
 python scripts/run_cli_smoke.py
 python scripts/validate_m5_context.py
 python scripts/validate_m6_scheduler.py
+python scripts/validate_m7_solver.py
 python -m sdaqf eval validate evals/comparison-suite.json --result evals/results/public-beta-comparison.json --json
 python scripts/check_workspace_boundary.py --repo . --expected-origin-url https://github.com/guriguri215-lang/spec-driven-agent-framework.git
 python scripts/audit_repository.py --root . --workspace-parent ..
@@ -59,6 +61,9 @@ It also validates and initializes an M6 Task Graph, advances and inspects the
 SQLite state, exports events, inspects the mailbox, recovers to a fresh state,
 and runs a deterministic real-state-machine simulation without dispatching a
 host effect.
+It additionally validates the M7 Solver Registry and Request, executes the
+bounded reference adapter under an exact M6 Lease, and independently verifies
+the fresh Result without a process or network effect.
 The positive G4 fixture performs an actual `python -I -m pip --isolated`,
 no-index, no-build-isolation, no-dependency target installation and executes
 the installed module from that fresh target. It materializes only Git
@@ -85,13 +90,13 @@ known-limitations sections.
 ## Continuous integration parity
 
 Every Windows/Linux and Python 3.12/3.13 matrix job runs pytest, Ruff, strict
-mypy, total and M1/M2/M6 critical branch coverage, both repository audits, the Git
+mypy, total and M1/M2/M6/M7 critical branch coverage, both repository audits, the Git
 workspace boundary, installed dependency consistency, and the exact CLI smoke
 script. Full pytest and smoke therefore exercise M4 on every existing matrix
-job. The matrix also runs `M6-SCHEDULER-SAFETY`. The M3, M4, and M5 critical thresholds are
-additional local Gates; changing the GitHub workflow remains outside M4
-authorization. CI uses only immutable pinned GitHub Action commits and installs
-no runtime dependency.
+job. The matrix also runs `M6-SCHEDULER-SAFETY` and
+`M7-SOLVER-EVIDENCE`. The M3, M4, and M5 critical thresholds are additional
+local Gates. CI uses only immutable pinned GitHub Action commits and installs no
+runtime dependency.
 
 Platform claims must come from `docs/evidence/M4-platform-evidence.json` and
 bind to the exact M4 candidate. A prior M3 matrix does not verify M4. A remote
@@ -100,6 +105,31 @@ exact-SHA Actions observation. macOS remains `NOT_VERIFIED` unless it is
 actually run.
 
 ## Local commit gate
+
+- `python scripts/validate_m7_solver.py` prints
+  `PASS: M7-SOLVER-EVIDENCE` and validates all four positive runtime/schema
+  artifact pairs, negative schema/runtime parity, exact M5/M6 and operational
+  identities, independent optimal proof replay, current and historical Lease
+  semantics, paired Result/Verification adoption and recovery, the read-only
+  Agent Result, all ten production status paths, recorded public evaluation
+  parity, stable top-level exports, and the empty runtime dependency set.
+- M7 focused tests cover strict envelopes and content identities; exact integer,
+  profile, constraint, ordering, result-shape, adapter, version-observation,
+  approval, complete adapter limits, lexical link/reparse confinement, timeout,
+  bounded publication failure, error, causal resource/termination replay,
+  separate solve/verification caps, exact raw Result byte caps across live,
+  historical, and recovery replay, all-outcome rejected-evidence exclusion,
+  truthful failed-task inconclusive evidence, verification-step accounting, canonical
+  non-timeout elapsed evidence, current Graph/task/capability authority binding,
+  external zero-use enforcement, proof, witness, objective, exact M5
+  sensitivity, sorted table columns, M6 task/host/path/UTC grammars, and claim
+  boundaries; M6 capability reservations, fencing, historical Lease evidence,
+  Task Result replay and recovery; CLI confinement/collision; public schemas;
+  and ten truthful statuses. M7 critical branch coverage is at least 90
+  percent.
+- The optional external-CLI adapter is never executed. `unavailable` reports
+  zero solver use, and no validation command performs network access, version
+  probing, fresh approval consumption, or dependency installation.
 
 - `python scripts/validate_m6_scheduler.py` prints
   `PASS: M6-SCHEDULER-SAFETY` and validates all seven positive runtime/schema

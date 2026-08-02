@@ -32,6 +32,7 @@ from sdaqf.application.scheduler_contracts import (
     validate_task_result_reference,
     verified_reference_size,
 )
+from sdaqf.application.solver_contracts import SolverContractError, parse_solver_capability_token
 from sdaqf.application.workspace import is_reparse_point
 from sdaqf.domain.context import SENSITIVITY_RANK, Sensitivity
 from sdaqf.domain.scheduler import (
@@ -54,6 +55,7 @@ from sdaqf.domain.scheduler import (
     WorktreeLease,
     WorktreeLeaseStatus,
 )
+from sdaqf.domain.solver import SolverLeaseEvidence
 
 APPLICATION_ID = 0x53444151
 USER_VERSION = 1
@@ -1708,7 +1710,16 @@ class SQLiteSchedulerStore:
                 DispatchPhase.ACCEPTED,
             }:
                 raise SchedulerAdapterError("Scheduler result lacks an authorized dispatch phase.")
-            validate_task_result_reference(self._root, graph, message)
+            validate_task_result_reference(
+                self._root,
+                graph,
+                message,
+                solver_lease_evidence=(
+                    self._m7_lease_evidence(connection, message, None)
+                    if task_definition is not None and task_definition.kind.value == "solver"
+                    else None
+                ),
+            )
             payload = message.to_dict()["payload"]
             assert isinstance(payload, dict)
             outcome_text = str(payload["outcome"])
@@ -1980,9 +1991,7 @@ class SQLiteSchedulerStore:
             require_projection(unchanged)
             prior_lease = self._prior_lease_for_event(connection, event)
             ttl_seconds, _ = self._lease_policy(connection)
-            expires_at = format_utc(
-                parse_utc(event.recorded_at) + timedelta(seconds=ttl_seconds)
-            )
+            expires_at = format_utc(parse_utc(event.recorded_at) + timedelta(seconds=ttl_seconds))
             self._validate_exact_lease_history(
                 connection,
                 event,
@@ -2055,19 +2064,17 @@ class SQLiteSchedulerStore:
                 "Worktree observation authority has no exact prior request.",
             )
             assert causal_request is not None
-            expected_worktree, terminal, worktree_reason = (
-                self._derive_exact_worktree_observation(
-                    event.graph_id,
-                    graph,
-                    task,
-                    prior,
-                    str(event.lease_id),
-                    lease,
-                    prior_worktree,
-                    message,
-                    causal_request,
-                    event.recorded_at,
-                )
+            expected_worktree, terminal, worktree_reason = self._derive_exact_worktree_observation(
+                event.graph_id,
+                graph,
+                task,
+                prior,
+                str(event.lease_id),
+                lease,
+                prior_worktree,
+                message,
+                causal_request,
+                event.recorded_at,
             )
             if terminal:
                 require_projection(
@@ -2392,9 +2399,7 @@ class SQLiteSchedulerStore:
             "Worktree authority history cardinality drifted.",
         )
         row = rows[0]
-        artifact = _parse_artifact_json(
-            row["artifact_json"], SchedulerArtifactType.WORKTREE_LEASE
-        )
+        artifact = _parse_artifact_json(row["artifact_json"], SchedulerArtifactType.WORKTREE_LEASE)
         actual = artifact.value
         assert isinstance(actual, WorktreeLease)
         _require_semantics(
@@ -2491,9 +2496,7 @@ class SQLiteSchedulerStore:
             idempotency_key=expected_idempotency,
             acquired_at=event.recorded_at,
             heartbeat_at=event.recorded_at,
-            expires_at=format_utc(
-                parse_utc(event.recorded_at) + timedelta(seconds=ttl_seconds)
-            ),
+            expires_at=format_utc(parse_utc(event.recorded_at) + timedelta(seconds=ttl_seconds)),
             ttl_seconds=ttl_seconds,
             heartbeat_interval_seconds=heartbeat_interval_seconds,
             status=LeaseStatus.CURRENT,
@@ -2536,9 +2539,7 @@ class SQLiteSchedulerStore:
             idempotency_key=expected_idempotency,
             acquired_at=event.recorded_at,
             heartbeat_at=event.recorded_at,
-            expires_at=format_utc(
-                parse_utc(event.recorded_at) + timedelta(seconds=ttl_seconds)
-            ),
+            expires_at=format_utc(parse_utc(event.recorded_at) + timedelta(seconds=ttl_seconds)),
             ttl_seconds=ttl_seconds,
             heartbeat_interval_seconds=heartbeat_interval_seconds,
             status=LeaseStatus.CURRENT,
@@ -2577,9 +2578,7 @@ class SQLiteSchedulerStore:
             },
             "Worktree observation authority has no current prior Worktree Lease.",
         )
-        artifact = _parse_artifact_json(
-            row["artifact_json"], SchedulerArtifactType.WORKTREE_LEASE
-        )
+        artifact = _parse_artifact_json(row["artifact_json"], SchedulerArtifactType.WORKTREE_LEASE)
         worktree = artifact.value
         assert isinstance(worktree, WorktreeLease)
         _require_semantics(
@@ -2721,8 +2720,7 @@ class SQLiteSchedulerStore:
             "Worktree observation authority does not match live policy.",
         )
         _require_semantics(
-            prior_worktree.status
-            in {WorktreeLeaseStatus.REQUESTED, WorktreeLeaseStatus.OBSERVED}
+            prior_worktree.status in {WorktreeLeaseStatus.REQUESTED, WorktreeLeaseStatus.OBSERVED}
             and prior_worktree.graph_id == graph_id
             and prior_worktree.task_id == task.task_id
             and prior_worktree.worktree_plan == graph.worktree_plan
@@ -2851,7 +2849,7 @@ class SQLiteSchedulerStore:
                     )
                 if missing:
                     blockers.append(Blocker("missing-capability", missing))
-                if task.kind.value == "solver":
+                if task.kind.value == "solver" and _m7_solver_reservation(task, graph) is None:
                     blockers.append(Blocker("solver-contract-unavailable", (task.task_id,)))
             expected_blockers = tuple(
                 sorted(blockers, key=lambda item: (item.code, item.references))
@@ -3589,6 +3587,7 @@ class SQLiteSchedulerStore:
                 item for item in graph.contexts if item.artifact_id == task.context_snapshot_id
             )
             context_bytes = verified_reference_size(self._root, binding.reference)
+            solver_reservation = _m7_solver_reservation(task, graph)
             solver = task.kind.value == "solver"
             reservation = {
                 "context_bytes": context_bytes,
@@ -3603,16 +3602,7 @@ class SQLiteSchedulerStore:
                     else 0
                 ),
                 "solver_calls": 1 if solver else 0,
-                "solver_steps": (
-                    max(
-                        0,
-                        graph.budget.max_solver_steps
-                        - reserved["solver_steps"]
-                        - used["solver_steps"],
-                    )
-                    if solver
-                    else 0
-                ),
+                "solver_steps": (sum(solver_reservation) if solver_reservation is not None else 0),
                 "tool_calls": len(task.required_tools),
             }
             admission_checks = (
@@ -4568,7 +4558,16 @@ class SQLiteSchedulerStore:
         elif message.message_type is MessageType.HEARTBEAT:
             self._apply_heartbeat(connection, graph_artifact, task, current, artifact, timestamp)
         elif message.message_type is MessageType.TASK_RESULT:
-            validate_task_result_reference(root, graph, message)
+            validate_task_result_reference(
+                root,
+                graph,
+                message,
+                solver_lease_evidence=(
+                    self._m7_lease_evidence(connection, message, current)
+                    if task.kind.value == "solver"
+                    else None
+                ),
+            )
             self._apply_result(
                 connection,
                 graph_artifact,
@@ -5684,7 +5683,7 @@ class SQLiteSchedulerStore:
             missing = tuple(sorted(set(task.required_capabilities) - capabilities))
             if missing:
                 blockers.append(Blocker("missing-capability", missing))
-            if task.kind.value == "solver":
+            if task.kind.value == "solver" and _m7_solver_reservation(task, graph) is None:
                 blockers.append(Blocker("solver-contract-unavailable", (task.task_id,)))
             target = TaskState.BLOCKED if blockers else TaskState.READY
             blockers_json = canonical_json_bytes(
@@ -6298,6 +6297,75 @@ class SQLiteSchedulerStore:
         )
         self._append_budget_snapshot(connection, graph_artifact, graph, sequence)
 
+    def _m7_lease_evidence(
+        self,
+        connection: sqlite3.Connection,
+        message: MailboxMessage,
+        current: sqlite3.Row | None,
+    ) -> SolverLeaseEvidence:
+        """Derive exact M6 authority for M7 evidence replay."""
+
+        if message.task_id is None or message.lease_id is None:
+            raise SchedulerAdapterError("Solver task result lacks Lease identity.")
+        row = current
+        if row is None:
+            row = connection.execute(
+                "SELECT * FROM current_leases WHERE task_id = ? AND lease_id = ?",
+                (message.task_id, message.lease_id),
+            ).fetchone()
+        if row is not None:
+            lease_artifact = _parse_artifact_json(
+                str(row["artifact_json"]), SchedulerArtifactType.LEASE
+            )
+        else:
+            history = connection.execute(
+                "SELECT artifact_json FROM lease_history "
+                "WHERE task_id = ? AND authority_lease_id = ? "
+                "ORDER BY event_sequence DESC LIMIT 1",
+                (message.task_id, message.lease_id),
+            ).fetchone()
+            if history is None:
+                raise SchedulerAdapterError("Solver Lease history is unavailable.")
+            lease_artifact = _parse_artifact_json(
+                str(history["artifact_json"]), SchedulerArtifactType.LEASE
+            )
+        lease = lease_artifact.value
+        assert isinstance(lease, Lease)
+        dispatch_matches = tuple(
+            (message_id, dispatch)
+            for _, message_id, dispatch, _ in _adopted_message_entries(
+                connection,
+                cause="dispatch-intent",
+                message_type=MessageType.DISPATCH_INTENT,
+            )
+            if dispatch.task_id == message.task_id and dispatch.lease_id == message.lease_id
+        )
+        if len(dispatch_matches) != 1:
+            raise SchedulerAdapterError("Solver dispatch evidence is ambiguous.")
+        dispatch_id, dispatch = dispatch_matches[0]
+        payload = dispatch.to_dict()["payload"]
+        assert isinstance(payload, dict)
+        reservation = payload.get("budget_reservation")
+        if not isinstance(reservation, dict):
+            raise SchedulerAdapterError("Solver dispatch reservation is unavailable.")
+        calls = int(reservation.get("solver_calls", -1))
+        steps = int(reservation.get("solver_steps", -1))
+        if calls != 1 or steps < 2 or lease.owner_id != message.sender:
+            raise SchedulerAdapterError("Solver Lease authority is inconsistent.")
+        return SolverLeaseEvidence(
+            graph_id=lease.graph_id,
+            task_id=lease.task_id,
+            host_id=lease.owner_id,
+            attempt=lease.attempt,
+            lease_id=message.lease_id,
+            fence=lease.fence,
+            idempotency_key=lease.idempotency_key,
+            dispatch_message_id=dispatch_id,
+            expires_at=lease.expires_at,
+            reserved_solver_calls=calls,
+            reserved_solver_steps=steps,
+        )
+
     def _dispatch_for_lease(
         self, connection: sqlite3.Connection, task_id: str, lease_id: str
     ) -> MailboxMessage | None:
@@ -6496,14 +6564,8 @@ class SQLiteSchedulerStore:
     ) -> dict[str, int]:
         totals = {row["resource"]: row for row in connection.execute("SELECT * FROM budget_totals")}
         solver = task.kind.value == "solver"
-        solver_steps = 0
-        if solver:
-            solver_steps = max(
-                0,
-                graph.budget.max_solver_steps
-                - int(totals["solver_steps"]["reserved"])
-                - int(totals["solver_steps"]["used"]),
-            )
+        solver_binding = _m7_solver_reservation(task, graph)
+        solver_steps = 0 if solver_binding is None else sum(solver_binding)
         microunits = 0
         if graph.budget.cost_status == "available":
             assert graph.budget.max_microunits is not None
@@ -7192,6 +7254,36 @@ def _projection_from_row(row: sqlite3.Row) -> TaskProjection:
         fence=row["fence"],
         blockers=blockers,
     )
+
+
+def _m7_solver_reservation(task: Any, graph: TaskGraph) -> tuple[int, int] | None:
+    """Return one exact M7 solve/verification reservation or fail closed."""
+
+    if task.kind.value != "solver":
+        return None
+    tokens = tuple(
+        capability
+        for capability in task.required_capabilities
+        if capability.startswith("m7-solver-v1@")
+    )
+    if (
+        len(tokens) != 1
+        or task.effect_kind is not EffectKind.READ_ONLY
+        or task.required_tools
+        or task.owned_paths
+        or task.worktree_assignment is not None
+        or task.evidence_predicate != ("evidence-reference-present",)
+        or task.terminal_predicate != ("agent-result-valid",)
+        or graph.budget.max_solver_calls < 1
+    ):
+        return None
+    try:
+        _, solve_steps, verification_steps = parse_solver_capability_token(tokens[0])
+    except SolverContractError:
+        return None
+    if solve_steps + verification_steps > graph.budget.max_solver_steps:
+        return None
+    return solve_steps, verification_steps
 
 
 def _blockers_json(code: str, references: tuple[str, ...] = ()) -> str:

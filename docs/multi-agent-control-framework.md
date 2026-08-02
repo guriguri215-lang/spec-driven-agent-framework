@@ -250,6 +250,30 @@ and accepts only the latest primary-adopted dispatch or Worktree intent for the
 exact current Lease and live task phase; raw, old-attempt, or provisional-only
 mailbox history is not a parent authority.
 
+### M7 solver tasks
+
+An M7 solver task has no required tool call. Its one required capability token
+contains the exact Solver operational contract ID, solve-step reservation,
+verification-step reservation, and one-call reservation. Dispatch is blocked
+until the host advertises that exact token. The Task Graph budget must reserve
+one solver call and exactly the combined steps; these values are copied into
+the dispatch and Lease evidence and independently replayed.
+
+`solver run` requires the current fenced Lease. A successful solver Task Result
+must reference exactly one content-addressed Solver Result and one Solver
+Verification, report their exact combined usage, report no external effect,
+and carry an independently verified result satisfying the Request's required
+claim. Live ingestion and SQLite validation call the same semantic evidence
+replay; fresh-output recovery therefore rejects a forged witness, proof,
+resource count, claim, evidence pair, or adoption decision even when its JSON
+is rehashed consistently. Verification may use immutable historical Lease
+evidence after successful adoption releases the current projection.
+
+The optional M7 external-CLI Registry shape is not scheduler execution
+authority. It requires future fresh Owner and technical-sandbox approvals and
+single-use consumption, and the current M7 service returns `unavailable`
+without reserving or invoking a tool.
+
 ## Host boundary
 
 The packaged `AgentHostPort` and `WorktreeHostPort` have no real implementation.
@@ -311,7 +335,9 @@ production readiness.
 ## Non-goals and limits
 
 M6 does not implement a real subagent host, nested Codex execution, automatic
-Git worktree lifecycle, solver, hosted workflow runtime, OpenAI API, Agents
-SDK, management UI, external publication, destructive cleanup, or in-place
-database migration. macOS remains `NOT_VERIFIED`; Windows/Linux exact-candidate
-CI remains required before a platform claim.
+Git worktree lifecycle, hosted or third-party solver execution, hosted workflow
+runtime, OpenAI API, Agents SDK, management UI, external publication,
+destructive cleanup, or in-place database migration. M7 adds only a bounded
+offline reference solver and typed scheduler evidence. macOS remains
+`NOT_VERIFIED`; Windows/Linux exact-candidate CI remains required before a
+platform claim.

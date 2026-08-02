@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "agent_id": "AGT-M7-SOLVER-1",
+  "role_id": "implementer",
+  "status": "completed",
+  "summary": "Executed the authorized read-only finite-domain solve and returned paired result and verification evidence.",
+  "findings": [
+    {
+      "finding_id": "FND-M7-SOLVER-EVIDENCE-1",
+      "severity": "low",
+      "statement": "The deterministic reference adapter produced an independently verified optimal witness.",
+      "specification_refs": ["FR-EXE-014"],
+      "evidence_refs": [
+        "examples/m7-solver/solver-result.json",
+        "examples/m7-solver/solver-verification.json"
+      ],
+      "evidence_strength": "direct",
+      "counterexample": null
+    }
+  ],
+  "changed_paths": [],
+  "reviewed_agent_ids": [],
+  "self_approved": false
+}

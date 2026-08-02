@@ -188,3 +188,38 @@ fresh named output. The source is not changed. Existing output, ambiguous
 publication, damaged immutable evidence, or evidence drift fails closed. A
 future M6 migration needs a new version, preserved source, explicit
 compatibility contract, separate approval, and new evidence.
+
+## M7 Solver schema policy
+
+The four Solver Registry, Request, Result, and Verification schema `1.0` files
+are additive and content-addressed. There is no predecessor and no implicit
+conversion from an M2 Tool Registry, M5 Context artifact, M6 Task Graph, Lease,
+message, budget, or Agent Result. Those exact artifacts remain referenced
+evidence and retain their original meanings.
+
+Solver content identity includes the exact-integer numeric domain, all D2
+adapter hard limits, optional-tool version observation and fresh approval
+requirements, operational contract, problem, required claim, exact tolerance,
+resource policy, Result evidence, and independent Verification. Changing any
+identity-bearing field creates a new artifact ID. Copying an old ID into
+changed content fails validation.
+
+All four schemas reuse the exact M5 sensitivity labels and the exact M6 Task
+and host identifier grammars. M7 does not define compatibility aliases for
+those authority-bearing fields. Table variable arrays are canonical sorted
+identifier arrays; a column permutation requires a new canonical problem, not
+an alternate serialization of the same one.
+
+The initial schema intentionally closes exact integer arithmetic, problem and
+constraint vocabularies, reference-adapter limits, ten statuses, proof
+dispositions, and verification/adoption semantics. A future approximate
+numeric theory, constraint, backend, status, proof rule, executable external
+adapter, or changed limit requires a new version. It may not silently extend
+schema `1.0` or reuse its approvals.
+
+M7 has no migration command and never updates artifacts in place. A future
+conversion must preserve every historical source and referenced evidence,
+produce fresh separately identified output, document semantic compatibility
+and rollback, require separate Owner approval, and re-run independent
+verification. A Registry entry or prior version observation never grants
+process execution, network access, or approval consumption.

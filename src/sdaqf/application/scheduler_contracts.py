@@ -71,6 +71,7 @@ from sdaqf.domain.scheduler import (
     WorktreeLease,
     WorktreeLeaseStatus,
 )
+from sdaqf.domain.solver import SolverLeaseEvidence
 
 MAX_ARTIFACT_BYTES = 1024 * 1024
 MAX_MESSAGE_BYTES = 64 * 1024
@@ -360,11 +361,19 @@ def validate_task_result_reference(
     root: Path,
     graph: TaskGraph,
     message: MailboxMessage,
+    *,
+    solver_lease_evidence: SolverLeaseEvidence | None = None,
 ) -> AgentResult | None:
     """Verify an exact Agent Result wrapper against the Task Graph registry."""
 
     if message.message_type is not MessageType.TASK_RESULT:
         return None
+    current_graph_id = scheduler_identity(
+        SchedulerArtifactType.TASK_GRAPH,
+        graph.to_dict(),
+    )
+    if message.graph_id != current_graph_id:
+        raise SchedulerContractError("Task Result does not match the current Task Graph.")
     payload = message.to_dict()["payload"]
     assert isinstance(payload, dict)
     result_reference = parse_artifact_reference(
@@ -394,6 +403,31 @@ def validate_task_result_reference(
     )
     for reference in evidence:
         _verified_path(resolved_root, reference)
+    if task.kind is TaskKind.SOLVER:
+        if solver_lease_evidence is None:
+            raise SchedulerContractError("Solver task result lacks M6 Lease evidence.")
+        solver_capabilities = tuple(
+            capability
+            for capability in task.required_capabilities
+            if capability.startswith("m7-solver-v1@")
+        )
+        if len(solver_capabilities) != 1:
+            raise SchedulerContractError("Solver task lacks exact M7 capability authority.")
+        try:
+            from sdaqf.application.solver_verification import (
+                validate_solver_task_result_evidence,
+            )
+
+            validate_solver_task_result_evidence(
+                resolved_root,
+                payload,
+                solver_lease_evidence,
+                expected_graph_id=current_graph_id,
+                expected_task_id=task.task_id,
+                expected_solver_capability=solver_capabilities[0],
+            )
+        except (ContractError, OSError) as exc:
+            raise SchedulerContractError("Solver task result evidence is invalid.") from exc
     return result
 
 
@@ -1055,8 +1089,7 @@ def _parse_message(value: dict[str, object]) -> MailboxMessage:
     }:
         raise SchedulerContractError("Task-bound message identity is incomplete.")
     if message_type is MessageType.CAPABILITY_OBSERVATION and any(
-        item is not None
-        for item in (parsed_task, context, attempt, lease, fence, idem)
+        item is not None for item in (parsed_task, context, attempt, lease, fence, idem)
     ):
         raise SchedulerContractError(
             "Capability observation task identity fields must all be null."
@@ -1268,9 +1301,7 @@ def _parse_message_payload(message_type: MessageType, value: object) -> dict[str
                 item.get("approval_type"), "payload.approval_type", {"owner", "technical_sandbox"}
             ),
             "decision": _choice(item.get("decision"), "payload.decision", {"approved", "rejected"}),
-            "transition": path_free_text(
-                item.get("transition"), "payload.transition", maximum=100
-            ),
+            "transition": path_free_text(item.get("transition"), "payload.transition", maximum=100),
             "effect_digest": sha256(item.get("effect_digest"), "payload.effect_digest"),
             "approved_at": approved,
             "expires_at": expires,

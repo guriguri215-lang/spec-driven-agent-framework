@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0",
+  "suite_id": "M7-SOLVER-PUBLIC-1",
+  "public_evidence": {
+    "request": {
+      "artifact_id": "M7-SOLVER-REQUEST-096DDE709749D732C022158E6961D76B94552F1A482E44DFCA3B34A4CFA6FA65",
+      "path": "examples/m7-solver/solver-request.json",
+      "sha256": "D8F948B737E73043712FE6E4CB735C8D1B827F6FB3F8668B46E1F21D0DC617B6"
+    },
+    "result": {
+      "artifact_id": "M7-SOLVER-RESULT-82387EF4E862F4A7F7A290C75ED5CFF0100F7562568E3D18A0398FD18370099E",
+      "path": "examples/m7-solver/solver-result.json",
+      "sha256": "B744C6D89C7A413DD163CF575A797A361CE00FF978DBE28715191287E8C6CA18"
+    },
+    "verification": {
+      "artifact_id": "M7-SOLVER-VERIFICATION-26578FE32694AB3D715D7FE531450C03E09DC099CF178183742B30C051BD7847",
+      "path": "examples/m7-solver/solver-verification.json",
+      "sha256": "57D251F16E27AD21BA40C1BB120745D8C92173F797E40DAB2BB297A25AC11C65"
+    }
+  },
+  "cases": [
+    {"case_id": "satisfiable", "observed_status": "satisfiable", "observed_verification": "verified", "observed_adoption": true, "passed": true},
+    {"case_id": "unsatisfiable", "observed_status": "unsatisfiable", "observed_verification": "verified", "observed_adoption": true, "passed": true},
+    {"case_id": "feasible", "observed_status": "feasible", "observed_verification": "verified", "observed_adoption": true, "passed": true},
+    {"case_id": "infeasible", "observed_status": "infeasible", "observed_verification": "verified", "observed_adoption": false, "passed": true},
+    {"case_id": "optimal", "observed_status": "optimal", "observed_verification": "verified", "observed_adoption": true, "passed": true},
+    {"case_id": "bounded", "observed_status": "bounded", "observed_verification": "verified", "observed_adoption": true, "passed": true},
+    {"case_id": "timeout", "observed_status": "timeout", "observed_verification": "inconclusive", "observed_adoption": false, "passed": true},
+    {"case_id": "unavailable", "observed_status": "unavailable", "observed_verification": "inconclusive", "observed_adoption": false, "passed": true},
+    {"case_id": "unknown", "observed_status": "unknown", "observed_verification": "inconclusive", "observed_adoption": false, "passed": true},
+    {"case_id": "error", "observed_status": "error", "observed_verification": "inconclusive", "observed_adoption": false, "passed": true}
+  ],
+  "disposition_counts": {"failed": 0, "passed": 10}
+}

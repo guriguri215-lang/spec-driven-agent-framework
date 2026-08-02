@@ -58,6 +58,13 @@ jobs:
           --fail-under=90
       - name: Validate M6 scheduler safety
         run: python scripts/validate_m6_scheduler.py
+      - name: Check M7 critical coverage
+        run: >-
+          python -m coverage report
+          --include="src/sdaqf/domain/solver.py,src/sdaqf/ports/solver.py,src/sdaqf/adapters/solver.py,src/sdaqf/application/solver_contracts.py,src/sdaqf/application/solver.py,src/sdaqf/application/solver_verification.py"
+          --fail-under=90
+      - name: Validate M7 solver evidence
+        run: python scripts/validate_m7_solver.py
       - name: Audit workspace boundary
         run: >-
           python scripts/check_workspace_boundary.py

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/solver-verification.schema.json",
+  "title": "M7 Solver Verification",
+  "type": "object",
+  "required": ["schema_version", "artifact_type", "artifact_id", "content"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "artifact_type": {"const": "solver-verification"},
+    "artifact_id": {"$ref": "solver-registry.schema.json#/$defs/verification_id"},
+    "content": {
+      "type": "object",
+      "required": [
+        "sensitivity", "request", "request_id", "result", "result_id", "contract_id",
+        "candidate", "graph_id", "task_id", "context_snapshot_id", "lease", "outcome",
+        "adoption_allowed", "checks", "reasons", "verification_steps"
+      ],
+      "properties": {
+        "sensitivity": {"$ref": "solver-registry.schema.json#/$defs/sensitivity"},
+        "request": {"$ref": "solver-registry.schema.json#/$defs/reference"},
+        "request_id": {"$ref": "solver-registry.schema.json#/$defs/request_id"},
+        "result": {"$ref": "solver-registry.schema.json#/$defs/reference"},
+        "result_id": {"$ref": "solver-registry.schema.json#/$defs/result_id"},
+        "contract_id": {"$ref": "solver-registry.schema.json#/$defs/contract_id"},
+        "candidate": {"$ref": "solver-registry.schema.json#/$defs/candidate"},
+        "graph_id": {"$ref": "solver-registry.schema.json#/$defs/graph_id"},
+        "task_id": {"$ref": "solver-registry.schema.json#/$defs/task_id"},
+        "context_snapshot_id": {"$ref": "solver-registry.schema.json#/$defs/context_id"},
+        "lease": {"$ref": "solver-registry.schema.json#/$defs/lease"},
+        "outcome": {"enum": ["verified", "rejected", "inconclusive"]},
+        "adoption_allowed": {"type": "boolean"},
+        "checks": {
+          "type": "array", "minItems": 1, "maxItems": 64, "uniqueItems": true,
+          "items": {"type": "object", "required": ["check_id", "passed"], "properties": {"check_id": {"$ref": "solver-registry.schema.json#/$defs/slug"}, "passed": {"type": "boolean"}}, "additionalProperties": false}
+        },
+        "reasons": {"type": "array", "maxItems": 64, "uniqueItems": true, "items": {"$ref": "solver-registry.schema.json#/$defs/slug"}},
+        "verification_steps": {"type": "integer", "minimum": 0, "maximum": 1000000}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"adoption_allowed": {"const": true}}},
+          "then": {
+            "properties": {
+              "outcome": {"const": "verified"},
+              "checks": {"not": {"contains": {"properties": {"passed": {"const": false}}}}}
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

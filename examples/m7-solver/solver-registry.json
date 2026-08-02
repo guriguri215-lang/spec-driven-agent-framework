@@ -1,0 +1,64 @@
+{
+  "artifact_id": "M7-SOLVER-REGISTRY-4465E2BC2BE22A272F5822FFDEC64175038E88CC34A739333DE675E430C24933",
+  "artifact_type": "solver-registry",
+  "content": {
+    "adapters": [
+      {
+        "adapter_id": "stdlib-finite-domain-v1",
+        "adapter_kind": "reference",
+        "approval_requirements": null,
+        "executable": null,
+        "implementation": "sdaqf.adapters.solver.FiniteDomainReferenceAdapter",
+        "input_format": null,
+        "license_expression": "Apache-2.0",
+        "limits": {
+          "max_artifact_bytes": 1048576,
+          "max_constraint_variables": 16,
+          "max_constraints": 256,
+          "max_domain_values": 256,
+          "max_scalar": 1000000,
+          "max_search_space": 1000000,
+          "max_table_rows": 4096,
+          "max_variables": 16,
+          "min_scalar": -1000000
+        },
+        "network": false,
+        "numeric_domain": "exact-integer",
+        "optional": false,
+        "provenance": [
+          {
+            "path": "LICENSE",
+            "sha256": "C71D239DF91726FC519C6EB72D318EC65820627232B2F796219E87DCF35D0AB4"
+          },
+          {
+            "path": "pyproject.toml",
+            "sha256": "76D9C29018CA8A3040F0EBF4BD608A7AAB3E186AC4D68AF8D8824AF3FC6B3394"
+          }
+        ],
+        "supported_constraints": [
+          "all-different",
+          "clause",
+          "linear",
+          "non-overlap",
+          "table"
+        ],
+        "supported_problem_kinds": [
+          "finite-domain-feasibility",
+          "finite-domain-optimization"
+        ],
+        "supported_profiles": [
+          "boolean-sat",
+          "finite-scheduling",
+          "general"
+        ],
+        "tool_name": null,
+        "tool_registry": null,
+        "version": "1.0.0",
+        "version_matcher": null,
+        "version_observation": null
+      }
+    ],
+    "sensitivity": "public"
+  },
+  "schema_version": "1.0"
+}

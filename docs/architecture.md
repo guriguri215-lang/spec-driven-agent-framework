@@ -394,3 +394,41 @@ The package emits typed host intents and consumes typed observations. It does
 not launch Codex, execute a process, create or integrate a worktree, access a
 network, or delete ambiguous state. Ten fixed-clock simulations exercise the
 real SQLite state machine offline.
+
+## M7 Mathematical Solver Framework
+
+M7 follows the same dependency direction. Frozen problem, adapter, Result,
+resource, proof, and Verification values live in `domain/solver.py`;
+clock/adapter/Lease-evidence protocols live in `ports/solver.py`; strict
+content-addressed contracts, orchestration, and independent verification live
+in `application/solver*.py`; and `adapters/solver.py` supplies only the
+standard-library enumerator, system clock, and read-only M6 Lease observer.
+The CLI depends on the application services, never on solver internals.
+
+The Solver Request joins four existing trust domains without sharing their
+storage internals: an exact Solver Registry and operational contract, the M5
+Candidate and Context Snapshot, and the M6 Task Graph/task. The capability
+token carries the contract ID plus exact solve and verification reservations.
+The scheduler grants execution authority through one current fenced Lease and
+reserves one solver call and the exact combined step count.
+
+The reference adapter is deterministic complete-assignment enumeration over a
+closed finite integer model. It publishes typed evidence only. A second
+application service independently reloads and reauthenticates Registry,
+Request, Graph, Result, and current or historical Lease evidence, then
+re-evaluates witness, objective, bound, resource, proof, and required-claim
+semantics. `verified` is not automatically adoptable: every check must pass and
+the verified status must meet the requested claim.
+
+M6 Task Result ingestion treats the Result and Verification as a paired
+evidence unit. It reproduces verification, exact budget usage, no-effect
+semantics, and adoption authority during both live validation and fresh-output
+recovery. Agent text, backend agreement, timeout, `unknown`, and optional-tool
+availability cannot grant scheduler authority.
+
+The optional external-CLI type is intentionally non-executable. Its Registry
+shape records exact Tool Registry identity, tool/executable, input format,
+version matcher and observation, license/provenance, network prohibition, and
+fresh single-use Owner plus technical-sandbox approval requirements. Selecting
+it produces `unavailable` without process or network access. An executable
+adapter would be a future separately approved architecture change.

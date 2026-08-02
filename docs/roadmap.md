@@ -223,8 +223,8 @@ multi-agent execution control.
 
 ## M7: Mathematical Computation and Solver Framework
 
-Status: planned; depends on M5 identity conventions and M6 budget/event
-semantics.
+Status: implemented locally; full local validation, independent review, Git
+finalization, and exact-candidate CI remain pending.
 
 ### Objective
 
@@ -240,9 +240,10 @@ where a solver is justified.
   contracts.
 - A bounded standard-library finite-domain reference adapter for small
   deterministic problems.
-- An optional local Z3 command-line adapter through the existing Tool Registry,
-  subject to fresh provenance, license, executable, version, input-format,
-  security, and approval review.
+- A structurally complete optional local Z3 command-line Registry entry through
+  the existing Tool Registry, subject to fresh provenance, license, executable,
+  version-observation, input-format, security, and approval review. M7 does not
+  execute it.
 - Witness, objective, bound, proof-or-audit artifact, resource, and
   verification records.
 - Deterministic witness re-evaluation before adoption.
@@ -271,12 +272,13 @@ where a solver is justified.
 ### Completion criteria
 
 - Known satisfiable, unsatisfiable, feasible, infeasible, optimal, bounded,
-  timeout, unavailable, and error fixtures behave truthfully.
+  timeout, unavailable, unknown, and error fixtures behave truthfully.
 - Typed serialization rejects arbitrary solver text and unsafe execution.
 - Witness, objective, bound, tolerance, proof disposition, resource, version,
   license, and provenance checks fail closed.
-- Reference and optional external adapters agree on bounded fixtures only as
-  corroboration; deterministic verification remains authoritative.
+- The reference adapter executes bounded fixtures; an optional external entry
+  returns `unavailable` until a future separately approved integration exists.
+  Deterministic verification remains authoritative.
 - Solver tasks obey M6 leases, budgets, context identity, and approval stops.
 - Named local validator `M7-SOLVER-EVIDENCE` passes.
 

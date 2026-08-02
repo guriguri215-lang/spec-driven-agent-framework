@@ -1,0 +1,89 @@
+{
+  "artifact_id": "M7-SOLVER-REQUEST-096DDE709749D732C022158E6961D76B94552F1A482E44DFCA3B34A4CFA6FA65",
+  "artifact_type": "solver-request",
+  "content": {
+    "adapter_id": "stdlib-finite-domain-v1",
+    "candidate": {
+      "git_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "repository_digest": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "source_spec_sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+    },
+    "context_snapshot": {
+      "path": "examples/m5-context/context-snapshot.json",
+      "sha256": "5451B8D5C76A61A1B1D9337D8EA6FC4FD9F7E82B79F0CDEB3FCC4E276488F19C"
+    },
+    "context_snapshot_id": "CTX-SNAPSHOT-60806B57F8C2C1B3E8AA059428C0FAD2D1629DD06B4E3A402F476497E4038A2C",
+    "contract_id": "M7-SOLVER-CONTRACT-2FB4A1B257CBC46A638604B7EF9AE2B71E419B7E7EBA5941CDD1CAA8EE821C5C",
+    "graph_id": "M6-TASK-GRAPH-85785C92116AF0B34BC7AB17B0499B7C3B483A02A49B24AB9DB01177909DECF8",
+    "problem": {
+      "constraints": [
+        {
+          "constraint_id": "NO_OVERLAP",
+          "constraint_type": "non-overlap",
+          "left_duration": 2,
+          "left_start": "START_A",
+          "right_duration": 2,
+          "right_start": "START_B"
+        }
+      ],
+      "objective": {
+        "constant": 0,
+        "direction": "minimize",
+        "terms": [
+          {
+            "coefficient": 1,
+            "variable_id": "START_A"
+          },
+          {
+            "coefficient": 1,
+            "variable_id": "START_B"
+          }
+        ]
+      },
+      "problem_kind": "finite-domain-optimization",
+      "profile": "finite-scheduling",
+      "variables": [
+        {
+          "domain": {
+            "kind": "integer-range",
+            "lower": 0,
+            "upper": 3
+          },
+          "variable_id": "START_A"
+        },
+        {
+          "domain": {
+            "kind": "integer-range",
+            "lower": 0,
+            "upper": 3
+          },
+          "variable_id": "START_B"
+        }
+      ]
+    },
+    "registry": {
+      "path": "examples/m7-solver/solver-registry.json",
+      "sha256": "A74F164AF3DCD474C647C7D270F722E50EF5AF37E00D75D85FDA6638F51D6BCB"
+    },
+    "registry_id": "M7-SOLVER-REGISTRY-4465E2BC2BE22A272F5822FFDEC64175038E88CC34A739333DE675E430C24933",
+    "required_claim": "optimal",
+    "resource_policy": {
+      "max_result_bytes": 1048576,
+      "max_solve_steps": 16,
+      "max_verification_steps": 16,
+      "timeout_milliseconds": null
+    },
+    "sensitivity": "public",
+    "task_graph": {
+      "path": "examples/m7-solver/task-graph.json",
+      "sha256": "4130BA8B3B04DDC701856908C3E06F951B33EAF3F3534D5F584D35432BBCBBF2"
+    },
+    "task_id": "TSK-M6-DEMO",
+    "tolerance": {
+      "absolute": 0,
+      "kind": "exact",
+      "relative": 0
+    }
+  },
+  "schema_version": "1.0"
+}

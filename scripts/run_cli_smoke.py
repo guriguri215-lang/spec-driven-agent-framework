@@ -1,4 +1,6 @@
-"""Run the exact offline M0 through M6 CLI smoke contract."""
+"""Run the exact offline M0 through M7 CLI smoke contract."""
+
+# ruff: noqa: E402
 
 from __future__ import annotations
 
@@ -16,6 +18,13 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPOSITORY_ROOT))
+
+from tests.m7_solver_helpers import HOST_ID as M7_HOST_ID
+from tests.m7_solver_helpers import build_fixture, start_solver_lease
+
 from sdaqf.adapters.process import SubprocessRunner
 from sdaqf.application.context_contracts import (
     artifact_from_value,
@@ -32,6 +41,7 @@ from sdaqf.domain.context import (
     ContextQuery,
 )
 from sdaqf.domain.quality import CandidateIdentity
+from sdaqf.domain.scheduler import MailboxMessage
 
 
 def _run(label: str, args: Sequence[str], *, json_output: bool = False) -> None:
@@ -1578,6 +1588,94 @@ def main_smoke() -> int:
                 ],
                 json_output=True,
             )
+            m7_fixture = build_fixture(temporary / "m7-solver")
+            _, m7_dispatch = start_solver_lease(m7_fixture)
+            m7_dispatch_value = m7_dispatch.value
+            if not isinstance(m7_dispatch_value, MailboxMessage):
+                raise RuntimeError("M7 CLI smoke dispatch is invalid.")
+            m7_lease_id = m7_dispatch_value.lease_id
+            if m7_lease_id is None:
+                raise RuntimeError("M7 CLI smoke Lease is missing.")
+            _run(
+                "M7 Solver Registry validation",
+                [
+                    "solver",
+                    "registry",
+                    "validate",
+                    str(m7_fixture.registry_path),
+                    "--root",
+                    str(root),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M7 Solver Request validation",
+                [
+                    "solver",
+                    "request",
+                    "validate",
+                    str(m7_fixture.request_path),
+                    "--registry",
+                    str(m7_fixture.registry_path),
+                    "--task-graph",
+                    str(m7_fixture.graph_path),
+                    "--root",
+                    str(root),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M7 finite-domain solve",
+                [
+                    "solver",
+                    "run",
+                    str(m7_fixture.request_path),
+                    "--registry",
+                    str(m7_fixture.registry_path),
+                    "--task-graph",
+                    str(m7_fixture.graph_path),
+                    "--state",
+                    str(m7_fixture.state_path),
+                    "--root",
+                    str(root),
+                    "--host-id",
+                    M7_HOST_ID,
+                    "--lease-id",
+                    m7_lease_id,
+                    "--output",
+                    str(m7_fixture.result_path),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M7 independent solve verification",
+                [
+                    "solver",
+                    "verify",
+                    str(m7_fixture.result_path),
+                    "--request",
+                    str(m7_fixture.request_path),
+                    "--registry",
+                    str(m7_fixture.registry_path),
+                    "--task-graph",
+                    str(m7_fixture.graph_path),
+                    "--state",
+                    str(m7_fixture.state_path),
+                    "--root",
+                    str(root),
+                    "--host-id",
+                    M7_HOST_ID,
+                    "--lease-id",
+                    m7_lease_id,
+                    "--output",
+                    str(m7_fixture.verification_path),
+                    "--json",
+                ],
+                json_output=True,
+            )
         finally:
             os.chdir(previous)
             if (
@@ -1587,7 +1685,7 @@ def main_smoke() -> int:
                 and not is_reparse_point(m3_spec)
             ):
                 m3_spec.unlink()
-    print("PASS: offline M0 through M6 CLI smoke checks succeeded.")
+    print("PASS: offline M0 through M7 CLI smoke checks succeeded.")
     return 0
 
 

@@ -13,6 +13,28 @@ G5 remains `NOT_RUN`.
 
 ### Added
 
+- M7 content-addressed Solver Registry, Request, Result, and Verification
+  schema `1.0` contracts with exact M5 candidate/Context and M6 graph/task/Lease
+  identities, exact-zero tolerance, bounded resource policy, and strict
+  runtime/schema validation.
+- A dependency-free deterministic finite-domain reference adapter covering two
+  problem kinds, three profiles, five typed constraints, exact integer
+  feasibility and optimization, and ten truthful Result dispositions.
+- Independent witness, objective, bound, exhaustive-proof, claim, resource,
+  adapter, license, provenance, sensitivity, and current-or-historical Lease
+  verification. Only a verified Result satisfying the requested claim is
+  adoptable.
+- Exact M6 solver capability tokens, call/step reservation and settlement,
+  paired Result/Verification Task Result adoption, semantic SQLite validation,
+  and fresh-output recovery replay.
+- Structurally complete optional external-CLI Registry evidence with exact Tool
+  Registry, executable, input format, version matcher/observation,
+  license/provenance, no-network, and fresh single-use dual-approval
+  requirements. M7 deliberately does not execute it.
+- Additive `solver registry validate`, `solver request validate`, `solver run`,
+  and `solver verify` CLI paths; synthetic public artifacts; ten production
+  evaluation cases without an aggregate score; M0-through-M7 smoke; and
+  `M7-SOLVER-EVIDENCE` with at least 90 percent M7 critical branch coverage.
 - M6 content-addressed Task Graph, Scheduler State, Lease, Mailbox Message,
   Scheduler Event, Budget Ledger, and Worktree Lease schema 1.0 contracts.
 - A transactional standard-library SQLite scheduler with fenced leases,
