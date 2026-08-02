@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sqlite3
 import subprocess
 from pathlib import Path
@@ -207,6 +208,8 @@ def test_linked_ancestor_is_rejected_before_resolution(
         except OSError:
             pytest.skip("directory symlinks are unavailable")
     else:
+        if os.name != "nt":
+            pytest.skip("directory junctions are Windows-only")
         junction = subprocess.run(
             ("cmd.exe", "/d", "/c", "mklink", "/J", str(linked), str(real)),
             check=False,
