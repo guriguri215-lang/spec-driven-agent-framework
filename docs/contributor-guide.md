@@ -2,14 +2,11 @@
 
 ## Current contribution status
 
-The project is in the `1.0.0rc1` release-candidate phase. The Owner-approved A7
-visibility-change command was accepted with exit code `0` and no output, but
-no independent post-A7 remote read has observed current repository visibility.
-The project is licensed under Apache-2.0 but is not open for external pull
-requests during the release candidate. Bug and documentation issues are
-handled through GitHub Issues on a best-effort basis only after public
-availability is independently confirmed. This guide defines the workflow for
-explicitly approved local contributors.
+The public project is in the `1.0.0rc1` release-candidate phase. It is licensed
+under Apache-2.0 but is not open for external pull requests during the release
+candidate. Bug and documentation issues are handled through GitHub Issues on a
+best-effort basis. This guide defines the workflow for explicitly approved
+local contributors.
 
 ## Setup
 
@@ -115,11 +112,13 @@ use a public issue for vulnerability disclosure.
 ## Release limitations
 
 Gate G4 is a local release-candidate check, not publication. Gate G5 remains
-Owner-gated. `G5-LOCAL-READINESS` can return `LOCAL_READY` but actual Gate G5
-remains `NOT_RUN`. Contributors may not change project-license material,
-visibility, publish a branch, create a PR, tag or release, change repository
-settings, deploy, or transfer data externally without an exact Owner decision
-and reviewed outbound content.
+Owner-gated. `G5-LOCAL-READINESS` can return `LOCAL_READY` but cannot authorize
+publication. Actual Gate G5 passed for the tagged `v1.0.0-rc.1` candidate only;
+that result does not transfer to the current `main` branch or a future release.
+Contributors may not change project-license material, visibility, publish a
+branch, create a PR, tag or release, change repository settings, deploy, or
+transfer data externally without an exact Owner decision and reviewed outbound
+content.
 
 Support is best effort, has no SLA, and applies to the latest release only.
 No prerelease backports are promised. The project Code of Conduct is deferred

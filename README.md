@@ -1,341 +1,276 @@
 # SDAQF
 
-SDAQF is a specification-driven development and quality-assurance framework for
-Codex-assisted projects. This repository contains the M0 Bootstrap Foundation,
-M1 Requirements and Planning MVP, M2 Agent, Skill, and Tool Orchestration, and
-M3 Evidence, UI/UX, and Release QA, M4 Public Beta Hardening, the local
-V1.0 release-candidate readiness contract, the M5 Context Framework, the
-M6 Multi-Agent Control Framework, and the M7 Mathematical Solver Framework: an
-offline-first Python CLI, deterministic
-requirement, orchestration, evidence, review, UI-observation, release, and
-handoff contracts, representative evaluation projects, explicit schema
-migration, reproducible context snapshots, durable offline scheduling, bounded
-verified finite-domain computation, safety guidance, reusable agent skills,
-and local quality gates.
+[![Continuous integration](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/workflows/ci.yml)
 
-The authoritative source for this bootstrap was a private Japanese
-specification. The public English baseline records its source digest without
-copying private workspace state.
+SDAQF is an offline-first Python CLI that turns Markdown specifications and
+versioned JSON records into validated requirements, plans, evidence gates,
+context snapshots, host-execution intents, and bounded finite-domain solver
+results for Codex-assisted software projects.
 
-## Implemented in M0
+> **Status: experimental reference implementation.** The
+> [`v1.0.0-rc.1`](https://github.com/guriguri215-lang/spec-driven-agent-framework/releases/tag/v1.0.0-rc.1)
+> prerelease contains the M0-M4 baseline. The current `main` branch adds the
+> unreleased M5-M7 context, scheduling, and solver frameworks. Current CI
+> verifies Windows and Linux on Python 3.12 and 3.13, but the project is not
+> production-ready, macOS is not verified, and the current M5/M6
+> implementations do not have a final independent GO review recorded in their
+> execution plans.
 
-- Safe workspace and Git-boundary checks.
-- A standard-library Python package with no runtime dependencies.
-- `doctor`, `init`, `validate`, `status`, and `goal-template` commands.
-- Tool-state separation for available, unavailable, permission-denied, and
-  intentionally untested capabilities.
-- Initial project, requirement, evidence, approval, execution, handoff, tool,
-  and agent schemas with samples.
-- Tests, linting, strict type checking, branch coverage, and Windows/Linux CI.
-- Public documentation, GitHub templates, and reusable Codex skills.
-- Repository audits for publication scope, language, secrets, personal paths,
-  symlinks, and local-only Git state.
+## Why SDAQF
 
-## Implemented in M1
+AI-assisted development can lose the connection between an original
+specification, the plan produced from it, approvals for side effects, evidence
+from implementation, and the state handed to another session. SDAQF makes
+those boundaries explicit with strict schemas and deterministic local checks.
 
-- Bounded UTF-8 Markdown ingestion with SHA-256, size, modification time, safe
-  source path, and import-time metadata.
-- Deterministic requirement types, priorities, stable explicit or generated
-  identifiers, acceptance criteria, verification methods, and source excerpts.
-- Explicit ambiguity, contradiction, duplicate, missing-assumption, and
-  unverifiable-language diagnostics.
-- Design, code, test, evidence, and release trace fields that remain empty until
-  supported records are supplied.
-- Approval-aware baseline comparison for additions, removals, statement,
-  priority, type, acceptance, verification, and interpretation changes. A
-  removal or potentially weakening change can be approved only through a
-  structured Owner approval record scoped to both baselines and named change
-  IDs.
-- Product Roadmap, living ExecPlan, Goal prompt, and Standard prompt generation
-  with Goal suitability and safe Standard fallback.
-- Gate G1 enforcement for a complete, non-implemented requirements baseline.
-- `ingest`, `compare`, `roadmap`, `exec-plan`, `goal`, `prompt`, and
-  `gate requirements` CLI commands.
+The intended users are framework evaluators and advanced Codex users who want
+reviewable artifacts and fail-closed quality gates around an agent-assisted
+workflow. It is not an autonomous coding product or an LLM runtime.
 
-## Implemented in M2
+## What it does
 
-- Strict versioned Agent and Tool Registries with cross-reference validation.
-- Deterministic role selection by problem type, scale, risk, and parallelism,
-  bounded by agent count, concurrency, and reasoning effort.
-- Host-native Subagent planning with independent-session and sequential
-  fallback prompts; the package does not launch a nested Codex process.
-- Read-only parallelization boundaries and explicit isolated-write plans with
-  distinct worktrees, non-overlapping ownership, one base commit, and an
-  integrator.
-- Logical implementer/reviewer separation, bounded structured summaries, and
-  evidence-based disagreement resolution.
-- Repository Skill and template lifecycle validation.
-- Safe resolved-executable tool probes with exact argument arrays, no shell, a
-  sanitized environment, timeout, exit status, duration, and truly bounded
-  stdout and stderr.
-- Strict versioned single-execution approvals with distinct Owner and technical
-  sandbox provenance, exact command/path/network/risk scope, expiry checks,
-  and a persistent atomic consumption claim before process start; denial
-  classification, optional-tool isolation, bounded retry, atomic checkpoints,
-  corruption recovery, and strict resume identity.
-- `agents`, `skills`, `tools`, and `checkpoint` CLI command groups.
+| Capability | Current state | Evidence |
+|---|---|---|
+| Specification ingestion, requirement normalization, change comparison, plans, and prompts | Implemented | `src/sdaqf/application/requirements.py`, `planning.py`, M1 tests |
+| Agent/tool registries, bounded role selection, approvals, checkpoints, and handoff contracts | Implemented | `src/sdaqf/application/orchestration.py`, `tooling.py`, M2/M3 tests |
+| Claim-evidence, review, UI-observation, and local release-quality gates | Implemented | `src/sdaqf/application/quality_gates.py`, `release_qa.py`, M3 tests |
+| Deterministic context indexing, selection, snapshots, and extractive compaction | Experimental | [Context Framework](docs/context-framework.md), M5 tests and validator |
+| Durable SQLite scheduling, leases, mailboxes, budgets, recovery, and simulations | Experimental | [Multi-Agent Control Framework](docs/multi-agent-control-framework.md), M6 tests and validator |
+| Exact-integer finite-domain feasibility and optimization with independent result verification | Experimental | [Mathematical Solver Framework](docs/mathematical-solver-framework.md), M7 tests and validator |
+| Integrated end-to-end M8 workflow | Planned | [Roadmap](docs/roadmap.md) |
 
-## Implemented in M3
+See [Implementation status](docs/implementation-status.md) for the detailed
+milestone inventory, validation boundaries, and the distinction between code
+presence and independent verification.
 
-- A bounded versioned Claim-Evidence Ledger with strict claim/evidence
-  cross-references, explicit confidence and criticality, secret-free fields,
-  safe relative artifacts, and deterministic serialization.
-- Atomic repository-bounded `evidence add` with duplicate, traversal, link,
-  corruption, and failure cleanup protection.
-- Non-compensating Gate G2 implementation-evidence checks that require Must and
-  acceptance mappings, applicable tests, evidence beyond passing tests alone,
-  explicit unverified state, diff review, and hard critical blockers.
-- Gate G3 independent read-only review checks for reviewer separation,
-  regression/security/maintainability coverage, resolved material findings, and
-  exact Owner approval for any accepted critical finding.
-- Manifest-based UI classification. Non-UI projects require no fabricated UI
-  work; UI projects require a Design Brief and bounded recorded host-browser
-  observations for primary flows, states, viewports, keyboard, focus,
-  readability, contrast, screenshots, offline behavior, and recovery. Passing
-  observations also require a content-bound execution trace, a browser-matched
-  executable and version, and a decodable bounded PNG.
-- Local Gate G4 release-candidate checks combining G2/G3/UI results,
-  exact-commit isolated offline installation from a publication-only owned
-  source snapshot, installed-execution evidence, verified Must claims,
-  secret/disclosure/dependency/license/documentation audits, rollback guidance,
-  and a read-only clean-Git observation.
-- Deterministic automated handoff creation and resume mismatch detection with a
-  bounded next-session prompt that is recorded but never executed.
+## What it does not do
 
-- `evidence`, `gate implementation`, `gate review`, `ui`,
-  `audit release-candidate`, and `handoff` CLI paths.
+- It does not call an LLM, the OpenAI API, the Agents SDK, or a hosted service.
+- It does not launch Codex sessions, agents, browsers, or Git worktrees. It
+  validates records and emits bounded instructions or intents for a host.
+- It does not grant approvals, publish releases, push Git changes, or retry an
+  ambiguous external effect automatically.
+- It does not provide a web or desktop UI.
+- It does not execute third-party solvers. The only executable solver is the
+  dependency-free bounded reference adapter.
+- It does not establish production security, correctness for arbitrary inputs,
+  or general natural-language understanding.
 
-## Implemented in M4
+## How it works
 
-- Three representative sample specifications for an offline non-UI command,
-  an offline UI workflow, and an approval/security-sensitive export, each with
-  an expected deterministic normalization projection.
-- Strict evaluation-suite and run-record contracts with exact input parity,
-  deterministic missed requirements, scope additions, critical defects,
-  rework, approvals, and failed handoffs.
-- Execution trace, decision, evidence, and cost-availability comparison without
-  an aggregate score. Must, security, data-loss, and disclosure failures remain
-  named hard blockers.
-- A tracked paired structured-SDAQF and ordinary-unstructured-Codex fixture
-  result with content-bound review artifacts and explicit authored-scenario,
-  non-empirical, non-causal limitations.
-- Explicit non-destructive Agent Registry and Tool Registry 1.0-to-2.0
-  migration with conservative defaults, current-loader validation, source
-  preservation, an exact atomically consumed single-use Owner approval, and
-  exact rollback or indeterminate-publication guidance without automatic path
-  deletion.
-- Public contributor, evaluation, migration, architecture, extension,
-  security, testing, and release-limit documentation.
-- `eval validate`, `eval compare`, and `schema migrate` CLI paths.
-
-## Implemented in M5
-
-- Immutable content-addressed Context Manifest, Graph, Query, Selection,
-  Snapshot, Compaction, host-summary proposal, and quality-report contracts.
-- Actual Git/repository/specification Candidate verification, digest-checked
-  provenance, structural authority rules, freshness, four-level sensitivity,
-  explicit roots, bounded source reads, strict immutable-JSON re-observation,
-  and exclusive output publication.
-- Deterministic required-reference, graph, identifier, and integer lexical
-  retrieval with stable tie-breaks, exact Graph/Snapshot exclusions, atomic
-  contradiction closure, and canonical UTF-8 byte budgets.
-- Self-validating Selection through an embedded exact Query and production
-  selector replay at Snapshot time; downstream artifacts preserve candidate
-  and highest sensitivity. Standalone Snapshot parsing requires the canonical
-  specification and recomputes selected costs from canonical node content.
-- Deterministic extractive compaction; source-linked host summaries remain
-  untrusted proposals, propagate higher sensitivity, and never become sole
-  decision authority. Persisted Snapshots are source/candidate-reobserved at
-  Compaction after complete pure in-memory artifact validation; canonical source
-  identities are preflighted before I/O, duplicates rejected, and source and
-  contradiction metadata preserved. Final pre-publication candidate verification
-  uses the validated Compaction candidate that will be serialized.
-- `context validate`, `index`, `select`, `snapshot`, `compare`, and `compact`
-  commands, synthetic public examples, seven executable evaluation scenarios,
-  and the named offline `M5-CONTEXT-INTEGRITY` validator.
-
-See [Context Framework](docs/context-framework.md) for the exact contracts and
-failure semantics.
-
-## Implemented in M6
-
-- Seven immutable content-addressed scheduler artifacts: Task Graph, Scheduler
-  State, Lease, Mailbox Message, Scheduler Event, Budget Ledger, and Worktree
-  Lease.
-- A standard-library SQLite schema-1 store with exclusive initialization,
-  `BEGIN IMMEDIATE`, rollback journaling, full synchronization, foreign keys,
-  exact schema/projection validation, hash-chained events, fenced single-owner
-  leases, and evidence-driven fresh-output projection recovery.
-- At-least-once host intents with stable attempt idempotency, strict current
-  fence adoption, bounded typed mailboxes, exact M2/M5 input binding,
-  transactional integer reservation/usage budgets, exact external approval
-  actors, causal worktree/cancellation requests, periodic portable heartbeat
-  leases, and truthful blocked/unknown ambiguity.
-- Approval-bound dispatch persists one provisional Lease before accepting an
-  exact external decision and reuses that identity across later ticks. Closed
-  evidence/result/review completion predicates, history-derived exact current
-  Lease and Worktree projections, and attempt-scoped budget settlement prevent
-  guessed approvals, omitted projection rows, false completion, and
-  cross-attempt reservation debit.
-- Host-agnostic `agents schedule`, `agents mailbox`, `agents recover`, and
-  `agents simulate` CLI paths. The package emits intents but never launches an
-  agent, mutates a Git worktree, or claims exactly-once execution.
-- Ten deterministic offline scenarios executed through the real SQLite state
-  machine, seven public schema/example pairs, a negative parity corpus,
-  deliberate projection-corruption recovery, and the named
-  `M6-SCHEDULER-SAFETY` validator.
-
-See [Multi-Agent Control Framework](docs/multi-agent-control-framework.md) for
-the exact state, lease, mailbox, recovery, and host-authority contracts.
-
-## Implemented in M7
-
-- Four immutable content-addressed Solver Registry, Request, Result, and
-  Verification schema `1.0` contracts with strict runtime/schema parity.
-- Two finite-domain problem kinds, three profiles, five typed constraint kinds,
-  exact integer arithmetic, exact-zero tolerance, canonical ordering, and
-  bounded resource policies.
-- A mandatory dependency-free deterministic reference adapter with truthful
-  satisfiable, unsatisfiable, feasible, infeasible, optimal, bounded, timeout,
-  unavailable, unknown, and error dispositions.
-- Independent witness, objective, bound, exhaustive-proof, adapter,
-  provenance, resource, candidate, Context, task, and current-or-historical
-  Lease verification. Only a verified Result satisfying the required claim is
-  adoptable.
-- Exact M6 capability reservation, Task Result evidence, budget settlement,
-  store validation, and fresh-output recovery replay.
-- Additive `solver registry validate`, `solver request validate`, `solver run`,
-  and `solver verify` CLI paths, public examples, ten production evaluation
-  cases, and the named offline `M7-SOLVER-EVIDENCE` validator.
-- Optional external CLI adapters are representable only with exact Tool
-  Registry, version observation, license, provenance, no-network, and fresh
-  single-use approval requirements. M7 does not execute them.
-
-See [Mathematical Solver Framework](docs/mathematical-solver-framework.md) for
-the exact problem, result, verification, M5/M6, and external-tool boundaries.
-
-## V1.0 release-candidate readiness
-
-- Distribution/runtime version `1.0.0rc1`, targeting public API line `1.0.0`.
-- Apache License 2.0 with exact `LICENSE` and `NOTICE` material.
-- Historical release-candidate schema 1.0 preservation and selected-license
-  schema 1.1.
-- An offline `gate publication-readiness` command that can return
-  `LOCAL_READY` but never claims actual Gate G5 or publication.
-- English compatibility, migration, release, support, security, contribution,
-  platform, artifact, and known-limitation policies.
-
-The Owner-approved A7 visibility-change command was accepted with exit code `0`
-and no output. No independent post-A7 remote read has observed the resulting
-repository visibility. The proposed tag `v1.0.0-rc.1` has not been created, the
-GitHub release has not been created, GitHub private vulnerability reporting
-has not been enabled, and actual Gate G5 remains `NOT_RUN`.
-
-This release candidate is for framework evaluators and advanced Codex users,
-is not for production use, and keeps macOS `NOT_VERIFIED`. The authored
-comparison remains nonempirical and noncausal.
-
-The pinned development dependency and license record is in
-`docs/dependencies.md`.
-
-## Known limitations
-
-### Not implemented for the release candidate
-
-- Automatic Git worktree creation, deletion, or integration.
-- A packaged real agent/session dispatcher. M6 exposes host ports and durable
-  intent/observation contracts only.
-- A management UI or automatic browser installation and launch. The offline
-  core validates browser observations recorded by a host capability.
-- Gate G5 publication or automatic release publication.
-- Migration for contracts other than the explicit Agent and Tool Registry
-  1.0-to-2.0 routes.
-- A blinded, randomized, independently replicated, statistically powered, or
-  cost-comparable Codex benchmark.
-- Executable third-party or hosted solver, OpenAI API, or Agents SDK
-  integrations. M7's only executable solver is the bounded standard-library
-  reference adapter.
-- GitHub repository creation, remotes, pushes, pull requests, issues, tags, or
-  releases.
-- Production deployment.
-
-## Installation
-
-### Quick start
-
-Use Python 3.12 or newer in an isolated environment:
-
-```text
-python -m venv .venv
-.venv\Scripts\python -m pip --isolated install -r requirements-dev.lock
-.venv\Scripts\python -m pip --isolated install --no-build-isolation --no-deps -e .
-.venv\Scripts\python -m pytest
-.venv\Scripts\sdaqf --help
+```mermaid
+flowchart LR
+    A["Markdown specification and versioned JSON"] --> B["SDAQF CLI"]
+    B --> C["Strict schema and policy validation"]
+    C --> D["Requirements, plans, context, evidence, and solver artifacts"]
+    C --> E["Quality-gate results and scheduler intents"]
+    E --> F["Human-approved host actions"]
+    F --> G["Observed results returned as untrusted records"]
+    G --> C
 ```
 
-On POSIX systems, use `.venv/bin/python` instead.
+Responsibility is deliberately split:
 
-Example commands:
+| Actor | Responsibility |
+|---|---|
+| SDAQF's Python runtime | Deterministic parsing, validation, comparison, selection, state transitions, local simulation, and bounded reference solving |
+| AI agent or LLM | Optional external proposal generation and implementation; its output remains untrusted input to SDAQF |
+| Human or host | Approvals, session dispatch, worktree operations, browser observations, GitHub actions, publication, and other side effects |
+
+The package is layered into domain records, application services, external
+ports, local adapters, and the CLI. See [Architecture](docs/architecture.md)
+for the complete flow and trust boundaries.
+
+## Requirements
+
+| Requirement | Supported state |
+|---|---|
+| Python | 3.12 or 3.13 |
+| Operating systems | Windows and Linux verified in CI; macOS not verified |
+| Runtime dependencies | None outside the Python standard library |
+| Development tools | Exact versions in `requirements-dev.lock` |
+| Git | Required by candidate-bound and repository-inspection operations |
+| GitHub CLI and browser | Optional host capabilities; not required by the offline core |
+| API keys, model provider, GPU, paid service | Not required |
+
+The repository is distributed as source. There is no package-registry
+publication or attached release asset.
+
+## Quickstart
+
+Clone the repository and create an isolated environment.
+
+### Windows PowerShell
+
+```powershell
+git clone https://github.com/guriguri215-lang/spec-driven-agent-framework.git
+cd spec-driven-agent-framework
+py -3.12 -m venv .venv
+.\.venv\Scripts\python -m pip --isolated install -r requirements-dev.lock
+.\.venv\Scripts\python -m pip --isolated install --no-build-isolation --no-deps -e .
+.\.venv\Scripts\python -m sdaqf validate examples/sample-project
+```
+
+### POSIX shell
+
+```bash
+git clone https://github.com/guriguri215-lang/spec-driven-agent-framework.git
+cd spec-driven-agent-framework
+python3.12 -m venv .venv
+.venv/bin/python -m pip --isolated install -r requirements-dev.lock
+.venv/bin/python -m pip --isolated install --no-build-isolation --no-deps -e .
+.venv/bin/python -m sdaqf validate examples/sample-project
+```
+
+Expected result:
 
 ```text
-python -m sdaqf doctor --json
-python -m sdaqf validate examples/sample-project
-python -m sdaqf status examples/sample-project --json
-python -m sdaqf goal-template M1
-python -m sdaqf init scratch-project --dry-run
+valid: True
+errors: []
+files_checked: ['manifest.json', 'requirements.json', 'evidence.json', 'approval.json', 'execution-attempt.json', 'handoff.json', 'tool-registry.json', 'agent-registry.json']
+```
+
+Then inspect the available command groups:
+
+```text
+python -m sdaqf --help
+```
+
+## Minimal examples
+
+### Turn a specification into a requirement baseline
+
+The first command writes a new file and refuses to overwrite an existing one.
+
+```text
 python -m sdaqf ingest examples/sample-specification.md --output baseline.json
 python -m sdaqf gate requirements baseline.json --json
-python -m sdaqf roadmap baseline.json M1 --output roadmap.md
-python -m sdaqf exec-plan baseline.json M1 --output exec-plan.md
-python -m sdaqf goal baseline.json M1 --output goal.md
-python -m sdaqf prompt baseline.json M1 --output prompt.md
-python -m sdaqf agents validate examples/m2-orchestration/agent-registry.json --tools examples/m2-orchestration/tool-registry.json --json
-python -m sdaqf agents plan examples/m2-orchestration/orchestration-request.json --registry examples/m2-orchestration/agent-registry.json --tools examples/m2-orchestration/tool-registry.json --json
-python -m sdaqf skills validate .agents/skills --templates examples/m2-orchestration/template-registry.json --framework-version 1.0.0 --available independent-review --json
-python -m sdaqf tools check examples/m2-orchestration/tool-registry.json --name git --json
-python -m sdaqf checkpoint validate examples/m2-orchestration/execution-checkpoint.json --json
-python -m sdaqf evidence validate examples/m3-quality/claim-evidence-ledger.json --json
-python -m sdaqf gate implementation baseline.json --ledger .sdaqf/ledger.json --specification specification.md --json
-python -m sdaqf gate review .sdaqf/review.json --baseline baseline.json --specification specification.md --json
-python -m sdaqf ui validate manifest.json .sdaqf/ui-validation.json --specification specification.md --json
-python -m sdaqf audit release-candidate .sdaqf/release-candidate.json --root . --baseline baseline.json --ledger .sdaqf/ledger.json --review .sdaqf/review.json --manifest manifest.json --ui-validation .sdaqf/ui-validation.json --specification specification.md --json
-python -m sdaqf gate publication-readiness .sdaqf/v1/public-release-candidate.json --root . --baseline .sdaqf/v1/requirements-baseline.json --ledger .sdaqf/v1/claim-evidence-ledger.json --review .sdaqf/v1/independent-review.json --release-candidate .sdaqf/v1/release-candidate.json --specification docs/specification.md --json
-python -m sdaqf handoff create handoff-input.json --baseline baseline.json --ledger .sdaqf/ledger.json --specification specification.md --output .sdaqf/handoff.json --json
-python -m sdaqf eval validate evals/comparison-suite.json --result evals/results/public-beta-comparison.json --json
-python -m sdaqf eval compare evals/comparison-suite.json --json
-python -m sdaqf schema migrate --contract agent-registry --from-version 1.0 --to-version 2.0 examples/m4-migration/agent-registry-v1.json --output migrated-agent-registry.json --approval .sdaqf/migration-approval.json --tool-registry examples/m4-migration/tool-registry-v2.json --json
-python -m sdaqf solver registry validate examples/m7-solver/solver-registry.json --root . --json
-python -m sdaqf solver request validate examples/m7-solver/solver-request.json --registry examples/m7-solver/solver-registry.json --task-graph examples/m7-solver/task-graph.json --root . --json
 ```
 
-## Safety boundaries
+### Plan bounded agent roles
 
-The runtime remains offline-first through the V1 release candidate. Private
-remote operations and any
-publication require an exact Owner-approved target and scope. A technical
-sandbox approval never authorizes publication, destructive Git operations,
-credential access, or machine-wide configuration changes.
+This validates registries and returns assignments and host prompts. It does not
+launch any agent.
 
-M3 Gate and handoff commands inspect the current repository directly. Candidate
-records under `.sdaqf/` must bind to the current source digest, full Git HEAD,
-and deterministic repository digest; copied sample identities are illustrative
-and are not accepted as current proof.
+```text
+python -m sdaqf agents plan examples/m2-orchestration/orchestration-request.json --registry examples/m2-orchestration/agent-registry.json --tools examples/m2-orchestration/tool-registry.json --json
+```
 
-Gate G4 installation evidence must target the derived
-`<install-target>-source` snapshot. That owned tree must contain exactly the
-regular files in Git's cached-plus-untracked publication set; ignored worktree
-files are never build inputs. Both owned install directories are named in the
-exact rollback contract.
+### Validate a context artifact
 
-Schema migration never runs implicitly and never overwrites its source or an
-existing output. Evaluation fixtures are measurement inputs, not instructions,
-and their tracked comparison result does not establish causation, model
-quality, production security, or production readiness.
+```text
+python -m sdaqf context validate examples/m5-context/context-snapshot.json --json
+```
+
+The scheduler and solver require exact candidate, task, lease, budget, and
+artifact identities. Use their complete guides rather than copying partial
+commands:
+
+- [Multi-Agent Control Framework](docs/multi-agent-control-framework.md)
+- [Mathematical Solver Framework](docs/mathematical-solver-framework.md)
+
+## Use cases
+
+- Convert a bounded software specification into traceable requirement records,
+  acceptance criteria, plans, and prompts.
+- Validate agent/tool registries and prepare a deterministic host execution
+  plan with explicit approval and reviewer-separation rules.
+- Build reproducible, provenance-bound context selections and snapshots from
+  explicit repository sources.
+- Simulate and inspect host-agnostic multi-agent scheduling failure modes
+  without launching agents.
+- Solve and independently verify small exact-integer finite-domain feasibility
+  or optimization requests with the reference adapter.
+
+## Validation and evidence
+
+The current repository contains positive, negative, boundary, corruption,
+recovery, and CLI tests. Passing tests support only the documented contracts;
+they do not prove production readiness or correctness outside the bounded
+input models.
+
+| Check | Current evidence |
+|---|---|
+| Automated tests | 1,111 passed and 4 platform-capability skips locally on 2026-08-03 |
+| Current `main` CI | [Run 30816315795](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/runs/30816315795) passed on Windows/Linux and Python 3.12/3.13 |
+| Static checks | Ruff and strict mypy are required by CI |
+| Coverage | Total branch coverage must be at least 80%; critical M1, M2, M6, and M7 groups must be at least 90% |
+| Named validators | M5 context integrity, M6 scheduler safety, and M7 solver evidence are exercised in the release contract |
+| Independent review | Recorded for milestone candidates; the current M5/M6 plans still identify a final review gap |
+| External validation | No independent production deployment, macOS run, hosted-agent evaluation, or third-party solver validation |
+
+The exact local gate commands are in the
+[Release Contract](docs/release-contract.md). Historical and milestone-specific
+evidence is under `docs/evidence/` and `docs/exec-plans/`.
+
+## Limitations
+
+- The release is a prerelease and the post-RC M5-M7 changes on `main` are
+  unreleased.
+- The M6 scheduler provides durable state and host intents, not an agent
+  runtime; delivery is at-least-once and exactly-once execution is not claimed.
+- Context selection is deterministic lexical and graph retrieval, not semantic
+  embedding search or model-based ranking.
+- The reference solver enumerates bounded finite domains and is unsuitable for
+  large or continuous problems. External solver entries are descriptive only.
+- Model-generated, browser-generated, tool-generated, and solver-generated
+  records remain untrusted until their applicable validators pass.
+- Scalability is bounded by explicit input, byte, graph, scheduler, and solver
+  limits; this repository does not publish throughput or latency guarantees.
+- No security audit or independent production validation has been performed.
+- APIs outside the documented CLI, JSON schemas, and `sdaqf.__all__` are
+  internal and may change during the prerelease.
+- The tagged release triggered a duplicate CI run in detached-HEAD mode that
+  failed the branch-only workspace audit. The branch run for the same commit
+  passed; the workflow is now limited locally to `main` branch pushes and pull
+  requests, pending a future push.
+
+## Project structure
+
+| Path | Purpose |
+|---|---|
+| `src/sdaqf/` | Runtime package and CLI |
+| `schemas/` | Versioned public JSON schemas |
+| `examples/` | Synthetic valid inputs and representative artifacts |
+| `tests/` | Contract, boundary, regression, corruption, and CLI tests |
+| `scripts/` | Release checks, audits, smoke tests, and named validators |
+| `docs/` | Architecture, contracts, guides, evidence, and milestone plans |
+| `evals/` | Bounded authored evaluation fixtures and results |
+| `.agents/skills/` | Repository-local Codex skills |
+
+## Documentation
+
+- [Implementation status](docs/implementation-status.md)
+- [Architecture](docs/architecture.md)
+- [Public specification](docs/specification.md)
+- [Roadmap](docs/roadmap.md)
+- [Compatibility and migration](docs/compatibility.md)
+- [Context Framework](docs/context-framework.md)
+- [Multi-Agent Control Framework](docs/multi-agent-control-framework.md)
+- [Mathematical Solver Framework](docs/mathematical-solver-framework.md)
+- [Release Contract](docs/release-contract.md)
+- [Dependency and license record](docs/dependencies.md)
+
+## Roadmap
+
+M0-M4 form the published release-candidate baseline. M5-M7 are implemented on
+`main` with the validation qualifications above. M8, an integrated workflow
+that composes the existing contracts without bypassing their validators, is
+planned. See the [Roadmap](docs/roadmap.md) for scope, exclusions, risks, and
+completion criteria.
+
+## Contributing, security, and support
+
+The repository is public, but external pull requests are not accepted during
+the release-candidate phase. Bug and documentation issues are handled on a
+best-effort basis. See [Contributing](CONTRIBUTING.md) and the
+[Contributor Guide](docs/contributor-guide.md).
+
+Do not disclose suspected vulnerabilities in public issues. Use GitHub private
+vulnerability reporting as described in [Security](SECURITY.md). Support has
+no SLA; see [Support](SUPPORT.md).
 
 ## License
 
 SDAQF is licensed under Apache License 2.0. Copyright 2026
-`guriguri215-lang`. See `LICENSE` and `NOTICE`.
-
-Support is best effort, has no SLA, and applies to the latest release only.
-See `SUPPORT.md`, `SECURITY.md`, and `docs/compatibility.md`.
+`guriguri215-lang`. See [LICENSE](LICENSE) and [NOTICE](NOTICE).

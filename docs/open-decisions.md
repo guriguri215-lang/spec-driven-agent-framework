@@ -5,30 +5,29 @@ The V1.0 release-readiness product decisions are resolved:
 - project `SDAQF`, repository `spec-driven-agent-framework`, and
   distribution/CLI `sdaqf`;
 - Apache-2.0 with copyright holder `guriguri215-lang`;
-- repository visibility was approved to remain private through local
-  finalization and to change only through a separately approved A7 boundary;
-  the approved A7 command has since been accepted with exit code `0` and no
-  output, without an independent post-A7 observation;
+- public repository visibility;
 - release candidate `1.0.0rc1` for framework evaluators and advanced Codex
   users, not for production use;
-- proposed tag `v1.0.0-rc.1`, source-only GitHub tag archives, no attached
-  assets, and no package-registry publication;
+- annotated tag and GitHub prerelease `v1.0.0-rc.1`, source-only GitHub
+  archives, no attached assets, and no package-registry publication;
 - Windows and Linux with Python 3.12 and 3.13 required; macOS
   `NOT_VERIFIED`;
 - external pull requests closed during the release candidate, issue support
   best effort, and Code of Conduct deferred until open contributions; and
-- GitHub private vulnerability reporting after separately approved enablement,
-  no prerelease backports, and best-effort six-month Critical-fix maintenance
-  after final `1.0.0`.
+- GitHub private vulnerability reporting enabled, no prerelease backports,
+  and best-effort six-month Critical-fix maintenance after final `1.0.0`.
 
 The OpenAI API or Agents SDK adapter and management UI are deferred post-V1.
 Final `1.0.0` requires a new exact candidate and Owner approval.
 
-Product decisions alone did not authorize external actions. For predecessor
-candidate `97082edc6ccbfcea5dfcd745681f7db435515074`, A3 commit, A4 push, A5
-remote read, A6 exact-SHA attestation, and the A7 visibility-change command
-were each separately approved and completed. A7 proves successful command
-acceptance only; current visibility has not been independently observed.
-The proposed tag, GitHub release, and private vulnerability reporting remain
-uncreated or disabled, and actual Gate G5 remains `NOT_RUN`. Every action for
-a new candidate remains a separate exact approval boundary.
+Candidate `9f14e2287da3afc078db787e823765320b1e23ac` completed its separately
+approved commit, push, exact-SHA observation, visibility, tag, prerelease,
+private-vulnerability-reporting, and post-publication checks. Actual Gate G5
+passed for that tagged candidate. These approvals and observations do not
+transfer to later M5-M7 commits or to a future release. Every new external
+action remains a separate exact approval boundary.
+
+One publication-quality issue remains open: the remote GitHub release body
+contains the pre-publication text from the approved source note and still says
+`NOT_PUBLISHED`. Correcting remote release text requires its own reviewed write
+action.

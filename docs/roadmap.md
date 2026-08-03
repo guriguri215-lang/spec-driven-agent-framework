@@ -87,7 +87,9 @@ M5 through M8 extend the framework additively:
 
 ## M5: Context Framework
 
-Status: Second exact-candidate independent review returned NO-GO with 0 Critical, 4 High, 2 Medium, and 1 Low finding; all seven findings are remediated and the fresh full local Release Contract passes, while a new independent review, Windows/Linux CI, and Git finalization remain pending.
+Status: implemented experimentally on `main`. Current Windows/Linux CI passes,
+but the active M5 execution plan records the final independent re-review as
+pending; the current candidate is therefore not independently verified.
 
 ### Objective
 
@@ -155,7 +157,9 @@ reproducible context snapshots with explicit selection and exclusion reasons.
 
 ## M6: Multi-Agent Control Framework
 
-Status: Owner-approved implementation candidate validated locally; exact-candidate independent review, Windows/Linux CI, and Git finalization pending.
+Status: implemented experimentally on `main`. Current Windows/Linux CI passes,
+but the active M6 execution plan records a tenth independent review as pending;
+the current candidate does not have an independent GO disposition.
 
 ### Objective
 
@@ -223,8 +227,10 @@ multi-agent execution control.
 
 ## M7: Mathematical Computation and Solver Framework
 
-Status: implemented locally; full local validation, independent review, Git
-finalization, and exact-candidate CI remain pending.
+Status: implemented experimentally on `main`. The sixth-remediation candidate
+passed the full local contract and received an independent GO review with zero
+findings; current Windows/Linux CI also passes. M7 remains bounded and
+unreleased.
 
 ### Objective
 

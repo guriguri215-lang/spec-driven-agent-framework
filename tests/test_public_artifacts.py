@@ -34,6 +34,7 @@ def test_required_public_documents_exist_and_are_nonempty() -> None:
         "docs/exec-plans/active/M4-public-beta-hardening.md",
         "docs/exec-plans/active/V1-release-readiness.md",
         "docs/compatibility.md",
+        "docs/implementation-status.md",
         "docs/releases/v1.0.0-rc.1.md",
         "docs/contributor-guide.md",
         "docs/evaluation.md",
@@ -47,12 +48,12 @@ def test_required_public_documents_exist_and_are_nonempty() -> None:
         assert content.strip(), filename
 
     readme = (root / "README.md").read_text(encoding="utf-8")
-    assert "Implemented in M0" in readme
-    assert "Implemented in M1" in readme
-    assert "Implemented in M2" in readme
-    assert "Implemented in M3" in readme
-    assert "Implemented in M4" in readme
-    assert "Not implemented for the release candidate" in readme
+    assert "Status: experimental reference implementation" in readme
+    assert "## What it does" in readme
+    assert "## What it does not do" in readme
+    assert "## Quickstart" in readme
+    assert "## Validation and evidence" in readme
+    assert "docs/implementation-status.md" in readme
     assert (root / "LICENSE").exists()
     assert (root / "NOTICE").exists()
 
@@ -135,6 +136,7 @@ def test_release_contract_and_ci_share_preserved_gate_commands() -> None:
     ):
         assert command in release
         assert command in workflow
+    assert 'branches: ["main"]' in workflow
     for command in (
         "src/sdaqf/application/quality_gates.py",
         "src/sdaqf/application/release_qa.py",
