@@ -88,6 +88,33 @@ def test_boundary_default_parent_is_based_on_resolved_repo(
     assert resolve_workspace_parent(Path("."), None) == tmp_path.resolve()
 
 
+def test_boundary_accepts_an_explicit_expected_branch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = tmp_path / "repo"
+    (root / ".git").mkdir(parents=True)
+
+    def fake_git_output(repo: Path, *args: str) -> str:
+        responses = {
+            ("rev-parse", "--show-toplevel"): str(root),
+            ("branch", "--show-current"): "agent/docs",
+            ("remote",): "",
+            ("ls-files", "--stage"): "",
+        }
+        return responses[args]
+
+    monkeypatch.setattr(
+        "scripts.check_workspace_boundary.git_output",
+        fake_git_output,
+    )
+
+    assert check_boundary(root, tmp_path, expected_branch="agent/docs") == ()
+    assert check_boundary(root, tmp_path) == (
+        "The current branch must be main.",
+    )
+
+
 def test_boundary_accepts_only_the_expected_origin(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

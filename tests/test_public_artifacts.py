@@ -137,6 +137,8 @@ def test_release_contract_and_ci_share_preserved_gate_commands() -> None:
         assert command in release
         assert command in workflow
     assert 'branches: ["main"]' in workflow
+    assert "ref: ${{ github.head_ref || github.ref_name }}" in workflow
+    assert "--expected-branch" in workflow
     for command in (
         "src/sdaqf/application/quality_gates.py",
         "src/sdaqf/application/release_qa.py",
