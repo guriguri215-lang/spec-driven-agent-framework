@@ -53,6 +53,7 @@ def check_boundary(
     repo: Path,
     workspace_parent: Path | None = None,
     expected_origin_url: str | None = None,
+    expected_branch: str = "main",
 ) -> tuple[str, ...]:
     """Return boundary violations without modifying either directory."""
 
@@ -78,8 +79,8 @@ def check_boundary(
 
     if git_root != resolved_repo:
         errors.append("Git root does not match the repository directory.")
-    if branch != "main":
-        errors.append("The current branch must be main.")
+    if branch != expected_branch:
+        errors.append(f"The current branch must be {expected_branch}.")
     remote_names = tuple(remotes.splitlines()) if remotes else ()
     if expected_origin_url is None:
         if remote_names:
@@ -137,11 +138,13 @@ def main() -> int:
     parser.add_argument("--repo", type=Path, required=True)
     parser.add_argument("--workspace-parent", type=Path)
     parser.add_argument("--expected-origin-url")
+    parser.add_argument("--expected-branch", default="main")
     args = parser.parse_args()
     errors = check_boundary(
         args.repo,
         args.workspace_parent,
         args.expected_origin_url,
+        args.expected_branch,
     )
     if errors:
         for error in errors:

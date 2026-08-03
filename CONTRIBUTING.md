@@ -1,11 +1,8 @@
 # Contributing
 
-This project is in the `1.0.0rc1` release-candidate phase and is not open for
-external pull requests. The Owner-approved A7 visibility-change command was
-accepted with exit code `0` and no output, but no independent post-A7 remote
-read has confirmed current public availability. Bug and documentation issues
-are handled through GitHub Issues on a best-effort basis only after public
-availability is independently confirmed.
+This public project is in the `1.0.0rc1` release-candidate phase and is not
+open for external pull requests. Bug and documentation issues are handled
+through GitHub Issues on a best-effort basis.
 
 For approved local work:
 

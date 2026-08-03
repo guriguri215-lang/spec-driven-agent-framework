@@ -198,20 +198,15 @@ actually run.
   staged.
 - The branch is `main`.
 - The only remote is the approved `origin`; every configured fetch and push
-  URL exactly matches the approved repository URL. Current repository
-  visibility is unobserved after A7.
+  URL exactly matches the approved public repository URL.
 - The commit message and repository-local author identity are non-personal
   English metadata.
 
-## Potentially public push and exact-SHA CI gate
+## Public push and exact-SHA CI gate
 
-Pre-reconciliation candidate
-`97082edc6ccbfcea5dfcd745681f7db435515074` was pushed to the then-observed
-private `origin/main` under the separately approved A4 boundary. After the A7
-visibility-change command was accepted and before any post-A7 observation,
-current repository visibility is unobserved. Any future push must therefore be
-treated as a potentially public external publication and requires a new exact
-Owner approval naming the commit, repository, ref, and visibility uncertainty.
+The repository is public. Any future push is an external publication and
+requires a new exact Owner approval naming the commit, repository, ref, and
+reviewed outbound diff.
 
 Force push, history rewrite, PRs, issues, discussions, tags, releases,
 deployment, repository administration, secrets, and runner changes remain
@@ -243,25 +238,21 @@ G5 remains `NOT_RUN`.
 
 ## Public release gate
 
-The approved release target remains a `v1.0.0-rc.1` prerelease titled
-`SDAQF v1.0.0-rc.1`, with no attached assets or package-registry publication
-and only GitHub-provided tag source archives.
+Candidate `9f14e2287da3afc078db787e823765320b1e23ac` was published as the
+annotated tag and GitHub prerelease `v1.0.0-rc.1`, titled
+`SDAQF v1.0.0-rc.1`. It has no attached assets or package-registry publication
+and uses only GitHub-provided source archives. The repository is public,
+private vulnerability reporting is enabled, and actual Gate G5 passed for that
+candidate.
 
-Pre-reconciliation candidate
-`97082edc6ccbfcea5dfcd745681f7db435515074` completed A6 through successful
-Actions run `30593521851` and the four required Windows/Linux Python 3.12/3.13
-jobs. Its separately approved A7 visibility-change command was accepted with
-exit code `0` and no output. No independent post-A7 remote read observed the
-resulting visibility. These facts do not transfer exact-candidate evidence to
-the changed bytes in a reconciliation candidate.
+The required Windows/Linux Python 3.12/3.13 branch run for the tagged commit
+succeeded as Actions run `30603953536`. A duplicate tag-triggered run
+`30605092668` later failed the workspace boundary because a tag checkout is a
+detached HEAD rather than branch `main`; all four jobs failed at that same
+branch-only audit step. This does not replace the successful exact-SHA branch
+evidence and is recorded as a workflow-trigger defect.
 
-A reconciled candidate requires its own separately approved commit, push, and
-exact-SHA observation before any tag or release action. The proposed tag and
-GitHub release have not been created, private vulnerability reporting has not
-been enabled, and actual Gate G5 remains `NOT_RUN`. Tag, release, private
-vulnerability reporting, and post-publication observation each remain
-separately Owner-gated. Do not repeat the visibility change by inference; a
-separately approved read must establish current visibility, and any mismatch
-stops without repair. A fresh secret, personal-data, dependency, license,
-language, advisory, and clean-environment audit is still required. Local
-readiness can never substitute for external evidence.
+Every future tag, release, repository-setting change, and post-publication
+observation remains separately Owner-gated. A fresh secret, personal-data,
+dependency, license, language, advisory, clean-environment, and exact-SHA audit
+is required. Local readiness can never substitute for external evidence.

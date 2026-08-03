@@ -139,7 +139,6 @@ def test_v1_public_state_separates_candidate_snapshot_from_post_publication_road
         "docs/release-contract.md",
         "docs/roadmap.md",
         "docs/releases/v1.0.0-rc.1.md",
-        "docs/exec-plans/active/V1-release-readiness.md",
     )
     documents = {
         relative: " ".join((root / relative).read_text(encoding="utf-8").split())
@@ -147,62 +146,51 @@ def test_v1_public_state_separates_candidate_snapshot_from_post_publication_road
     }
     required_by_path = {
         "README.md": (
-            "A7 visibility-change command was accepted with exit code `0`",
-            "No independent post-A7 remote read",
-            "tag `v1.0.0-rc.1` has not been created",
-            "GitHub release has not been created",
-            "private vulnerability reporting has not been enabled",
-            "actual Gate G5 remains `NOT_RUN`",
-            "not for production use",
-            "macOS `NOT_VERIFIED`",
-            "comparison remains nonempirical and noncausal",
+            "Status: experimental reference implementation",
+            "`v1.0.0-rc.1`",
+            "current `main` branch adds the",
+            "production-ready",
+            "macOS is not verified",
         ),
         "CHANGELOG.md": (
-            "release remains `NOT_PUBLISHED`",
-            "tag `v1.0.0-rc.1` and GitHub release have not been created",
-            "A7 visibility-change command was accepted",
-            "no independent post-A7 remote read",
-            "private vulnerability reporting has not been enabled",
-            "actual Gate G5 remains `NOT_RUN`",
+            "was published on 2026-07-31",
+            "repository is public",
+            "private vulnerability reporting is enabled",
+            "release body still contains its approved pre-publication snapshot",
         ),
         "CONTRIBUTING.md": (
-            "A7 visibility-change command was accepted",
-            "no independent post-A7 remote read has confirmed",
-            "public availability is independently confirmed",
+            "This public project",
+            "not open for external pull requests",
+            "best-effort basis",
         ),
         "SECURITY.md": (
-            "A7 visibility-change command was accepted",
-            "no independent post-A7 remote read has observed",
-            "private vulnerability reporting has not been enabled",
+            "private vulnerability reporting is enabled",
+            "Report a vulnerability",
+            "Do not disclose suspected vulnerabilities in a public issue",
         ),
         "SUPPORT.md": (
-            "A7 visibility-change command was accepted",
-            "no independent post-A7 remote read has confirmed",
-            "private vulnerability reporting has not been enabled",
+            "repository is public",
+            "private vulnerability reporting is enabled",
             "not intended for production use",
         ),
         "docs/contributor-guide.md": (
-            "A7 visibility-change command was accepted",
-            "no independent post-A7 remote read has observed",
-            "public availability is independently confirmed",
+            "The public project",
+            "Actual Gate G5 passed for the tagged `v1.0.0-rc.1` candidate only",
+            "not open for external pull requests",
         ),
         "docs/open-decisions.md": (
-            "without an independent post-A7 observation",
-            "A7 proves successful command acceptance only",
-            "proposed tag, GitHub release, and private vulnerability reporting "
-            "remain uncreated or disabled",
-            "actual Gate G5 remains `NOT_RUN`",
+            "public repository visibility",
+            "private vulnerability reporting enabled",
+            "Actual Gate G5 passed for that tagged candidate",
+            "remote GitHub release body",
         ),
         "docs/release-contract.md": (
-            "## Potentially public push and exact-SHA CI gate",
-            "current repository visibility is unobserved",
-            "treated as a potentially public external publication",
-            "any future push must be treated as potentially public",
-            "do not transfer exact-candidate evidence",
-            "Do not repeat the visibility change by inference",
-            "proposed tag and GitHub release have not been created",
-            "private vulnerability reporting has not been enabled",
-            "actual Gate G5 remains `NOT_RUN`",
+            "## Public push and exact-SHA CI gate",
+            "The repository is public",
+            "`9f14e2287da3afc078db787e823765320b1e23ac`",
+            "actual Gate G5 passed for that candidate",
+            "`30603953536`",
+            "`30605092668`",
         ),
         "docs/roadmap.md": (
             "Status: `v1.0.0-rc.1` published; Actual Gate G5 passed.",
@@ -214,27 +202,14 @@ def test_v1_public_state_separates_candidate_snapshot_from_post_publication_road
             "final `1.0.0` requires a new candidate and separate approval",
         ),
         "docs/releases/v1.0.0-rc.1.md": (
-            "`A7_COMMAND_ACCEPTED_POST_A7_NOT_OBSERVED`",
-            "Those exact-SHA results do not verify a later candidate",
-            "proposed tag and GitHub release have not been created",
-            "private vulnerability reporting has not been enabled",
-            "actual Gate G5 remains `NOT_RUN`",
+            "Release status: `PUBLISHED`",
+            "`PUBLIC_OBSERVED`",
+            "`9f14e2287da3afc078db787e823765320b1e23ac`",
+            "private vulnerability reporting is enabled",
+            "`30603953536`",
             "macOS remains `NOT_VERIFIED`",
             "not for production use",
             "authored comparison is not empirical, causal",
-        ),
-        "docs/exec-plans/active/V1-release-readiness.md": (
-            "A7_RECONCILIATION_VERIFIED_A3_PENDING",
-            "30593521851",
-            "91040762235",
-            "91040762245",
-            "91040762248",
-            "91040762288",
-            "A7 establishes successful command acceptance only",
-            "current visibility remains unobserved",
-            "did not create the proposed tag or GitHub release",
-            "private vulnerability reporting remains disabled",
-            "actual Gate G5 remains `NOT_RUN`",
         ),
     }
     for relative, required_items in required_by_path.items():
@@ -242,15 +217,19 @@ def test_v1_public_state_separates_candidate_snapshot_from_post_publication_road
             assert required in documents[relative], f"{relative}: {required}"
 
     stale_by_path = {
-        "README.md": ("public visibility have not been created or changed",),
-        "CONTRIBUTING.md": ("after the repository becomes public",),
-        "SECURITY.md": ("is the intended channel only after it is enabled",),
-        "SUPPORT.md": ("after the repository becomes public",),
+        "README.md": (
+            "tag `v1.0.0-rc.1` has not been created",
+            "private vulnerability reporting has not been enabled",
+        ),
+        "CHANGELOG.md": ("release remains `NOT_PUBLISHED`",),
+        "CONTRIBUTING.md": ("public availability is independently confirmed",),
+        "SECURITY.md": ("private vulnerability reporting has not been enabled",),
+        "SUPPORT.md": ("private vulnerability reporting has not been enabled",),
         "docs/contributor-guide.md": (
-            "private `1.0.0rc1` finalization phase",
+            "public availability is independently confirmed",
         ),
         "docs/open-decisions.md": (
-            "No commit, push, remote observation, visibility change",
+            "current visibility has not been independently observed",
         ),
         "docs/release-contract.md": (
             "immutable private candidate",
@@ -258,7 +237,7 @@ def test_v1_public_state_separates_candidate_snapshot_from_post_publication_road
             "the approved private `origin/main`",
             "## Private push and exact-SHA CI gate",
             "## Candidate push and exact-SHA CI gate",
-            "It still requires separate exact approvals",
+            "proposed tag and GitHub release have not been created",
         ),
         "docs/roadmap.md": (
             "post-A7 reconciliation locally verified",
@@ -268,21 +247,22 @@ def test_v1_public_state_separates_candidate_snapshot_from_post_publication_road
             "actual Gate G5 remains `NOT_RUN`",
         ),
         "docs/releases/v1.0.0-rc.1.md": (
-            "that a tag, release, visibility change, or actual Gate G5 has occurred",
-        ),
-        "docs/exec-plans/active/V1-release-readiness.md": (
-            "`LOCAL_IMPLEMENTATION_VERIFIED_A3_PENDING`",
-            "`A7_RECONCILIATION_IMPLEMENTATION_IN_PROGRESS`",
-            "`A4 PRIVATE PUSH`",
-            "`A4 CANDIDATE PUSH`",
-            "private candidate rules",
-            "candidate-visibility rules",
-            "exact candidate commit, private push",
-            "After a local or private pushed commit",
-            "The current worktree remains unstaged",
-            "has not been observed for V1",
+            "Release status: `NOT_PUBLISHED`",
+            "proposed tag and GitHub release have not been created",
         ),
     }
     for relative, stale_items in stale_by_path.items():
         for stale in stale_items:
             assert stale not in documents[relative], f"{relative}: {stale}"
+
+    historical_plan = " ".join(
+        (
+            root / "docs" / "exec-plans" / "active" / "V1-release-readiness.md"
+        ).read_text(encoding="utf-8").split()
+    )
+    for historical_fact in (
+        "A7_RECONCILIATION_VERIFIED_A3_PENDING",
+        "current visibility remains unobserved",
+        "actual Gate G5 remains `NOT_RUN`",
+    ):
+        assert historical_fact in historical_plan

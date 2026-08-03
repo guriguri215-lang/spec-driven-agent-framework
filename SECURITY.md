@@ -6,13 +6,11 @@ SDAQF `1.0.0rc1` is a release candidate, not a production release.
 
 ## Reporting
 
-Do not disclose suspected vulnerabilities in a public issue. The
-Owner-approved A7 visibility-change command was accepted with exit code `0`
-and no output, but no independent post-A7 remote read has observed current
-repository visibility. GitHub private vulnerability reporting has not been
-enabled and remains a separately Owner-gated repository-setting change. Until
-that channel is independently confirmed as enabled, keep the report private
-and request the current disclosure instructions from the Owner.
+Do not disclose suspected vulnerabilities in a public issue. GitHub private
+vulnerability reporting is enabled for this repository; use
+[Report a vulnerability](https://github.com/guriguri215-lang/spec-driven-agent-framework/security/advisories/new)
+to send the report privately to the maintainer. Do not include credentials or
+unrelated private data.
 
 ## Security boundaries
 
