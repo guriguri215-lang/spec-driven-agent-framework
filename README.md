@@ -220,10 +220,6 @@ evidence is under `docs/evidence/` and `docs/exec-plans/`.
 - No security audit or independent production validation has been performed.
 - APIs outside the documented CLI, JSON schemas, and `sdaqf.__all__` are
   internal and may change during the prerelease.
-- The tagged release triggered a duplicate CI run in detached-HEAD mode that
-  failed the branch-only workspace audit. The branch run for the same commit
-  passed; the workflow is now limited locally to `main` branch pushes and pull
-  requests, pending a future push.
 
 ## Project structure
 

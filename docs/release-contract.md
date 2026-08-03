@@ -250,7 +250,9 @@ succeeded as Actions run `30603953536`. A duplicate tag-triggered run
 `30605092668` later failed the workspace boundary because a tag checkout is a
 detached HEAD rather than branch `main`; all four jobs failed at that same
 branch-only audit step. This does not replace the successful exact-SHA branch
-evidence and is recorded as a workflow-trigger defect.
+evidence. The current workflow prevents tag-push jobs and validates an explicit
+head branch for pull requests; PR #1 verified that correction in all four
+Windows/Linux Python 3.12/3.13 jobs as Actions run `30822231420`.
 
 Every future tag, release, repository-setting change, and post-publication
 observation remains separately Owner-gated. A fresh secret, personal-data,

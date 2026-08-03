@@ -156,7 +156,7 @@ def test_v1_public_state_separates_candidate_snapshot_from_post_publication_road
             "was published on 2026-07-31",
             "repository is public",
             "private vulnerability reporting is enabled",
-            "release body still contains its approved pre-publication snapshot",
+            "release body was reconciled with the tracked publication record",
         ),
         "CONTRIBUTING.md": (
             "This public project",
@@ -182,7 +182,7 @@ def test_v1_public_state_separates_candidate_snapshot_from_post_publication_road
             "public repository visibility",
             "private vulnerability reporting enabled",
             "Actual Gate G5 passed for that tagged candidate",
-            "remote GitHub release body",
+            "GitHub release body was reconciled",
         ),
         "docs/release-contract.md": (
             "## Public push and exact-SHA CI gate",
@@ -207,6 +207,7 @@ def test_v1_public_state_separates_candidate_snapshot_from_post_publication_road
             "`9f14e2287da3afc078db787e823765320b1e23ac`",
             "private vulnerability reporting is enabled",
             "`30603953536`",
+            "release body was reconciled with this tracked source note",
             "macOS remains `NOT_VERIFIED`",
             "not for production use",
             "authored comparison is not empirical, causal",
@@ -221,7 +222,10 @@ def test_v1_public_state_separates_candidate_snapshot_from_post_publication_road
             "tag `v1.0.0-rc.1` has not been created",
             "private vulnerability reporting has not been enabled",
         ),
-        "CHANGELOG.md": ("release remains `NOT_PUBLISHED`",),
+        "CHANGELOG.md": (
+            "release remains `NOT_PUBLISHED`",
+            "release body still contains its approved pre-publication snapshot",
+        ),
         "CONTRIBUTING.md": ("public availability is independently confirmed",),
         "SECURITY.md": ("private vulnerability reporting has not been enabled",),
         "SUPPORT.md": ("private vulnerability reporting has not been enabled",),
@@ -230,6 +234,7 @@ def test_v1_public_state_separates_candidate_snapshot_from_post_publication_road
         ),
         "docs/open-decisions.md": (
             "current visibility has not been independently observed",
+            "One publication-quality issue remains open",
         ),
         "docs/release-contract.md": (
             "immutable private candidate",
@@ -249,6 +254,7 @@ def test_v1_public_state_separates_candidate_snapshot_from_post_publication_road
         "docs/releases/v1.0.0-rc.1.md": (
             "Release status: `NOT_PUBLISHED`",
             "proposed tag and GitHub release have not been created",
+            "remote text is stale",
         ),
     }
     for relative, stale_items in stale_by_path.items():
