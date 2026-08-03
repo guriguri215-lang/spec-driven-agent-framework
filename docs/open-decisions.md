@@ -27,7 +27,6 @@ passed for that tagged candidate. These approvals and observations do not
 transfer to later M5-M7 commits or to a future release. Every new external
 action remains a separate exact approval boundary.
 
-One publication-quality issue remains open: the remote GitHub release body
-contains the pre-publication text from the approved source note and still says
-`NOT_PUBLISHED`. Correcting remote release text requires its own reviewed write
-action.
+The GitHub release body was reconciled with the tracked publication note on
+2026-08-03. No V1 publication-metadata decision remains open; future release
+or repository-setting changes still require their own reviewed action.

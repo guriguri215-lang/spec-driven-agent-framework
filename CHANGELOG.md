@@ -11,10 +11,8 @@ private vulnerability reporting is enabled, and the release has no attached
 assets or package-registry publication. The M5-M7 entries below are later,
 unreleased changes on `main`; they are not part of the tagged prerelease.
 
-The GitHub release body still contains its approved pre-publication snapshot
-and incorrectly labels the release `NOT_PUBLISHED`. Treat the tag, GitHub
-release record, current repository metadata, and this changelog as the current
-publication evidence until that remote release text is separately corrected.
+The GitHub release body was reconciled with the tracked publication record on
+2026-08-03. It now records the published state and exact tagged candidate.
 
 ### Added
 
