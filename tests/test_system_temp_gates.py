@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import errno
 import os
 import subprocess
 import sys
@@ -34,6 +35,83 @@ def test_owned_gate_fixture_is_system_temp_and_is_removed() -> None:
         retained_name = owned
 
     assert not retained_name.exists()
+
+
+def test_owned_temp_cleanup_retries_only_transient_enotempty(
+    tmp_path: Path,
+) -> None:
+    owned = tmp_path / "owned"
+    owned.mkdir()
+    adjacent = tmp_path / "adjacent"
+    adjacent.mkdir()
+    calls = 0
+    sleeps: list[float] = []
+
+    def cleanup() -> None:
+        nonlocal calls
+        calls += 1
+        if calls < 3:
+            raise OSError(errno.ENOTEMPTY, "directory not empty", owned)
+        owned.rmdir()
+
+    gates._cleanup_owned_system_temp(owned, cleanup, sleeper=sleeps.append)
+
+    assert calls == 3
+    assert sleeps == list(gates._CLEANUP_RETRY_DELAYS_SECONDS[:2])
+    assert not owned.exists()
+    assert adjacent.is_dir()
+
+
+def test_owned_temp_cleanup_fails_closed_after_persistent_enotempty(
+    tmp_path: Path,
+) -> None:
+    owned = tmp_path / "owned"
+    owned.mkdir()
+    error = OSError(errno.ENOTEMPTY, "directory not empty", owned)
+    calls = 0
+    sleeps: list[float] = []
+
+    def cleanup() -> None:
+        nonlocal calls
+        calls += 1
+        raise error
+
+    with pytest.raises(OSError) as raised:
+        gates._cleanup_owned_system_temp(owned, cleanup, sleeper=sleeps.append)
+
+    assert raised.value is error
+    assert calls == len(gates._CLEANUP_RETRY_DELAYS_SECONDS) + 1
+    assert sleeps == list(gates._CLEANUP_RETRY_DELAYS_SECONDS)
+
+
+def test_owned_temp_cleanup_propagates_other_os_errors_without_retry(
+    tmp_path: Path,
+) -> None:
+    owned = tmp_path / "owned"
+    owned.mkdir()
+    error = OSError(errno.EACCES, "access denied", owned)
+    calls = 0
+    sleeps: list[float] = []
+
+    def cleanup() -> None:
+        nonlocal calls
+        calls += 1
+        raise error
+
+    with pytest.raises(OSError) as raised:
+        gates._cleanup_owned_system_temp(owned, cleanup, sleeper=sleeps.append)
+
+    assert raised.value is error
+    assert calls == 1
+    assert sleeps == []
+
+
+def test_owned_temp_cleanup_requires_final_absence(tmp_path: Path) -> None:
+    owned = tmp_path / "owned"
+    owned.mkdir()
+
+    with pytest.raises(RuntimeError, match="was not removed"):
+        gates._cleanup_owned_system_temp(owned, lambda: None)
 
 
 def test_gate_environment_routes_every_generated_cache_to_owned_temp(

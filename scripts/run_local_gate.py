@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import argparse
+import errno
 import os
 import shutil
 import stat
 import subprocess
 import sys
 import tempfile
-from collections.abc import Iterator, Sequence
+import time
+from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -20,6 +22,7 @@ _EXPECTED_ORIGIN_URL = (
 )
 _GIT_COMMAND_TIMEOUT_SECONDS = 10
 _CANDIDATE_GIT_ADD_TIMEOUT_SECONDS = 60
+_CLEANUP_RETRY_DELAYS_SECONDS = (0.05, 0.2, 1.0)
 _PYTHON_SCRIPTS = {
     "scripts/run_cli_smoke.py",
     "scripts/validate_m5_context.py",
@@ -105,6 +108,30 @@ def _is_link_or_reparse(path: Path) -> bool:
     return bool(attributes & _REPARSE_POINT)
 
 
+def _cleanup_owned_system_temp(
+    path: Path,
+    cleanup: Callable[[], None],
+    *,
+    sleeper: Callable[[float], None] = time.sleep,
+) -> None:
+    """Remove one owned fixture, retrying only transient non-empty directories."""
+
+    for attempt in range(len(_CLEANUP_RETRY_DELAYS_SECONDS) + 1):
+        try:
+            cleanup()
+        except OSError as exc:
+            if (
+                exc.errno != errno.ENOTEMPTY
+                or attempt == len(_CLEANUP_RETRY_DELAYS_SECONDS)
+            ):
+                raise
+            sleeper(_CLEANUP_RETRY_DELAYS_SECONDS[attempt])
+        else:
+            if os.path.lexists(path):
+                raise RuntimeError("The local Gate temp fixture was not removed.")
+            return
+
+
 @contextmanager
 def owned_system_temp(repository_root: Path) -> Iterator[Path]:
     """Yield one regular owned directory below the configured system temp root."""
@@ -125,8 +152,9 @@ def owned_system_temp(repository_root: Path) -> Iterator[Path]:
         raise RuntimeError(
             "System temp must be a regular directory outside the repository workspace."
         )
-    with tempfile.TemporaryDirectory(prefix="sg-", dir=system_temp) as raw:
-        owned = Path(raw)
+    temporary = tempfile.TemporaryDirectory(prefix="sg-", dir=system_temp)
+    owned = Path(temporary.name)
+    try:
         resolved = owned.resolve(strict=True)
         if (
             resolved.parent != system_temp
@@ -135,6 +163,8 @@ def owned_system_temp(repository_root: Path) -> Iterator[Path]:
         ):
             raise RuntimeError("The local Gate temp fixture is not an owned system-temp child.")
         yield resolved
+    finally:
+        _cleanup_owned_system_temp(owned, temporary.cleanup)
 
 
 def repository_entries(repository_root: Path) -> frozenset[str]:
