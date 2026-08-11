@@ -126,27 +126,71 @@ def test_release_contract_and_ci_share_preserved_gate_commands() -> None:
     workflow = (root / ".github" / "workflows" / "ci.yml").read_text(
         encoding="utf-8"
     )
+    gate_runner = (root / "scripts" / "run_local_gate.py").read_text(encoding="utf-8")
+    m5_validator = (root / "scripts" / "validate_m5_context.py").read_text(
+        encoding="utf-8"
+    )
 
+    plans = tuple(
+        (root / "docs" / "exec-plans" / "active" / name).read_text(
+            encoding="utf-8"
+        )
+        for name in (
+            "M6-multi-agent-control-framework.md",
+            "M7-mathematical-solver-framework.md",
+            "M8-integrated-vibe-coding-framework.md",
+        )
+    )
     for command in (
-        "scripts/run_cli_smoke.py",
-        "scripts/audit_dependencies.py --root .",
-        "src/sdaqf/application/orchestration.py",
-        "src/sdaqf/application/checkpoints.py",
-        "--fail-under=90",
+        "python scripts/run_local_gate.py evaluation",
+        "python scripts/run_local_gate.py workspace",
+        "python scripts/run_local_gate.py publication",
+        "python scripts/run_local_gate.py dependencies",
+        "python scripts/run_local_gate.py pip-check",
     ):
         assert command in release
         assert command in workflow
-    assert 'branches: ["main"]' in workflow
-    assert "ref: ${{ github.head_ref || github.ref_name }}" in workflow
-    assert "--expected-branch" in workflow
+        assert all(command in plan for plan in plans)
+    for obsolete in (
+        "python -m sdaqf eval validate",
+        "python scripts/check_workspace_boundary.py",
+        "python scripts/audit_repository.py",
+        "python scripts/audit_dependencies.py",
+        "python -m pip check",
+    ):
+        assert obsolete not in release
+        assert obsolete not in workflow
     for command in (
+        "src/sdaqf/application/orchestration.py",
+        "src/sdaqf/application/checkpoints.py",
         "src/sdaqf/application/quality_gates.py",
         "src/sdaqf/application/release_qa.py",
         "src/sdaqf/application/evaluation.py",
         "src/sdaqf/application/migrations.py",
-        "evals/comparison-suite.json",
+        "--fail-under",
     ):
-        assert command in release
+        assert command in gate_runner
+    assert 'branches: ["main"]' in workflow
+    assert "ref: ${{ github.head_ref || github.ref_name }}" in workflow
+    assert "--expected-branch" in workflow
+    assert "`M5-CONTEXT-INTEGRITY`" in release
+    assert '"PASS: M5-CONTEXT-INTEGRITY' in m5_validator
+    assert "M5-CONTEXT-QUALITY" not in release
+    assert "Verify exact triggering commit" in workflow
+    assert (
+        "EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}"
+        in workflow
+    )
+    assert "['git', 'rev-parse', 'HEAD']" in workflow
+    assert "actual == expected" in workflow
+    for command in (
+        "evals/comparison-suite.json",
+        "scripts/check_workspace_boundary.py",
+        "scripts/audit_repository.py",
+        "scripts/audit_dependencies.py",
+        '"pip", "check"',
+    ):
+        assert command in gate_runner
 
 
 def test_requirement_schema_rejects_unsafe_source_documents() -> None:

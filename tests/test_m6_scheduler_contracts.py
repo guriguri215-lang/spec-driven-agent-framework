@@ -31,6 +31,13 @@ EXAMPLES = {
     "scheduler-event.json": SchedulerArtifactType.SCHEDULER_EVENT,
     "budget-ledger.json": SchedulerArtifactType.BUDGET_LEDGER,
     "worktree-lease.json": SchedulerArtifactType.WORKTREE_LEASE,
+    "workflow-epoch-event.json": SchedulerArtifactType.WORKFLOW_EPOCH_EVENT,
+    "scheduler-store-migration-approval.json": (
+        SchedulerArtifactType.SCHEDULER_STORE_MIGRATION_APPROVAL
+    ),
+    "scheduler-store-migration-result.json": (
+        SchedulerArtifactType.SCHEDULER_STORE_MIGRATION_RESULT
+    ),
 }
 
 

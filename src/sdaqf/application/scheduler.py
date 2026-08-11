@@ -61,11 +61,19 @@ class SchedulerService:
         task_graph: Path,
         root: Path,
         state: Path,
+        *,
+        workflow_authority: bool = False,
     ) -> LoadedSchedulerArtifact:
         """Exclusively initialize one fresh schema-1 scheduler database."""
 
         graph = self.validate_graph(task_graph, root)
-        store = SQLiteSchedulerStore.initialize(state, root, graph, self._clock.now())
+        store = SQLiteSchedulerStore.initialize(
+            state,
+            root,
+            graph,
+            self._clock.now(),
+            workflow_authority=workflow_authority,
+        )
         return store.status()
 
     def tick(

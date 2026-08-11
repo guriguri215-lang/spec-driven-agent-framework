@@ -254,8 +254,31 @@ The observable result is:
   validation all passed without lowering a threshold.
 - [x] (2026-08-02) Froze the exact ninth-remediated candidate in the private
   ninth-remediation validation record without staging or remote access.
-- [ ] Perform a tenth fresh independent read-only review of that frozen
-  candidate.
+- [x] (2026-08-09) Under the separately approved M8 remediation, added
+  copy-on-write M6 v1-to-v2 migration, append-only workflow epoch events,
+  replay-checked current heads, publication receipts, terminal reserve/confirm,
+  same-request retry, and v2-preserving recovery without changing default v1
+  behavior. The focused M6 selection passes 161 tests with one Windows
+  directory-symlink capability skip; the named M6 validator passes both v1 and
+  v2 stores, and Ruff/strict mypy pass the owned implementation.
+- [x] (2026-08-10) Completed the tenth and final independent compatibility
+  review. It returned NO-GO with one unresolved Medium blocking finding: the
+  public Workflow Epoch Event schema accepts representable receipt type/ID and
+  artifact-head ID/path combinations that the runtime loader rejects. Runtime
+  SQLite live, replay, migration, and recovery paths continue to fail closed.
+  No production remediation was performed in this review task.
+- [x] (2026-08-10) Remediated the Workflow Epoch Event public-contract drift by
+  adding receipt type/ID-prefix and artifact-head ID/path-pair correlations to
+  JSON Schema without changing runtime semantics, schema version, samples, or
+  evaluation fixtures. Public-contract regressions now require schema and
+  runtime to reject every reproduced combination.
+- [x] (2026-08-10) Local remediation validation passes 102 focused scheduler
+  contract/public-contract tests, 14 focused M5/M6-to-M8 integration tests,
+  Ruff, strict mypy on the changed Python, and `M6-SCHEDULER-SAFETY` for SQLite
+  schemas 1 and 2.
+- [ ] Publish the post-remediation M6 status. Compatibility remediation is
+  complete, but status publication is pending and no M6 GO is claimed. The
+  historical NO-GO review record remains intact.
 - [ ] Present a separate exact stage/commit proposal. Push and exact-SHA CI
   observation remain later separate approval boundaries.
 
@@ -535,25 +558,18 @@ validator, and M0-through-M6 CLI smoke.
 Update only the approved English documents and CI job. Run:
 
 ```text
-python -m pytest
-python -m ruff check src tests scripts
-python -m mypy src tests scripts
-python -m coverage run -m pytest
-python -m coverage report --fail-under=80
-python -m coverage report --include="src/sdaqf/domain/models.py,src/sdaqf/domain/requirements.py,src/sdaqf/application/gates.py,src/sdaqf/application/approvals.py,src/sdaqf/application/baselines.py,src/sdaqf/application/comparison.py,src/sdaqf/application/planning.py,src/sdaqf/application/requirements.py,src/sdaqf/application/requirements_gate.py" --fail-under=90
-python -m coverage report --include="src/sdaqf/domain/orchestration.py,src/sdaqf/domain/tooling.py,src/sdaqf/adapters/process.py,src/sdaqf/application/orchestration.py,src/sdaqf/application/skills.py,src/sdaqf/application/tooling.py,src/sdaqf/application/checkpoints.py" --fail-under=90
-python -m coverage report --include="src/sdaqf/domain/quality.py,src/sdaqf/application/contracts.py,src/sdaqf/application/evidence.py,src/sdaqf/application/quality_gates.py,src/sdaqf/application/ui_validation.py,src/sdaqf/application/release_qa.py,src/sdaqf/application/handoffs.py" --fail-under=90
-python -m coverage report --include="src/sdaqf/domain/evaluation.py,src/sdaqf/domain/migrations.py,src/sdaqf/application/evaluation.py,src/sdaqf/application/migrations.py" --fail-under=90
-python -m coverage report --include="src/sdaqf/domain/context.py,src/sdaqf/ports/context.py,src/sdaqf/adapters/context.py,src/sdaqf/application/context_contracts.py,src/sdaqf/application/context_index.py,src/sdaqf/application/context_selection.py,src/sdaqf/application/context_compaction.py,src/sdaqf/application/context_quality.py" --fail-under=80
-python -m coverage report --include="src/sdaqf/domain/scheduler.py,src/sdaqf/ports/scheduler.py,src/sdaqf/adapters/scheduler.py,src/sdaqf/application/scheduler_contracts.py,src/sdaqf/application/scheduler.py,src/sdaqf/application/scheduler_recovery.py,src/sdaqf/application/scheduler_simulation.py" --fail-under=90
-python scripts/run_cli_smoke.py
-python scripts/validate_m5_context.py
-python scripts/validate_m6_scheduler.py
-python -m sdaqf eval validate evals/comparison-suite.json --result evals/results/public-beta-comparison.json --json
-python scripts/check_workspace_boundary.py --repo . --expected-origin-url https://github.com/guriguri215-lang/spec-driven-agent-framework.git
-python scripts/audit_repository.py --root . --workspace-parent ..
-python scripts/audit_dependencies.py --root .
-python -m pip check
+python scripts/run_local_gate.py pytest
+python scripts/run_local_gate.py coverage
+python scripts/run_local_gate.py ruff
+python scripts/run_local_gate.py mypy
+python scripts/run_local_gate.py script scripts/validate_m5_context.py
+python scripts/run_local_gate.py script scripts/validate_m6_scheduler.py
+python scripts/run_local_gate.py script scripts/run_cli_smoke.py
+python scripts/run_local_gate.py evaluation
+python scripts/run_local_gate.py workspace
+python scripts/run_local_gate.py publication
+python scripts/run_local_gate.py dependencies
+python scripts/run_local_gate.py pip-check
 git diff --check
 ```
 
@@ -662,5 +678,31 @@ total/M1/M2/M3/M4/M5/M6 branch coverage is 90/94/90/91/92/83/90 percent.
 Ruff, strict mypy over 137 files, both named validators, M0-through-M6 CLI
 smoke, evaluation reproduction, workspace/publication/dependency audits,
 `pip check`, and whitespace validation all pass. Exact ninth-remediation
-freeze is complete and the tenth fresh independent review remains pending; no
-network, remote, stage, commit, or Git-host effect has been performed.
+freeze remains historical evidence. The tenth and final independent
+compatibility review returned NO-GO with zero Critical, zero High, one Medium
+blocking, and zero Low finding. It reproduced public Workflow Epoch Event
+schema/runtime drift for receipt type-specific IDs and artifact-head ID/path
+pairs. The runtime and SQLite replay reject both forms, but a schema-only
+consumer can accept runtime-incompatible evidence. The finding remains
+unresolved because this review did not modify the schema or production code.
+The focused M6 compatibility selections and `M6-SCHEDULER-SAFETY` pass, but
+those results do not close the interoperability finding. No network, remote,
+stage, commit, or Git-host effect has been performed.
+
+That paragraph preserves the historical tenth-review checkpoint. Subsequent
+local remediation adds only JSON-Schema-expressible receipt type/ID-prefix and
+artifact-head ID/path-pair correlations; runtime meaning, schema version,
+samples, and evaluation fixtures are unchanged. The reproduced cases now fail
+both public Schema and runtime parsing. The 102 focused scheduler contract and
+public-contract tests, 14 focused M5/M6-to-M8 integration tests, Ruff, strict
+mypy on the changed Python, and `M6-SCHEDULER-SAFETY` pass. Compatibility
+remediation is complete, but M6 status publication is pending and no M6 GO is
+claimed. The historical tenth-review NO-GO record remains intact.
+
+The later M8 authority extension is separately Owner-approved and locally
+validated, but the extension itself did not constitute the tenth M6 review or
+an M8 acceptance review. The later successor lifecycle review separately gave
+M8 GO; that disposition does not alter the historical M6 NO-GO or decide the
+pending M6 status publication. The v2 additions preserve
+M6-only v1 as the default and require explicit initialization or copy-on-write
+migration.

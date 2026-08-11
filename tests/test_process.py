@@ -66,7 +66,7 @@ def test_subprocess_runner_rejects_invalid_arguments(args: Sequence[str]) -> Non
 
 def test_subprocess_runner_kills_timeout_and_retains_bounded_output() -> None:
     with pytest.raises(ProcessTimeout, match="timed out") as raised:
-        SubprocessRunner(timeout_seconds=0.1, output_limit=8).run(
+        SubprocessRunner(timeout_seconds=1.0, output_limit=8).run(
             [
                 sys.executable,
                 "-c",

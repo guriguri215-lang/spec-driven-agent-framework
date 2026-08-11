@@ -8,7 +8,7 @@ SDAQF `1.0.0rc1` was published on 2026-07-31 as the annotated tag and GitHub
 prerelease `v1.0.0-rc.1`, targeting commit
 `9f14e2287da3afc078db787e823765320b1e23ac`. The repository is public, GitHub
 private vulnerability reporting is enabled, and the release has no attached
-assets or package-registry publication. The M5-M7 entries below are later,
+assets or package-registry publication. The M5-M8 entries below are later,
 unreleased changes on `main`; they are not part of the tagged prerelease.
 
 The GitHub release body was reconciled with the tracked publication record on
@@ -16,6 +16,35 @@ The GitHub release body was reconciled with the tracked publication record on
 
 ### Added
 
+- M8 remediation round 3 closes stale Plan epoch-open, receipt-scope narrowing,
+  confirmed-artifact retry, and terminal timestamp gaps; carries predecessor M6
+  state through successor explain/simulate/run APIs and CLI; and makes the
+  independent D7 resolver use replayed M6 tasks, approvals, and ambiguity.
+
+- M8 Development Intent, Integrated Plan, Workflow State, Workflow Event, and
+  Workflow Outcome schema `1.0` contracts with full content identities,
+  highest-level M5 sensitivity, exact native references, strict bounds, and
+  exclusive immutable publication.
+- A side-effect-free deterministic integrated planner and independently
+  recomputed explainer; one-tick resumable M6 workflow projection; fresh-output
+  recovery; protected-effect, ambiguity, Gate, completion-profile, and handoff
+  composition; and typed host intents that the core never dispatches.
+- Additive `workflow validate`, `plan`, `explain`, `simulate`, `run`, `resume`,
+  `supersede`, `status`, `recover`, and `outcome` CLI paths; five synthetic public artifacts;
+  twelve fixed-clock offline scenarios; nine non-aggregate measurement groups;
+  M0-through-M8 smoke; and `M8-WORKFLOW-INTEGRATION` with at least 90 percent
+  M8 critical branch coverage enforcement.
+- M6 SQLite v2 workflow-epoch authority, terminal reserve/confirm receipts,
+  strict replay and recovery, fresh `--workflow-authority` initialization, and
+  explicit Owner-approved copy-on-write v1-to-v2 migration while preserving
+  exact M6-only v1 behavior.
+- Exact prior-State Event replay, exact Plan/State/Outcome candidate epochs,
+  one case-normalized Candidate/G3/G4 publication set, non-circular
+  closure-terminal Outcome publication, terminal-state enforcement, exact
+  native input/output and predecessor-history binding, same-execution
+  simulations over three real fixture bundles, exact 52-name independently
+  resolved measurements, and receipt-bound runtime-private provenance from one
+  pinned Git-plus-M6 publication observation.
 - M7 content-addressed Solver Registry, Request, Result, and Verification
   schema `1.0` contracts with exact M5 candidate/Context and M6 graph/task/Lease
   identities, exact-zero tolerance, bounded resource policy, and strict
@@ -160,6 +189,58 @@ The GitHub release body was reconciled with the tracked publication record on
 
 ### Changed
 
+- Updated only the current milestone-status summary for the latest M5
+  disposition: GO for the current local candidate. The historical M5 and M6
+  NO-GO review records remain unchanged. M6 compatibility remediation is
+  complete, but its status publication is pending and no M6 GO is claimed. The
+  current dispositions are independent: M5 GO, M6 status publication pending
+  (not GO), M7 GO, and M8 successor lifecycle GO. This status update adds no M5
+  validation count, review-evidence detail, or remote CI result.
+- Remediated the three findings from the recorded final M5/M6 compatibility
+  reviews. M5 Snapshot publication now revalidates the CandidateIdentity on the
+  validated Snapshot being serialized, and Selection ranking shares its
+  authoritative graph distance with the published rank. M6 Workflow Epoch
+  Event Schema now rejects receipt type/ID-prefix mismatches and one-sided
+  artifact-head ID/path pairs just as runtime parsing does. Runtime semantics,
+  schema versions, samples, and evaluation fixtures are unchanged. Current M5
+  and M6 status is remediated; fresh independent re-review pending. Neither is
+  GO. The dispositions are independent: M5 NO-GO, M6 NO-GO, M7 GO, and M8
+  successor lifecycle GO. The focused 87-test M5, 102-test M6, and 14-test M8
+  integration selections, both named validators, Ruff, and strict mypy pass;
+  full pytest and coverage were not rerun.
+- Recorded the final independent M5 and M6 compatibility reviews for the
+  current local candidate as separate NO-GO dispositions. M5 has one unresolved
+  High blocking Snapshot-publication CandidateIdentity finding and one
+  unresolved Medium non-blocking Selection-rank provenance finding. M6 has one
+  unresolved Medium blocking Workflow Epoch Event schema/runtime parity
+  finding. The dispositions are independent: M5 NO-GO, M6 NO-GO, M7 GO, and M8
+  successor lifecycle GO. The review changed no production code, schema,
+  sample, or evaluation fixture and does not establish release GO, production
+  readiness, Git finalization, or exact-SHA remote CI.
+- Recorded the latest independent M8 successor lifecycle compatibility review:
+  GO for the current local candidate, all F1-through-F11 ACCEPT results
+  maintained, and zero unresolved findings within scope. It confirms
+  predecessor scheduler state propagation through successor resume, status,
+  recovery, and Python `finalize_observation`, and supersedes the earlier M8
+  overall NO-GO for this candidate only. It does not establish release GO,
+  production readiness, commit, push, or exact-SHA remote CI. The review did not
+  rerun full pytest or coverage; the focused 28 tests, complete M8 120 tests,
+  round-three 9 tests, Ruff, strict mypy, M5-through-M8 validators, and
+  M0-through-M8 CLI smoke are PASS. No hash list or candidate fingerprint was
+  created.
+- Implemented the Owner-approved second M8 remediation round for the then-latest
+  NO-GO disposition (1 Critical, 8 High, 2 Medium). At that checkpoint, the
+  local candidate had not received fresh independent acceptance, exact-SHA
+  remote CI, or release approval.
+- Implemented the Owner-approved M8 74-path remediation: M6 SQLite v2 is the
+  sole mutable workflow authority; terminal reserve/confirm and same-request
+  at-least-once finalization fail closed; Candidate, G3, and G4 share one
+  pinned Git-plus-receipt observation; predecessor Outcomes fully rederive;
+  and all twelve scenarios use real Outcomes, three fixture bundles, and the
+  independently resolved nine-group/52-name measurement contract. The focused
+  local selection passes 246 tests with one Windows symlink-capability skip. At
+  that checkpoint, a fresh independent review and exact-SHA remote CI had not
+  run.
 - Hardened the pre-release M5 candidate after independent review: Selection
   replay, atomic contradiction closure, actual CandidateIdentity and provenance
   verification, structural authority checks, exact optional exclusions,

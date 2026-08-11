@@ -54,7 +54,10 @@ Query and require exact Selection equality; structural schema validity alone
 does not establish semantic compatibility. Production Compaction requires
 explicit roots and reauthenticates a persisted Snapshot before use.
 
-M6 adds seven independent scheduler schema `1.0` contracts. They are additive
+M6 originally added seven independent scheduler schema `1.0` contracts. M8
+remediation adds three independent schema `1.0` contracts for Workflow Epoch
+Event, Scheduler Store Migration Approval, and Scheduler Store Migration
+Result. They are additive
 and do not reinterpret an Agent Result, M2 registry/request/worktree record,
 M5 Context artifact, Gate, approval, checkpoint, or handoff. Task Graphs are
 compatible only with the exact referenced M2/M5 bytes and candidate identity.
@@ -63,9 +66,12 @@ Context Snapshot, attempt, lease, fence, idempotency key, sensitivity, and
 causal parent identities.
 
 The SQLite database is a local implementation detail, not a portable public
-schema. Compatibility requires application ID `0x53444151`, `user_version=1`,
-and metadata schema `1.0`. Unknown versions and altered table shape fail
-closed. There is no in-place or automatic database migration.
+schema. Both supported versions use application ID `0x53444151`. M6-only v1
+requires `user_version=1` and metadata schema `1.0`. M8 runtime requires v2,
+`user_version=2`, metadata schema `2.0`, the append-only workflow epoch chain,
+and its replay-checked current-head projection. Unknown versions and altered
+table shape fail closed. V1 remains readable and operable for M6-only use;
+there is no in-place or automatic database migration.
 
 M7 adds four independent Solver Registry, Request, Result, and Verification
 schema `1.0` contracts. They are additive and do not reinterpret M2 Tool
@@ -99,6 +105,31 @@ Adding an approximate numeric theory, new status, executable external adapter,
 or different proof meaning requires a new contract version; it must not be
 silently accepted as schema `1.0`.
 
+M8 adds five independent Development Intent, Integrated Plan, Workflow State,
+Workflow Event, and Workflow Outcome schema `1.0` contracts. They are additive
+and do not reinterpret M1 Requirement Baselines, M2 Registries, M3 evidence,
+reviews, Gates or handoffs, M5 Context artifacts, M6 Task Graphs, SQLite state,
+Leases, budgets or events, or M7 solver artifacts. Compatibility requires the
+exact referenced bytes, full native artifact IDs, CandidateIdentity, sensitivity,
+Task Graph, scheduler event head, and predecessor lineage; matching shape alone
+is insufficient.
+
+The M8 reason, status, event-cause, effect-disposition, completion-profile,
+Outcome-disposition, and measurement vocabularies are closed in schema `1.0`.
+Adding a field, status, reason, authority, automatic retry, new mutable store,
+executable hosted adapter, or different completion meaning requires a new
+version. It cannot silently extend `1.0` or reuse existing approvals.
+
+M8 preserves every pre-M8 CLI meaning and uses only the `workflow` namespace.
+The unpublished local M8 surface had no external consumer or artifact, so the
+Owner-approved remediation corrects it within the pre-release 1.0 line: Plan,
+Explain, and Simulate require `--scheduler-state`; Supersede remains public;
+Outcome requires its closure `--output-state`. No external 1.1 conversion or
+headless-artifact grandfathering applies. M8 does not widen stable top-level
+`sdaqf.__all__` exports or add a runtime dependency. The internal workflow
+modules remain prerelease implementation details until a separately approved
+stable Python API exists.
+
 ## Migration
 
 No migration is required from the M4 Public Beta CLI behavior. Existing
@@ -127,13 +158,20 @@ The stable top-level `sdaqf.__all__` remains unchanged. Context domain and
 application modules are implementation details until a separately approved
 stable Python API contract is published.
 
-There is no pre-M6 scheduler artifact or database to migrate. Adoption creates
-a fresh database from a validated Task Graph. Recovery also writes only a
-fresh output after exact source-schema and immutable-evidence validation,
-rebuilds every mutable projection, and requires evidence equivalence before
-exclusive publication. A future scheduler schema or SQLite version must
-preserve the old source and use a separately documented, explicitly approved
-conversion.
+M6 v1 adoption creates a fresh database from a validated Task Graph and remains
+the default for M6-only use. A caller may instead initialize a fresh v2
+workflow-authority store. The one supported database migration is explicit
+copy-on-write v1 to v2: it requires an exact time-bounded Owner approval,
+binds the canonical repository `root_sha256`, consumes that approval once in
+the shared M4 migration consumption store,
+preserves the validated v1 source, exclusively publishes a fresh v2 output,
+and starts an empty workflow epoch chain. In-place, implicit, opportunistic,
+recovery-disguised, and v2-to-v1 migration are prohibited. After a v2 workflow
+epoch exists, downgrade would erase authority and is prohibited. Recovery
+writes only a fresh same-version output after exact schema, immutable evidence,
+epoch-chain, receipt, and projection replay.
+Supplying a v1 store to an M8 command fails before output with the deterministic
+`migration-required` result; no existing headless M8 file is grandfathered.
 
 There is no pre-M7 Solver artifact to migrate. Adoption creates new immutable
 artifacts through the additive `solver` namespace. Existing V1, M2, M5, and M6
@@ -142,6 +180,57 @@ files and evidence, produce separately identified artifacts, document proof
 and adoption compatibility, and use a separately approved explicit conversion
 if conversion is possible. Optional external-adapter Registry data never
 migrates into process authority or reusable approval.
+
+There is no compatible headless predecessor M8 workflow artifact to migrate.
+Adoption creates new content-addressed records through the additive `workflow`
+namespace and an authenticated M6 v2 epoch. Workflow State does not migrate or
+replace the M6 SQLite database. Resume preserves an exact Plan epoch; a changed
+candidate or native reference requires a new Plan and fully rederived,
+predecessor-linked terminal Outcome rather than an in-place update. Recovery
+writes fresh Event and State artifacts only for a nonterminal epoch; a
+terminal-reserved epoch permits only exact pending finalization. A future M8
+conversion must preserve all source artifacts and ambiguity, document native
+semantic compatibility, and require separate approval.
+
+Successor `workflow explain`, `workflow simulate`, `workflow run`,
+`workflow resume`, `workflow status`, and `workflow recover` add the same
+optional `--predecessor-scheduler-state` accepted by planning. It is required
+exactly for successor lineage and omitted for genesis, preserving all existing
+genesis CLI and Python call shapes. Python `finalize_observation` accepts the
+same optional authority for successor terminal closure. Terminal retries preserve the
+reservation timestamp and accept only exact receipt-bound existing artifacts;
+these are semantic tightening rules within schema `1.0`, not artifact migration.
+
+The latest independent successor lifecycle compatibility review returned GO for
+this exact boundary, maintained every F1-through-F11 ACCEPT result, and left zero
+unresolved findings within its scope. It supersedes the earlier M8 overall
+NO-GO for the current local candidate only. The M8 surface remains Experimental
+and unreleased; this compatibility disposition does not establish release GO,
+production readiness, commit, push, or exact-SHA remote CI.
+
+## Current local compatibility dispositions
+
+The historical 2026-08-10 final independent M5 compatibility re-review remains
+recorded NO-GO. Snapshot publication now revalidates the CandidateIdentity from the
+validated Snapshot being serialized after all estimator work, and Selection
+ranking shares one authoritative graph distance with its published rank. The
+High blocking and Medium non-blocking findings are remediated. The latest M5
+disposition is GO for the current local candidate; this updates current status
+without deleting or rewriting the historical NO-GO record.
+
+The historical, separate 2026-08-10 final independent M6 compatibility review
+remains recorded NO-GO. The public Workflow Epoch Event schema now rejects receipt
+type/ID-prefix mismatches and one-sided artifact-head ID/path pairs exactly as
+runtime parsing does. The Medium blocking finding is remediated; M6 status
+publication is pending and no M6 GO is claimed. Runtime parsing and SQLite
+replay meanings are unchanged.
+
+The current dispositions are independent: M5 GO, M6 status publication pending
+(not GO), M7 GO, and M8 successor lifecycle GO. The M5 and M6 findings do not
+reopen or supersede the recorded M7
+or M8 reviews. All four milestones remain Experimental and unreleased. These
+local dispositions do not establish release GO, production readiness, Git
+finalization, or exact-SHA remote CI.
 
 ## Deprecation
 

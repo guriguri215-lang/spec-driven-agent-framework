@@ -1,0 +1,522 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/workflow-state.schema.json",
+  "title": "M8 Workflow State",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "artifact_id",
+    "content"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "artifact_type": {
+      "const": "workflow-state"
+    },
+    "artifact_id": {
+      "type": "string",
+      "pattern": "^M8-WORKFLOW-STATE-[0-9A-F]{64}$"
+    },
+    "content": {
+      "type": "object",
+      "required": [
+        "plan_id",
+        "candidate",
+        "sensitivity",
+        "status",
+        "scheduler_graph_id",
+        "scheduler_state_id",
+        "scheduler_event_sequence",
+        "scheduler_event_head_sha256",
+        "tasks",
+        "solver_verification_ids",
+        "evidence_ids",
+        "review_ids",
+        "approval_ids",
+        "gates",
+        "handoff_id",
+        "handoff_status",
+        "blockers",
+        "ambiguities",
+        "measurements",
+        "observation_artifacts",
+        "event_chain",
+        "latest_event",
+        "transition_count",
+        "recorded_at"
+      ],
+      "properties": {
+        "plan_id": {
+          "type": "string",
+          "pattern": "^M8-INTEGRATED-PLAN-[0-9A-F]{64}$"
+        },
+        "candidate": {
+          "$ref": "development-intent.schema.json#/$defs/candidate"
+        },
+        "sensitivity": {
+          "$ref": "development-intent.schema.json#/$defs/sensitivity"
+        },
+        "status": {
+          "enum": [
+            "planned",
+            "ready",
+            "running",
+            "blocked",
+            "verification",
+            "completed",
+            "rejected",
+            "superseded"
+          ]
+        },
+        "scheduler_graph_id": {
+          "$ref": "development-intent.schema.json#/$defs/native_id"
+        },
+        "scheduler_state_id": {
+          "$ref": "development-intent.schema.json#/$defs/native_id"
+        },
+        "scheduler_event_sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "scheduler_event_head_sha256": {
+          "$ref": "development-intent.schema.json#/$defs/sha256"
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "$ref": "development-intent.schema.json#/$defs/workflow_task"
+          },
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "solver_verification_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "development-intent.schema.json#/$defs/native_id"
+          },
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "development-intent.schema.json#/$defs/native_id"
+          },
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "review_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "development-intent.schema.json#/$defs/native_id"
+          },
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "approval_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "development-intent.schema.json#/$defs/native_id"
+          },
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "gates": {
+          "type": "array",
+          "items": {
+            "$ref": "development-intent.schema.json#/$defs/gate_observation"
+          },
+          "maxItems": 4,
+          "uniqueItems": true
+        },
+        "handoff_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Z][A-Z0-9._:@-]{1,191}$"
+        },
+        "handoff_status": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z][a-z0-9-]{0,95}$"
+        },
+        "blockers": {
+          "type": "array",
+          "items": {
+            "$ref": "development-intent.schema.json#/$defs/blocker"
+          },
+          "maxItems": 256,
+          "uniqueItems": true
+        },
+        "ambiguities": {
+          "type": "array",
+          "items": {
+            "$ref": "development-intent.schema.json#/$defs/code"
+          },
+          "maxItems": 256,
+          "uniqueItems": true
+        },
+        "measurements": {
+          "type": "array",
+          "minItems": 52,
+          "prefixItems": [
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "requirements.required_requirement_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "requirements.covered_requirement_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "requirements.uncovered_requirement_ids"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "requirements.scope_addition_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "requirements.blocking_diagnostic_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "context.required_reference_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "context.selected_required_reference_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "context.stale_required_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "context.provenance_missing_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "context.sensitivity_violation_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "context.selected_context_bytes"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "context.context_budget_bytes"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "context.unresolved_contradiction_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "scheduling.task_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "scheduling.completed_task_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "scheduling.blocked_task_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "scheduling.retry_used_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "scheduling.duplicate_rejection_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "scheduling.late_result_rejection_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "scheduling.deadlock_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "solver.solver_task_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "solver.status_counts"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "solver.verified_result_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "solver.adoptable_result_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "solver.solver_calls_used"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "solver.solver_steps_used"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "evidence.claim_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "evidence.verified_claim_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "evidence.unverified_claim_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "evidence.known_problem_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "evidence.missing_evidence_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "handoff.handoff_created_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "handoff.handoff_resume_failure_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "handoff.incomplete_item_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "handoff.open_decision_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "handoff.known_problem_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "recovery.resume_attempt_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "recovery.successful_resume_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "recovery.recovery_attempt_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "recovery.successful_recovery_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "recovery.ambiguous_effect_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "approval.required_approval_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "approval.consumed_approval_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "approval.refused_approval_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "approval.expired_approval_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "approval.pending_approval_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "approval.approval_revalidation_failure_count"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "available_cost.status"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "available_cost.currency"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "available_cost.budget_microunits"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "available_cost.used_microunits"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "development-intent.schema.json#/$defs/measurement"},
+                {"properties": {"name": {"const": "available_cost.remaining_microunits"}}}
+              ]
+            }
+          ],
+          "items": false,
+          "maxItems": 52,
+          "uniqueItems": true
+        },
+        "observation_artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "development-intent.schema.json#/$defs/binding"
+          },
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "event_chain": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "development-intent.schema.json#/$defs/binding"
+          },
+          "maxItems": 2147483647,
+          "uniqueItems": true
+        },
+        "latest_event": {
+          "$ref": "development-intent.schema.json#/$defs/binding"
+        },
+        "transition_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "recorded_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T.*Z$"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

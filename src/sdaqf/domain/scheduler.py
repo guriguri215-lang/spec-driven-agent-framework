@@ -22,6 +22,37 @@ class SchedulerArtifactType(StrEnum):
     SCHEDULER_EVENT = "scheduler-event"
     BUDGET_LEDGER = "budget-ledger"
     WORKTREE_LEASE = "worktree-lease"
+    WORKFLOW_EPOCH_EVENT = "workflow-epoch-event"
+    SCHEDULER_STORE_MIGRATION_APPROVAL = "scheduler-store-migration-approval"
+    SCHEDULER_STORE_MIGRATION_RESULT = "scheduler-store-migration-result"
+
+
+class WorkflowEpochCause(StrEnum):
+    """Closed workflow-authority transition vocabulary for SQLite v2."""
+
+    EPOCH_OPENED = "epoch-opened"
+    TRANSITION_RESERVED = "transition-reserved"
+    ARTIFACT_PUBLICATION_RESERVED = "artifact-publication-reserved"
+    ARTIFACT_PUBLICATION_CONFIRMED = "artifact-publication-confirmed"
+    TERMINAL_RESERVED = "terminal-reserved"
+    TERMINAL_CONFIRMED = "terminal-confirmed"
+
+
+class WorkflowEpochPhase(StrEnum):
+    """Replay-derived current workflow epoch phase."""
+
+    OPEN = "open"
+    TRANSITION_RESERVED = "transition-reserved"
+    ACTIVE = "active"
+    TERMINAL_RESERVED = "terminal-reserved"
+    TERMINAL_CONFIRMED = "terminal-confirmed"
+
+
+class WorkflowReceiptStatus(StrEnum):
+    """Immutable producer receipt state."""
+
+    RESERVED = "reserved"
+    CONFIRMED = "confirmed"
 
 
 class TaskKind(StrEnum):
@@ -516,6 +547,232 @@ class WorktreeLease:
         }
 
 
+@dataclass(frozen=True, slots=True)
+class WorkflowArtifactReceipt:
+    """One exact path-to-canonical-artifact producer receipt."""
+
+    artifact_type: str
+    artifact_id: str
+    path: str
+    producer: str
+    status: WorkflowReceiptStatus
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "artifact_type": self.artifact_type,
+            "artifact_id": self.artifact_id,
+            "path": self.path,
+            "producer": self.producer,
+            "status": self.status.value,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class WorkflowEpochEvent:
+    """One append-only workflow epoch authority event in an M6 v2 store."""
+
+    sequence: int
+    epoch_sequence: int
+    previous_event_id: str | None
+    cause: WorkflowEpochCause
+    plan_id: str
+    predecessor_plan_id: str | None
+    predecessor_terminal_event_head_id: str | None
+    predecessor_state_id: str | None
+    predecessor_outcome_id: str | None
+    candidate: CandidateIdentity
+    graph_id: str
+    scheduler_state_id: str
+    scheduler_event_sequence: int
+    scheduler_event_head_id: str
+    idempotency_key: str
+    producer: str
+    source_state_id: str | None
+    workflow_event_id: str | None
+    workflow_event_path: str | None
+    workflow_state_id: str | None
+    workflow_state_path: str | None
+    outcome_id: str | None
+    outcome_path: str | None
+    receipts: tuple[WorkflowArtifactReceipt, ...]
+    recorded_at: str
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "sequence": self.sequence,
+            "epoch_sequence": self.epoch_sequence,
+            "previous_event_id": self.previous_event_id,
+            "cause": self.cause.value,
+            "plan_id": self.plan_id,
+            "predecessor_plan_id": self.predecessor_plan_id,
+            "predecessor_terminal_event_head_id": self.predecessor_terminal_event_head_id,
+            "predecessor_state_id": self.predecessor_state_id,
+            "predecessor_outcome_id": self.predecessor_outcome_id,
+            "candidate": self.candidate.to_dict(),
+            "graph_id": self.graph_id,
+            "scheduler_state_id": self.scheduler_state_id,
+            "scheduler_event_sequence": self.scheduler_event_sequence,
+            "scheduler_event_head_id": self.scheduler_event_head_id,
+            "idempotency_key": self.idempotency_key,
+            "producer": self.producer,
+            "source_state_id": self.source_state_id,
+            "workflow_event_id": self.workflow_event_id,
+            "workflow_event_path": self.workflow_event_path,
+            "workflow_state_id": self.workflow_state_id,
+            "workflow_state_path": self.workflow_state_path,
+            "outcome_id": self.outcome_id,
+            "outcome_path": self.outcome_path,
+            "receipts": [item.to_dict() for item in self.receipts],
+            "recorded_at": self.recorded_at,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class WorkflowEpochHead:
+    """Replay-derived authoritative current head for one Plan epoch."""
+
+    plan_id: str
+    predecessor_plan_id: str | None
+    predecessor_terminal_event_head_id: str | None
+    predecessor_state_id: str | None
+    predecessor_outcome_id: str | None
+    candidate: CandidateIdentity
+    graph_id: str
+    sequence: int
+    epoch_sequence: int
+    current_event_head_id: str
+    phase: WorkflowEpochPhase
+    scheduler_state_id: str
+    scheduler_event_sequence: int
+    scheduler_event_head_id: str
+    idempotency_key: str
+    producer: str
+    source_state_id: str | None
+    workflow_event_id: str | None
+    workflow_event_path: str | None
+    workflow_state_id: str | None
+    workflow_state_path: str | None
+    outcome_id: str | None
+    outcome_path: str | None
+    receipts: tuple[WorkflowArtifactReceipt, ...]
+    recorded_at: str
+    terminal_at: str | None
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "plan_id": self.plan_id,
+            "predecessor_plan_id": self.predecessor_plan_id,
+            "predecessor_terminal_event_head_id": self.predecessor_terminal_event_head_id,
+            "predecessor_state_id": self.predecessor_state_id,
+            "predecessor_outcome_id": self.predecessor_outcome_id,
+            "candidate": self.candidate.to_dict(),
+            "graph_id": self.graph_id,
+            "sequence": self.sequence,
+            "epoch_sequence": self.epoch_sequence,
+            "current_event_head_id": self.current_event_head_id,
+            "phase": self.phase.value,
+            "scheduler_state_id": self.scheduler_state_id,
+            "scheduler_event_sequence": self.scheduler_event_sequence,
+            "scheduler_event_head_id": self.scheduler_event_head_id,
+            "idempotency_key": self.idempotency_key,
+            "producer": self.producer,
+            "source_state_id": self.source_state_id,
+            "workflow_event_id": self.workflow_event_id,
+            "workflow_event_path": self.workflow_event_path,
+            "workflow_state_id": self.workflow_state_id,
+            "workflow_state_path": self.workflow_state_path,
+            "outcome_id": self.outcome_id,
+            "outcome_path": self.outcome_path,
+            "receipts": [item.to_dict() for item in self.receipts],
+            "recorded_at": self.recorded_at,
+            "terminal_at": self.terminal_at,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class WorkflowReceiptSnapshot:
+    """One validated immutable observation of scheduler and epoch heads."""
+
+    graph_id: str
+    candidate: CandidateIdentity
+    current_event_head_id: str
+    scheduler_state_id: str
+    heads: tuple[WorkflowEpochHead, ...]
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "graph_id": self.graph_id,
+            "candidate": self.candidate.to_dict(),
+            "current_event_head_id": self.current_event_head_id,
+            "scheduler_state_id": self.scheduler_state_id,
+            "heads": [item.to_dict() for item in self.heads],
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class SchedulerStoreMigrationApproval:
+    """Exact time-bounded Owner authority for one copy-on-write migration."""
+
+    action: str
+    root_sha256: str
+    source_path: str
+    output_path: str
+    source_graph_id: str
+    source_current_event_head_id: str
+    to_version: int
+    approved_by: str
+    issued_at: str
+    not_before: str
+    expires_at: str
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "action": self.action,
+            "root_sha256": self.root_sha256,
+            "source_path": self.source_path,
+            "output_path": self.output_path,
+            "source_graph_id": self.source_graph_id,
+            "source_current_event_head_id": self.source_current_event_head_id,
+            "to_version": self.to_version,
+            "approved_by": self.approved_by,
+            "issued_at": self.issued_at,
+            "not_before": self.not_before,
+            "expires_at": self.expires_at,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class SchedulerStoreMigrationResult:
+    """Immutable result of one exclusive copy-on-write v1-to-v2 migration."""
+
+    source_path: str
+    root_sha256: str
+    output_path: str
+    source_graph_id: str
+    source_current_event_head_id: str
+    output_current_event_head_id: str
+    from_version: int
+    to_version: int
+    approval_id: str
+    workflow_epoch_count: int
+    migrated_at: str
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "source_path": self.source_path,
+            "root_sha256": self.root_sha256,
+            "output_path": self.output_path,
+            "source_graph_id": self.source_graph_id,
+            "source_current_event_head_id": self.source_current_event_head_id,
+            "output_current_event_head_id": self.output_current_event_head_id,
+            "from_version": self.from_version,
+            "to_version": self.to_version,
+            "approval_id": self.approval_id,
+            "workflow_epoch_count": self.workflow_epoch_count,
+            "migrated_at": self.migrated_at,
+        }
+
+
 type SchedulerValue = (
     TaskGraph
     | SchedulerState
@@ -524,6 +781,9 @@ type SchedulerValue = (
     | SchedulerEvent
     | BudgetLedger
     | WorktreeLease
+    | WorkflowEpochEvent
+    | SchedulerStoreMigrationApproval
+    | SchedulerStoreMigrationResult
 )
 
 

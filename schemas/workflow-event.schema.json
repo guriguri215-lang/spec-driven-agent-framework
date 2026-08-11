@@ -1,0 +1,232 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/workflow-event.schema.json",
+  "title": "M8 Workflow Event",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "artifact_id",
+    "content"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "artifact_type": {
+      "const": "workflow-event"
+    },
+    "artifact_id": {
+      "type": "string",
+      "pattern": "^M8-WORKFLOW-EVENT-[0-9A-F]{64}$"
+    },
+    "content": {
+      "type": "object",
+      "required": [
+        "sequence",
+        "previous_event_id",
+        "prior_state_id",
+        "prior_state",
+        "plan_id",
+        "candidate",
+        "sensitivity",
+        "cause",
+        "before_status",
+        "after_status",
+        "scheduler_event_head_before",
+        "scheduler_event_head_after",
+        "effect_disposition",
+        "actor",
+        "recorded_at",
+        "idempotency_key",
+        "native_input_ids",
+        "native_output_ids",
+        "task_id",
+        "effect_id",
+        "approval_id",
+        "reason_codes"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "previous_event_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^M8-WORKFLOW-EVENT-[0-9A-F]{64}$"
+        },
+        "prior_state_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^M8-WORKFLOW-STATE-[0-9A-F]{64}$"
+        },
+        "prior_state": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "development-intent.schema.json#/$defs/binding"}
+          ]
+        },
+        "plan_id": {
+          "type": "string",
+          "pattern": "^M8-INTEGRATED-PLAN-[0-9A-F]{64}$"
+        },
+        "candidate": {
+          "$ref": "development-intent.schema.json#/$defs/candidate"
+        },
+        "sensitivity": {
+          "$ref": "development-intent.schema.json#/$defs/sensitivity"
+        },
+        "cause": {
+          "enum": [
+            "plan-adopted",
+            "runtime-started",
+            "context-revalidated",
+            "scheduler-advanced",
+            "approval-blocked",
+            "approval-revalidated",
+            "solver-revalidated",
+            "evidence-revalidated",
+            "review-revalidated",
+            "gate-evaluated",
+            "ambiguity-recorded",
+            "recovery-observed",
+            "plan-superseded",
+            "handoff-revalidated",
+            "outcome-produced"
+          ]
+        },
+        "before_status": {
+          "enum": [
+            "planned",
+            "ready",
+            "running",
+            "blocked",
+            "verification",
+            "completed",
+            "rejected",
+            "superseded"
+          ]
+        },
+        "after_status": {
+          "enum": [
+            "planned",
+            "ready",
+            "running",
+            "blocked",
+            "verification",
+            "completed",
+            "rejected",
+            "superseded"
+          ]
+        },
+        "scheduler_event_head_before": {
+          "$ref": "development-intent.schema.json#/$defs/sha256"
+        },
+        "scheduler_event_head_after": {
+          "$ref": "development-intent.schema.json#/$defs/sha256"
+        },
+        "effect_disposition": {
+          "enum": [
+            "not-applicable",
+            "blocked",
+            "revalidated",
+            "ambiguous"
+          ]
+        },
+        "actor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "recorded_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T.*Z$"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "pattern": "^M8-IDEM-[0-9A-F]{64}$"
+        },
+        "native_input_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "development-intent.schema.json#/$defs/native_id"
+          },
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "native_output_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "development-intent.schema.json#/$defs/native_id"
+          },
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "task_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^TSK-[A-Z0-9][A-Z0-9-]{0,63}$"
+        },
+        "effect_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Z][A-Z0-9._:@-]{1,191}$"
+        },
+        "approval_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Z][A-Z0-9._:@-]{1,191}$"
+        },
+        "reason_codes": {
+          "type": "array",
+          "items": {
+            "$ref": "development-intent.schema.json#/$defs/code"
+          },
+          "maxItems": 256,
+          "uniqueItems": true
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "sequence": {"const": 1},
+            "previous_event_id": {"type": "null"},
+            "prior_state_id": {"type": "null"},
+            "prior_state": {"type": "null"}
+          }
+        },
+        {
+          "properties": {
+            "sequence": {"type": "integer", "minimum": 2},
+            "previous_event_id": {
+              "type": "string",
+              "pattern": "^M8-WORKFLOW-EVENT-[0-9A-F]{64}$"
+            },
+            "prior_state_id": {
+              "type": "string",
+              "pattern": "^M8-WORKFLOW-STATE-[0-9A-F]{64}$"
+            },
+            "prior_state": {
+              "$ref": "development-intent.schema.json#/$defs/binding"
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

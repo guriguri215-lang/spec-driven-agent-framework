@@ -230,12 +230,16 @@ def test_named_validator_and_stable_export_boundary(
 def test_ci_enforces_m7_coverage_and_named_validation() -> None:
     workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     normalized = " ".join(workflow.split())
-    assert "Check M7 critical coverage" in workflow
-    assert "src/sdaqf/domain/solver.py" in workflow
-    assert "src/sdaqf/application/solver_verification.py" in workflow
-    assert "--fail-under=90" in normalized
+    gate_runner = (ROOT / "scripts" / "run_local_gate.py").read_text(encoding="utf-8")
+    assert "M1 through M8 critical branch coverage" in workflow
+    assert "src/sdaqf/domain/solver.py" in gate_runner
+    assert "src/sdaqf/application/solver_verification.py" in gate_runner
+    assert "90," in gate_runner
     assert "Validate M7 solver evidence" in workflow
-    assert "python scripts/validate_m7_solver.py" in normalized
+    assert (
+        "python scripts/run_local_gate.py script scripts/validate_m7_solver.py"
+        in normalized
+    )
 
 
 def _strict(payload: object) -> bytes:

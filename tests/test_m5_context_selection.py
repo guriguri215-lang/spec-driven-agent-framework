@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from unittest.mock import Mock
 
 import pytest
 
@@ -199,6 +200,48 @@ def test_optional_identifier_match_forces_atomic_contradiction_closure() -> None
     assert {first.node_id, second.node_id} <= selected.keys()
     assert "contradiction-closure" in selected[second.node_id].reasons
     assert selection.value.unresolved_contradiction_ids == (edge.edge_id,)
+
+
+def test_identifier_only_selection_uses_one_authoritative_graph_distance(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    artifacts = complete_artifacts()
+    graph_artifact = artifacts[ContextArtifactType.GRAPH]
+    query_artifact = artifacts[ContextArtifactType.QUERY]
+    assert isinstance(graph_artifact.value, ContextGraph)
+    assert isinstance(query_artifact.value, ContextQuery)
+    required = next(node for node in graph_artifact.value.nodes if node.required)
+    optional = next(node for node in graph_artifact.value.nodes if not node.required)
+    graph_artifact = artifact_from_value(
+        ContextArtifactType.GRAPH,
+        replace(graph_artifact.value, edges=()),
+    )
+    query = replace(
+        query_artifact.value,
+        graph_id=graph_artifact.artifact_id,
+        required_node_ids=(required.node_id,),
+        seed_node_ids=(),
+        identifiers=(optional.identifiers[0],),
+        terms=(),
+    )
+    rank_spy = Mock(wraps=ContextSelector._rank)
+    monkeypatch.setattr(ContextSelector, "_rank", rank_spy)
+
+    selection = ContextSelector(CanonicalUTF8ByteEstimator()).select(
+        graph_artifact,
+        artifact_from_value(ContextArtifactType.QUERY, query),
+    )
+
+    assert isinstance(selection.value, ContextSelection)
+    decision = next(
+        item for item in selection.value.selected if item.node_id == optional.node_id
+    )
+    ranked_distance = next(
+        call.kwargs["distance"]
+        for call in rank_spy.call_args_list
+        if call.args[0].node_id == optional.node_id
+    )
+    assert ranked_distance == decision.graph_distance == 0
 
 
 def test_graph_depth_bound_is_a_blocker_not_silent_truncation() -> None:

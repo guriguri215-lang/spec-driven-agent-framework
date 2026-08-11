@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -42,16 +43,16 @@ class MutableClock:
         self.value += timedelta(seconds=seconds)
 
 
-def graph_artifact() -> LoadedSchedulerArtifact:
+def graph_artifact(root: Path = ROOT) -> LoadedSchedulerArtifact:
     return load_scheduler_artifact(
-        TASK_GRAPH_PATH,
+        root / "examples" / "m6-scheduler" / "task-graph.json",
         expected_type=SchedulerArtifactType.TASK_GRAPH,
-        root=ROOT,
+        root=root,
     )
 
 
-def graph_value() -> TaskGraph:
-    value = graph_artifact().value
+def graph_value(root: Path = ROOT) -> TaskGraph:
+    value = graph_artifact(root).value
     assert isinstance(value, TaskGraph)
     return value
 
@@ -77,15 +78,37 @@ def create_store(
     *,
     graph: TaskGraph | None = None,
     clock: datetime = FIXED_TIME,
+    workflow_authority: bool = False,
+    root: Path = ROOT,
 ) -> SQLiteSchedulerStore:
     selected = graph_value() if graph is None else graph
     artifact = artifact_from_value(SchedulerArtifactType.TASK_GRAPH, selected)
     return SQLiteSchedulerStore.initialize(
         tmp_path / "state.sqlite3",
-        ROOT,
+        root,
         artifact,
         clock,
+        workflow_authority=workflow_authority,
     )
+
+
+def materialize_scheduler_root(tmp_path: Path) -> tuple[Path, Path]:
+    """Copy only the exact M6 fixture inputs into an isolated local root."""
+
+    project = tmp_path / "project"
+    paths = (
+        Path("examples/m6-scheduler/task-graph.json"),
+        Path("examples/m2-orchestration/agent-registry.json"),
+        Path("examples/m2-orchestration/implementer-result.json"),
+        Path("examples/m2-orchestration/orchestration-request.json"),
+        Path("examples/m2-orchestration/tool-registry.json"),
+        Path("examples/m5-context/context-snapshot.json"),
+    )
+    for relative in paths:
+        target = project / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / relative, target)
+    return project, project / paths[0]
 
 
 def first_dispatch(

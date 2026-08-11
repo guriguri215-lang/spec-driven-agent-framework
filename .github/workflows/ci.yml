@@ -30,57 +30,48 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: requirements-dev.lock
+      - name: Verify exact triggering commit
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: >-
+          python -c "import os, subprocess;
+          actual = subprocess.check_output(
+          ['git', 'rev-parse', 'HEAD'], text=True).strip();
+          expected = os.environ['EXPECTED_HEAD_SHA'];
+          raise SystemExit(0 if actual == expected else
+          f'checked-out HEAD {actual} does not match triggering SHA {expected}')"
       - name: Install pinned development tools
         run: python -m pip install --disable-pip-version-check -r requirements-dev.lock
       - name: Install project without dependency resolution
         run: python -m pip install --no-build-isolation --no-deps -e .
       - name: Run tests
-        run: python -m pytest
+        run: python scripts/run_local_gate.py pytest
+      - name: Measure total and M1 through M8 critical branch coverage
+        run: python scripts/run_local_gate.py coverage
       - name: Run lint
-        run: python -m ruff check src tests scripts
+        run: python scripts/run_local_gate.py ruff
       - name: Run type check
-        run: python -m mypy src tests scripts
-      - name: Measure total branch coverage
-        run: |
-          python -m coverage run -m pytest
-          python -m coverage report --fail-under=80
-      - name: Check M1 critical coverage
-        run: >-
-          python -m coverage report
-          --include="src/sdaqf/domain/models.py,src/sdaqf/domain/requirements.py,src/sdaqf/application/gates.py,src/sdaqf/application/approvals.py,src/sdaqf/application/baselines.py,src/sdaqf/application/comparison.py,src/sdaqf/application/planning.py,src/sdaqf/application/requirements.py,src/sdaqf/application/requirements_gate.py"
-          --fail-under=90
-      - name: Check M2 critical coverage
-        run: >-
-          python -m coverage report
-          --include="src/sdaqf/domain/orchestration.py,src/sdaqf/domain/tooling.py,src/sdaqf/adapters/process.py,src/sdaqf/application/orchestration.py,src/sdaqf/application/skills.py,src/sdaqf/application/tooling.py,src/sdaqf/application/checkpoints.py"
-          --fail-under=90
-      - name: Check M6 critical coverage
-        run: >-
-          python -m coverage report
-          --include="src/sdaqf/domain/scheduler.py,src/sdaqf/ports/scheduler.py,src/sdaqf/adapters/scheduler.py,src/sdaqf/application/scheduler_contracts.py,src/sdaqf/application/scheduler.py,src/sdaqf/application/scheduler_recovery.py,src/sdaqf/application/scheduler_simulation.py"
-          --fail-under=90
+        run: python scripts/run_local_gate.py mypy
+      - name: Validate M5 context evidence
+        run: python scripts/run_local_gate.py script scripts/validate_m5_context.py
       - name: Validate M6 scheduler safety
-        run: python scripts/validate_m6_scheduler.py
-      - name: Check M7 critical coverage
-        run: >-
-          python -m coverage report
-          --include="src/sdaqf/domain/solver.py,src/sdaqf/ports/solver.py,src/sdaqf/adapters/solver.py,src/sdaqf/application/solver_contracts.py,src/sdaqf/application/solver.py,src/sdaqf/application/solver_verification.py"
-          --fail-under=90
+        run: python scripts/run_local_gate.py script scripts/validate_m6_scheduler.py
       - name: Validate M7 solver evidence
-        run: python scripts/validate_m7_solver.py
+        run: python scripts/run_local_gate.py script scripts/validate_m7_solver.py
+      - name: Validate M8 workflow integration
+        run: python scripts/run_local_gate.py script scripts/validate_m8_workflow.py
+      - name: Run CLI smoke checks
+        run: python scripts/run_local_gate.py script scripts/run_cli_smoke.py
+      - name: Reproduce evaluation result
+        run: python scripts/run_local_gate.py evaluation
       - name: Audit workspace boundary
         run: >-
-          python scripts/check_workspace_boundary.py
-          --repo .
-          --expected-origin-url
-          https://github.com/guriguri215-lang/spec-driven-agent-framework.git
+          python scripts/run_local_gate.py workspace
           --expected-branch
           ${{ github.head_ref || github.ref_name }}
       - name: Audit publication candidate
-        run: python scripts/audit_repository.py --root . --workspace-parent ..
+        run: python scripts/run_local_gate.py publication
       - name: Audit dependency and license records
-        run: python scripts/audit_dependencies.py --root .
+        run: python scripts/run_local_gate.py dependencies
       - name: Check installed dependency consistency
-        run: python -m pip check
-      - name: Run CLI smoke checks
-        run: python scripts/run_cli_smoke.py
+        run: python scripts/run_local_gate.py pip-check

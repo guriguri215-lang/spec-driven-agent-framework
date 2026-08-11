@@ -312,7 +312,7 @@ def _run_production_cases(root: Path) -> list[dict[str, Any]]:
         _EvaluationCase("error"),
     )
     reproduced: list[dict[str, Any]] = []
-    with tempfile.TemporaryDirectory(prefix=".sdaqf-m7-validator-", dir=root) as raw:
+    with tempfile.TemporaryDirectory(prefix="m7-") as raw:
         temporary = Path(raw)
         for case in cases:
             case_id = case.case_id

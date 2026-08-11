@@ -1,5 +1,5 @@
 {
-  "artifact_id": "M7-SOLVER-REGISTRY-4465E2BC2BE22A272F5822FFDEC64175038E88CC34A739333DE675E430C24933",
+  "artifact_id": "M7-SOLVER-REGISTRY-D6880558B38905FD19BA586BB2B8F037CB548946FA8D7E26DA73F90D753F464E",
   "artifact_type": "solver-registry",
   "content": {
     "adapters": [
@@ -32,7 +32,7 @@
           },
           {
             "path": "pyproject.toml",
-            "sha256": "76D9C29018CA8A3040F0EBF4BD608A7AAB3E186AC4D68AF8D8824AF3FC6B3394"
+            "sha256": "68B2F5E471E04F0E7A32AE3C5BF6707BE41F10A0579C3E567346DB16D5DA6BF4"
           }
         ],
         "supported_constraints": [

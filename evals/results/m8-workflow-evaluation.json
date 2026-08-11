@@ -1,0 +1,323 @@
+{
+  "cases": [
+    {
+      "case_id": "M8-01",
+      "current_event_head_id": "M6-WORKFLOW-EPOCH-EVENT-A96F1676E14CAB39D0885C6A63CB85D6E81825E7B414F836C2160F4782E59E00",
+      "fixture_bundle_id": "M8-FIXTURE-BUNDLE-752AB4DFD99FAA017941C1971DB255BD2F1204B76CF06A302C03551D1DAD0A80",
+      "measurement_groups": [
+        "approval",
+        "available_cost",
+        "context",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "observed_blockers": [],
+      "observed_outcome": "completed",
+      "outcome_artifact_id": "M8-WORKFLOW-OUTCOME-773FDE6ED562E6819140B82372AF4D180DE5A7C51E166F337746E2083E6E9FFA",
+      "passed": true,
+      "project_fixture": "offline-config",
+      "project_fixture_root": "evals/projects/offline-config",
+      "scenario": "non-ui-success",
+      "terminal_state_id": "M8-WORKFLOW-STATE-45B38091D1EF6D4A40551AFF652A7ED783F69F67271A0A58336BA9F00E7A9C09"
+    },
+    {
+      "case_id": "M8-02",
+      "current_event_head_id": "M6-WORKFLOW-EPOCH-EVENT-FBF50F956F4D1FD974E89AA8AB7E47E42059170E033751776DF6994736B95D3B",
+      "fixture_bundle_id": "M8-FIXTURE-BUNDLE-56E7495AB88356529E665C4D9D5AB04A1046465F2BDB91FA645D1C052C0F9C8A",
+      "measurement_groups": [
+        "approval",
+        "available_cost",
+        "context",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "observed_blockers": [
+        "ui-evidence-unavailable"
+      ],
+      "observed_outcome": "blocked",
+      "outcome_artifact_id": "M8-WORKFLOW-OUTCOME-3F1F497996383721F18B456A92A96E3A611E23747D2D83C0E7A298BD52261461",
+      "passed": true,
+      "project_fixture": "ui-issue-tracker",
+      "project_fixture_root": "evals/projects/ui-issue-tracker",
+      "scenario": "ui-observation-unavailable",
+      "terminal_state_id": "M8-WORKFLOW-STATE-1F0E19C611FC68E6D622F2ED95360D42FEAA4D084A4AB56E7A2B0EE2A3DC2FFF"
+    },
+    {
+      "case_id": "M8-03",
+      "current_event_head_id": "M6-WORKFLOW-EPOCH-EVENT-836C133C3B27FC6795423D3F6EC0E115B04787FDB3310B2B18C1A097E2A8D1F5",
+      "fixture_bundle_id": "M8-FIXTURE-BUNDLE-08D7CB3B00E438F77DD298F5186717F93DAB9356326FEA7F6A2002EAF3DDDA16",
+      "measurement_groups": [
+        "approval",
+        "available_cost",
+        "context",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "observed_blockers": [
+        "approval-required"
+      ],
+      "observed_outcome": "blocked",
+      "outcome_artifact_id": "M8-WORKFLOW-OUTCOME-742D317EE236F6ED7216640BDB79DE0B2936108259A851D5162EDFF8377A4833",
+      "passed": true,
+      "project_fixture": "secure-export",
+      "project_fixture_root": "evals/projects/secure-export",
+      "scenario": "approval-required",
+      "terminal_state_id": "M8-WORKFLOW-STATE-E89F2578395F96C6E4346BB941A8428970613F98365EF43EFD076D032C0A23B7"
+    },
+    {
+      "case_id": "M8-04",
+      "current_event_head_id": "M6-WORKFLOW-EPOCH-EVENT-2CD940F34D2788CC89B397437F55097F1970B32223E12E9EF6800C61EAB86D4C",
+      "fixture_bundle_id": "M8-FIXTURE-BUNDLE-08D7CB3B00E438F77DD298F5186717F93DAB9356326FEA7F6A2002EAF3DDDA16",
+      "measurement_groups": [
+        "approval",
+        "available_cost",
+        "context",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "observed_blockers": [
+        "approval-refused"
+      ],
+      "observed_outcome": "blocked",
+      "outcome_artifact_id": "M8-WORKFLOW-OUTCOME-F1076E1C55A3AE291D2995362EFB37B6748EDC2ADE199E106ABE2B3DA0A86333",
+      "passed": true,
+      "project_fixture": "secure-export",
+      "project_fixture_root": "evals/projects/secure-export",
+      "scenario": "approval-refused",
+      "terminal_state_id": "M8-WORKFLOW-STATE-4D4177E1080276E0E3BE4EC17111DDFFBC1DBDC7CC49B31781A687C01D3B043B"
+    },
+    {
+      "case_id": "M8-05",
+      "current_event_head_id": "M6-WORKFLOW-EPOCH-EVENT-4F3D45E0FE640624F849E8375536AAA2B8C62FAB02F6DA1160D2BD74F0526A9E",
+      "fixture_bundle_id": "M8-FIXTURE-BUNDLE-08D7CB3B00E438F77DD298F5186717F93DAB9356326FEA7F6A2002EAF3DDDA16",
+      "measurement_groups": [
+        "approval",
+        "available_cost",
+        "context",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "observed_blockers": [
+        "approval-expired"
+      ],
+      "observed_outcome": "blocked",
+      "outcome_artifact_id": "M8-WORKFLOW-OUTCOME-0DDF24024377A8F54BA01EBCA4186B3838AC5C089427AC7A955DB46205E93002",
+      "passed": true,
+      "project_fixture": "secure-export",
+      "project_fixture_root": "evals/projects/secure-export",
+      "scenario": "approval-expired",
+      "terminal_state_id": "M8-WORKFLOW-STATE-3382CEAFD68C458AD768428EF47EDF67EBC5814F3B1C042BEC7716F3884BC3CB"
+    },
+    {
+      "case_id": "M8-06",
+      "current_event_head_id": "M6-WORKFLOW-EPOCH-EVENT-CF0BA405C61AE365EF9F52C9D2FB520501AF8C80BA7B9B2EF3311FFDA66D8712",
+      "fixture_bundle_id": "M8-FIXTURE-BUNDLE-08D7CB3B00E438F77DD298F5186717F93DAB9356326FEA7F6A2002EAF3DDDA16",
+      "measurement_groups": [
+        "approval",
+        "available_cost",
+        "context",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "observed_blockers": [
+        "stale-candidate"
+      ],
+      "observed_outcome": "blocked",
+      "outcome_artifact_id": "M8-WORKFLOW-OUTCOME-F2E37E47EF9F1CCEB02FEE2CB54B767FE669CA9341A0CE12752CDD55F773CCEF",
+      "passed": true,
+      "project_fixture": "secure-export",
+      "project_fixture_root": "evals/projects/secure-export",
+      "scenario": "stale-candidate",
+      "terminal_state_id": "M8-WORKFLOW-STATE-23AF2F6E9BCE4CCF627AEC0010F0AC2B4371105520087741A7CDFC020BC7301A"
+    },
+    {
+      "case_id": "M8-07",
+      "current_event_head_id": "M6-WORKFLOW-EPOCH-EVENT-649478E601039D7EB1EC2ACB3571314D930B7AE4793B6F66F6B209CE3B119E68",
+      "fixture_bundle_id": "M8-FIXTURE-BUNDLE-752AB4DFD99FAA017941C1971DB255BD2F1204B76CF06A302C03551D1DAD0A80",
+      "measurement_groups": [
+        "approval",
+        "available_cost",
+        "context",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "observed_blockers": [
+        "stale-context"
+      ],
+      "observed_outcome": "blocked",
+      "outcome_artifact_id": "M8-WORKFLOW-OUTCOME-79F6528040DB53FAB913A9C2DE15E5FB1E9920C03E9E01EFE1C8F1559C28A4B3",
+      "passed": true,
+      "project_fixture": "offline-config",
+      "project_fixture_root": "evals/projects/offline-config",
+      "scenario": "stale-context",
+      "terminal_state_id": "M8-WORKFLOW-STATE-639702D14C96B0FD000B262633FE84197C96795FE70288BE6EBFCDE55749265E"
+    },
+    {
+      "case_id": "M8-08",
+      "current_event_head_id": "M6-WORKFLOW-EPOCH-EVENT-1C9F9C6BDF356CC2CB6A8FBE9A5953B728FE0A22AA76CC17ED01D815F3746503",
+      "fixture_bundle_id": "M8-FIXTURE-BUNDLE-752AB4DFD99FAA017941C1971DB255BD2F1204B76CF06A302C03551D1DAD0A80",
+      "measurement_groups": [
+        "approval",
+        "available_cost",
+        "context",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "observed_blockers": [
+        "lease-lost"
+      ],
+      "observed_outcome": "blocked",
+      "outcome_artifact_id": "M8-WORKFLOW-OUTCOME-2E99BEE7F3F45A4CFE979C8293A00470A6A9BADC2175BC8CF82E59E2BE1041E4",
+      "passed": true,
+      "project_fixture": "offline-config",
+      "project_fixture_root": "evals/projects/offline-config",
+      "scenario": "lease-lost",
+      "terminal_state_id": "M8-WORKFLOW-STATE-D55444AC163EFFABC3F2F7CA596CA42C98287A8B76E2E7753E8D03994B1380B1"
+    },
+    {
+      "case_id": "M8-09",
+      "current_event_head_id": "M6-WORKFLOW-EPOCH-EVENT-2D88A6CA5CF39E7300687BE217A6C969A6A10F8C0E20F39E33C6EB7DD1AE948C",
+      "fixture_bundle_id": "M8-FIXTURE-BUNDLE-752AB4DFD99FAA017941C1971DB255BD2F1204B76CF06A302C03551D1DAD0A80",
+      "measurement_groups": [
+        "approval",
+        "available_cost",
+        "context",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "observed_blockers": [
+        "solver-inconclusive"
+      ],
+      "observed_outcome": "blocked",
+      "outcome_artifact_id": "M8-WORKFLOW-OUTCOME-EBA444DC68FF8F7447FBCED35FE875FB8F80FC2AFEC4AF9588920BAFA90A3746",
+      "passed": true,
+      "project_fixture": "offline-config",
+      "project_fixture_root": "evals/projects/offline-config",
+      "scenario": "solver-inconclusive",
+      "terminal_state_id": "M8-WORKFLOW-STATE-A9498CE03CFF9EB0B29FDDFF6949AEDDD37FD25EC145099BC4AAC558EEF7C74D"
+    },
+    {
+      "case_id": "M8-10",
+      "current_event_head_id": "M6-WORKFLOW-EPOCH-EVENT-C1456C0BE36D9D9F1075E8ACB2928C6DDA28538575DA7B018E048F9884752B67",
+      "fixture_bundle_id": "M8-FIXTURE-BUNDLE-08D7CB3B00E438F77DD298F5186717F93DAB9356326FEA7F6A2002EAF3DDDA16",
+      "measurement_groups": [
+        "approval",
+        "available_cost",
+        "context",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "observed_blockers": [
+        "external-effect-ambiguous"
+      ],
+      "observed_outcome": "blocked",
+      "outcome_artifact_id": "M8-WORKFLOW-OUTCOME-40041814C1BFDA35EADFEAB98E936F62CC64F8089A4CBE5A3450C791FE145389",
+      "passed": true,
+      "project_fixture": "secure-export",
+      "project_fixture_root": "evals/projects/secure-export",
+      "scenario": "ambiguous-external-effect",
+      "terminal_state_id": "M8-WORKFLOW-STATE-5EDC5B18F7C9E0DACFAF36939D16BC75D7280E8EAAF7BCCA9BA8B741BD44F422"
+    },
+    {
+      "case_id": "M8-11",
+      "current_event_head_id": "M6-WORKFLOW-EPOCH-EVENT-D056B4455210F56E9665F37936DE8F956909686084F481EA96FC7D227E037D9F",
+      "fixture_bundle_id": "M8-FIXTURE-BUNDLE-752AB4DFD99FAA017941C1971DB255BD2F1204B76CF06A302C03551D1DAD0A80",
+      "measurement_groups": [
+        "approval",
+        "available_cost",
+        "context",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "observed_blockers": [],
+      "observed_outcome": "completed",
+      "outcome_artifact_id": "M8-WORKFLOW-OUTCOME-1D94E72C827A2E2973F5120E0277D165B205A55AB281B6CA481EA031933C366D",
+      "passed": true,
+      "project_fixture": "offline-config",
+      "project_fixture_root": "evals/projects/offline-config",
+      "scenario": "crash-and-recovery",
+      "terminal_state_id": "M8-WORKFLOW-STATE-ACEECE224DB84D3704B44003DBC396B119CB81DD2D2D9C92041325A507188CC6"
+    },
+    {
+      "case_id": "M8-12",
+      "current_event_head_id": "M6-WORKFLOW-EPOCH-EVENT-31E1B419AA9366546D9356996263EFC0704B516112440D574CDB9865249D7149",
+      "fixture_bundle_id": "M8-FIXTURE-BUNDLE-752AB4DFD99FAA017941C1971DB255BD2F1204B76CF06A302C03551D1DAD0A80",
+      "measurement_groups": [
+        "approval",
+        "available_cost",
+        "context",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "observed_blockers": [
+        "predecessor-superseded"
+      ],
+      "observed_outcome": "superseded",
+      "outcome_artifact_id": "M8-WORKFLOW-OUTCOME-AD7E5C1756BA7BA5FF5379FF5BADF17F2B5597ACE5B0615054CA016CD18B0599",
+      "passed": true,
+      "project_fixture": "offline-config",
+      "project_fixture_root": "evals/projects/offline-config",
+      "scenario": "candidate-supersession",
+      "terminal_state_id": "M8-WORKFLOW-STATE-1530B60C7973A3EF2F8AF0F38CEBC09A3E25AA9253E8805E1503916C8FCB1DC3"
+    }
+  ],
+  "contract_execution": "reproduced-by-named-validator",
+  "environment": {
+    "hosted_runtime": "not-used",
+    "network": "not-used",
+    "real_ui": "not-observed",
+    "scheduler_store": "stdlib-sqlite-v2"
+  },
+  "evaluated_at": "2026-08-09T00:00:00Z",
+  "measurement_authority": "native-artifacts-and-event-history",
+  "schema_version": "1.0",
+  "suite_id": "M8-WORKFLOW-INTEGRATION"
+}

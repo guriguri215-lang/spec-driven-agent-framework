@@ -18,6 +18,7 @@ from sdaqf.ports.scheduler import (
     WorktreeHostPort,
 )
 from sdaqf.ports.solver import SolverAdapterPort, SolverClock, SolverLeaseEvidencePort
+from sdaqf.ports.workflow import WorkflowArtifactStorePort, WorkflowClock
 
 __all__ = [
     "AgentHostPort",
@@ -36,5 +37,7 @@ __all__ = [
     "SolverAdapterPort",
     "SolverClock",
     "SolverLeaseEvidencePort",
+    "WorkflowArtifactStorePort",
+    "WorkflowClock",
     "WorktreeHostPort",
 ]

@@ -262,20 +262,19 @@ production recovery tests mitigate these risks.
 Run from the repository root in the isolated development environment:
 
 ```text
-python -m pytest
-python -m ruff check src tests scripts
-python -m mypy src tests scripts
-python -m coverage run -m pytest
-python -m coverage report --fail-under=80
-python -m coverage report --include="src/sdaqf/domain/solver.py,src/sdaqf/ports/solver.py,src/sdaqf/adapters/solver.py,src/sdaqf/application/solver_contracts.py,src/sdaqf/application/solver.py,src/sdaqf/application/solver_verification.py" --fail-under=90
-python scripts/run_cli_smoke.py
-python scripts/validate_m5_context.py
-python scripts/validate_m6_scheduler.py
-python scripts/validate_m7_solver.py
-python scripts/check_workspace_boundary.py --repo . --expected-origin-url https://github.com/guriguri215-lang/spec-driven-agent-framework.git
-python scripts/audit_repository.py --root . --workspace-parent ..
-python scripts/audit_dependencies.py --root .
-python -m pip check
+python scripts/run_local_gate.py pytest
+python scripts/run_local_gate.py coverage
+python scripts/run_local_gate.py ruff
+python scripts/run_local_gate.py mypy
+python scripts/run_local_gate.py script scripts/validate_m5_context.py
+python scripts/run_local_gate.py script scripts/validate_m6_scheduler.py
+python scripts/run_local_gate.py script scripts/validate_m7_solver.py
+python scripts/run_local_gate.py script scripts/run_cli_smoke.py
+python scripts/run_local_gate.py evaluation
+python scripts/run_local_gate.py workspace
+python scripts/run_local_gate.py publication
+python scripts/run_local_gate.py dependencies
+python scripts/run_local_gate.py pip-check
 git diff --check
 ```
 

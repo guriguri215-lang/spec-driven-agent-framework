@@ -61,6 +61,7 @@ class LocalSchemaValidator:
             "minProperties",
             "maxProperties",
             "items",
+            "prefixItems",
             "minItems",
             "maxItems",
             "uniqueItems",
@@ -202,6 +203,21 @@ class LocalSchemaValidator:
             if len(encoded) != len(set(encoded)):
                 self._fail(where, "uniqueItems")
         item_schema = schema.get("items")
+        prefix_items = schema.get("prefixItems")
+        if isinstance(prefix_items, list):
+            for index, prefix_schema in enumerate(prefix_items):
+                if not isinstance(prefix_schema, dict):
+                    raise AssertionError(
+                        f"prefixItems[{index}] must be an object at {where}"
+                    )
+                if index < len(instance):
+                    self._validate(
+                        prefix_schema,
+                        instance[index],
+                        document,
+                        document_name,
+                        f"{where}[{index}]",
+                    )
         if isinstance(item_schema, dict):
             for index, item in enumerate(instance):
                 self._validate(

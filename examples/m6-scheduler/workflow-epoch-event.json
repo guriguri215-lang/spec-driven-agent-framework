@@ -1,0 +1,44 @@
+{
+  "artifact_id": "M6-WORKFLOW-EPOCH-EVENT-4740B682D5174E6E3E521E0BDFFDE47B008E47C2727B1EB470A00F817A1D3D37",
+  "artifact_type": "workflow-epoch-event",
+  "content": {
+    "candidate": {
+      "git_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "repository_digest": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "source_spec_sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+    },
+    "cause": "epoch-opened",
+    "epoch_sequence": 1,
+    "graph_id": "M6-TASK-GRAPH-812F1666FD65A7A3251D6414346308EBC5BEA7FDEE488408A3A59BFDDA003BE6",
+    "idempotency_key": "M8-IDEM-1111111111111111111111111111111111111111111111111111111111111111",
+    "plan_id": "M8-INTEGRATED-PLAN-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "predecessor_plan_id": null,
+    "predecessor_terminal_event_head_id": null,
+    "predecessor_state_id": null,
+    "predecessor_outcome_id": null,
+    "previous_event_id": null,
+    "producer": "workflow-plan",
+    "receipts": [
+      {
+        "artifact_id": "M8-INTEGRATED-PLAN-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "artifact_type": "integrated-plan",
+        "path": "workflow/integrated-plan.json",
+        "producer": "workflow-plan",
+        "status": "reserved"
+      }
+    ],
+    "recorded_at": "2026-08-01T00:00:00Z",
+    "scheduler_event_head_id": "M6-EVENT-530A9D3793B5ECD9AB0FB9CDCCFCC42559A59B354B6E6A237F65B565F06B5D50",
+    "scheduler_event_sequence": 2,
+    "scheduler_state_id": "M6-SCHEDULER-STATE-AA4A04225B81D72E962512F8C48E1C88415670F67DF6D2AAC28B828A1FBB41FD",
+    "sequence": 1,
+    "source_state_id": null,
+    "workflow_event_id": null,
+    "workflow_event_path": null,
+    "workflow_state_id": null,
+    "workflow_state_path": null,
+    "outcome_id": null,
+    "outcome_path": null
+  },
+  "schema_version": "1.0"
+}
