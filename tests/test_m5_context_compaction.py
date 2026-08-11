@@ -639,6 +639,48 @@ def test_compaction_preserves_source_and_contradiction_metadata(
         assert extracts[node.node_id].required is False
 
 
+def test_snapshot_publication_verifies_the_candidate_serialized_in_snapshot(
+    tmp_path: Path,
+) -> None:
+    artifacts = complete_artifacts()
+    write_sources(tmp_path)
+    graph_artifact = artifacts[ContextArtifactType.GRAPH]
+    caller_graph = graph_artifact.value
+    assert isinstance(caller_graph, ContextGraph)
+    snapshot_candidate = caller_graph.candidate
+    replacement_candidate = replace(
+        snapshot_candidate,
+        repository_digest="F" * 64,
+    )
+    verifier = _MutableCandidateVerifier(snapshot_candidate)
+    publisher = _MemoryPublisher()
+    output = tmp_path / "context-snapshot.json"
+    service = ContextSnapshotService(
+        LocalContextSourceReader(),
+        verifier,
+        _SnapshotMutatingEstimator(
+            caller_graph,
+            verifier,
+            replacement_candidate,
+        ),
+        publisher,
+    )
+
+    with pytest.raises(ContextSourceError, match="candidate changed"):
+        service.publish(
+            graph_artifact,
+            artifacts[ContextArtifactType.SELECTION],
+            repository_root=tmp_path,
+            owner_root=None,
+            output=output,
+        )
+
+    assert caller_graph.candidate == replacement_candidate
+    assert verifier.observed[-1] == snapshot_candidate
+    assert publisher.contents == []
+    assert not output.exists()
+
+
 def test_publication_verifies_the_candidate_serialized_in_compaction(
     tmp_path: Path,
 ) -> None:
@@ -710,6 +752,30 @@ class _MutatingEstimator:
         if not self._mutated:
             object.__setattr__(
                 self._caller_snapshot,
+                "candidate",
+                self._replacement,
+            )
+            self._verifier.current = self._replacement
+            self._mutated = True
+        return CanonicalUTF8ByteEstimator().cost(content)
+
+
+class _SnapshotMutatingEstimator:
+    def __init__(
+        self,
+        caller_graph: ContextGraph,
+        verifier: _MutableCandidateVerifier,
+        replacement: CandidateIdentity,
+    ) -> None:
+        self._caller_graph = caller_graph
+        self._verifier = verifier
+        self._replacement = replacement
+        self._mutated = False
+
+    def cost(self, content: object) -> int:
+        if not self._mutated and len(self._verifier.observed) >= 2:
+            object.__setattr__(
+                self._caller_graph,
                 "candidate",
                 self._replacement,
             )

@@ -14,6 +14,7 @@ Supported migration routes:
 | Agent Registry | 1.0 | 2.0 | migrated output must pass the existing 2.0 loader |
 | Tool Registry | 1.0 | 2.0 | migrated output must pass the existing 2.0 loader |
 | Release Candidate | 1.0 | 1.1 | create a new selected-license record; never rewrite the 1.0 record |
+| M6 SQLite scheduler store | 1 | 2 | copy-on-write only; v1 source remains M6-only authority |
 
 Release Candidate 1.0 remains the historical strict `not-selected` project
 license contract in `release-candidate.schema.json`. V1 adds
@@ -28,11 +29,17 @@ not a migration and not external publication evidence. It requires
 
 Downgrade, multi-hop, in-place, and other contract migrations are unsupported.
 
+The M6 route is an additive remediation contract rather than a reinterpretation
+of the registry migration approvals below. It uses its own strict Scheduler
+Store Migration Approval and Result schema `1.0` records and never reuses an
+M4 migration approval.
+
 ## Command
 
 ```text
 python -m sdaqf schema migrate --contract agent-registry --from-version 1.0 --to-version 2.0 INPUT.json --output NEW.json --approval .sdaqf/migration-approval.json --tool-registry CURRENT-TOOLS.json --json
 python -m sdaqf schema migrate --contract tool-registry --from-version 1.0 --to-version 2.0 INPUT.json --output NEW.json --approval .sdaqf/migration-approval.json --json
+python -m sdaqf agents schedule migrate STATE --root ROOT --output NEW_STATE --to-version 2 --approval APPROVAL --json
 ```
 
 All source, approval, companion Tool Registry, and output paths must use a
@@ -169,25 +176,42 @@ schema `1.0` meanings may not be silently extended.
 
 ## M6 scheduler schema policy
 
-The seven scheduler JSON schema `1.0` files are additive and
-content-addressed. There is no predecessor and no implicit conversion from an
+The original seven scheduler JSON schema `1.0` files and the Workflow Epoch
+Event, Scheduler Store Migration Approval, and Scheduler Store Migration
+Result schema `1.0` files are additive and content-addressed. There is no
+implicit conversion from an
 M2 plan or M5 Snapshot. Existing Agent Result, registry, request, worktree,
 approval, Context, evidence, review, and handoff meanings remain unchanged.
 
-The SQLite store is identified by application ID `0x53444151`,
-`user_version=1`, and metadata schema `1.0`. The implementation rejects an
-unknown version, extra or missing table, trigger/view, corrupt integrity check,
-broken event chain, or inconsistent immutable projection. It never performs
-an in-place upgrade or opportunistic repair.
+The SQLite store keeps application ID `0x53444151`. V1 uses `user_version=1`,
+metadata schema `1.0`, and thirteen exact tables. V2 uses `user_version=2`,
+metadata schema `2.0`, and exactly two additional tables: the append-only
+workflow epoch chain and replay-checked current-head projection. The
+implementation rejects an unknown version, extra or missing table,
+trigger/view, corrupt integrity check, broken scheduler or epoch chain, or
+inconsistent immutable projection. It never performs an in-place upgrade or
+opportunistic repair.
 
-`agents recover` validates the exact source schema and immutable evidence,
-copies only immutable graph/event/message/history records into a fresh schema,
-and rebuilds all mutable projections from those records. It then validates the
-rebuilt database, compares immutable evidence, and exclusively publishes a
-fresh named output. The source is not changed. Existing output, ambiguous
-publication, damaged immutable evidence, or evidence drift fails closed. A
-future M6 migration needs a new version, preserved source, explicit
-compatibility contract, separate approval, and new evidence.
+Fresh initialization without `--workflow-authority` preserves v1. With that
+flag it creates a fresh v2 store. Explicit v1-to-v2 migration validates and
+rechecks the source, exact Task Graph and immutable evidence, a root/path/
+source/target/time-bound Owner approval carrying `root_sha256`, and a fresh
+exclusive output. It claims that approval once in the shared M4 consumption
+store while holding source `BEGIN IMMEDIATE` through the exclusive-link
+linearization point. The claim is permanent after that point. It
+copies v1 evidence, rebuilds the v2 projections, starts an empty epoch chain,
+validates the result, and leaves the v1 source unchanged. Existing output,
+source drift, approval mismatch or expiry, publication race, or validation
+mismatch fails with no usable migrated output. No in-place, implicit,
+opportunistic, recovery-disguised, downgrade, or multi-hop route exists.
+
+`agents recover` preserves the source version. For v2 it additionally copies
+and semantically replays every Workflow Epoch Event and publication receipt and
+rebuilds the exact current head. Missing, added, reordered, or inconsistent
+epoch evidence publishes no database. The source is not changed. Existing
+output, ambiguous publication, damaged immutable evidence, or evidence drift
+fails closed. A future M6 migration needs a new version, preserved source,
+explicit compatibility contract, separate approval, and new evidence.
 
 ## M7 Solver schema policy
 
@@ -223,3 +247,32 @@ produce fresh separately identified output, document semantic compatibility
 and rollback, require separate Owner approval, and re-run independent
 verification. A Registry entry or prior version observation never grants
 process execution, network access, or approval consumption.
+
+## M8 workflow schema policy
+
+The five Development Intent, Integrated Plan, Workflow State, Workflow Event,
+and Workflow Outcome schema `1.0` files are additive and content-addressed.
+There is no predecessor and no implicit conversion from a requirement plan,
+Context artifact, scheduler database, solver record, evidence ledger, review,
+Gate result, or handoff. Those native records remain referenced authorities
+with their original identities and migration policies.
+
+M8 content identity uses M5 canonical JSON and includes every candidate,
+native reference, reason, budget, policy, projection, blocker, ambiguity,
+measurement, predecessor, and Event-chain field. Changing any identity-bearing
+content creates a new artifact ID. A copied old ID, stale referenced digest,
+sensitivity downgrade, inferred path, or native projection drift fails strict
+validation.
+
+M8 has no artifact migration command and never updates an artifact or the M6
+SQLite store in place. M8 runtime requires a v2 store and does not grandfather
+headless historical artifacts. Resume remains within one exact Plan epoch. A candidate change
+requires a fresh Integrated Plan with explicit predecessor Plan, superseded
+State, and superseded Outcome bindings. These six predecessor ID/binding fields
+are either all null or all present. Workflow Event sequence one has no prior
+State; every later Event has an exact prior-State binding. Recovery exclusively publishes a fresh recovery Event and State
+after native replay and preserves every source and ambiguity. A future schema
+version must preserve historical `1.0` bytes, use fresh identities, document
+closed-vocabulary and native-semantic compatibility, and receive separate
+Owner approval. No migration may grant host execution, network access,
+approval, exactly-once delivery, or completion authority.

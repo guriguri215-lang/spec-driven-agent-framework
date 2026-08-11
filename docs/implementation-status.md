@@ -23,10 +23,10 @@ working behavior.
 | M2 Agent, Skill, and Tool Orchestration | Implemented | Yes | Plans roles and tool calls; does not dispatch agents |
 | M3 Evidence, UI, and Release QA | Implemented | Yes | Validates host observations; does not launch a browser or publish |
 | M4 Public Beta Hardening | Implemented | Yes | Authored evaluation is nonempirical and noncausal |
-| M5 Context Framework | Experimental | No | Current CI passes; final independent re-review is not recorded |
-| M6 Multi-Agent Control Framework | Experimental | No | Current CI passes; final independent GO review is not recorded |
+| M5 Context Framework | Experimental | No | Latest disposition is GO for the current local candidate; historical NO-GO remains recorded; release and exact-SHA remote CI remain unverified |
+| M6 Multi-Agent Control Framework | Experimental | No | Compatibility remediation complete; status publication pending; no M6 GO claimed; historical NO-GO remains recorded |
 | M7 Mathematical Solver Framework | Experimental | No | Bounded local reference adapter; independent milestone GO and current CI |
-| M8 Integrated Workflow | Planned | No | No implementation |
+| M8 Integrated Workflow | Experimental | No | Latest successor lifecycle compatibility review is GO with F1-F11 maintained and zero unresolved scope findings; release and exact-SHA remote CI remain unverified |
 
 ## M0: bootstrap and repository safety
 
@@ -117,8 +117,16 @@ Limits:
   hosted model is required or implemented.
 - Host summaries are untrusted proposals and cannot become sole authority for
   protected decisions.
-- The active M5 execution plan records its final independent re-review as
-  pending.
+- The historical 2026-08-10 final independent compatibility re-review remains recorded
+  NO-GO. Snapshot publication now revalidates the CandidateIdentity on the
+  validated Snapshot being serialized, and identifier-only ranking plus its
+  published rank share one authoritative graph distance without changing
+  ordering, budget, or replay.
+- The two findings are remediated. The latest M5 disposition is GO for the
+  current local candidate. The earlier 87 focused M5 tests and
+  `M5-CONTEXT-INTEGRITY` pass remain separate supporting evidence; no validation
+  count, review-evidence detail, or exact-SHA remote CI result is added for the
+  latest GO.
 
 See [Context Framework](context-framework.md).
 
@@ -136,7 +144,13 @@ Limits:
 
 - Dispatch, process execution, and worktree operations remain host-owned.
 - Delivery is at-least-once; exactly-once execution is not claimed.
-- The active M6 execution plan records a tenth independent review as pending.
+- The historical 2026-08-10 final independent compatibility review remains recorded
+  NO-GO. Workflow Epoch Event Schema now enforces receipt type/ID-prefix and
+  artifact-head ID/path-pair correlations already enforced by runtime parsing;
+  SQLite live, replay, migration, and recovery meanings are unchanged.
+- The finding is remediated; M6 status publication is pending and no M6 GO is
+  claimed. The 102 focused scheduler contract/public-contract tests and
+  `M6-SCHEDULER-SAFETY` pass, but no exact-SHA remote CI result is established.
 
 See [Multi-Agent Control Framework](multi-agent-control-framework.md).
 
@@ -166,9 +180,47 @@ matrix. See [Mathematical Solver Framework](mathematical-solver-framework.md).
 
 ## M8: integrated workflow
 
-Planned only. The roadmap proposes a workflow that composes validated
-requirements, context, scheduling, solver evidence, approvals, reviews,
-quality gates, recovery, and handoff. No `workflow` CLI namespace or M8 runtime
-is present today.
+Experimentally implemented:
 
-See [Roadmap](roadmap.md).
+- Five strict content-addressed Development Intent, Integrated Plan, Workflow
+  State, Workflow Event, and Workflow Outcome contracts.
+- A side-effect-free deterministic planner and exact explainer that invoke
+  native requirement, Context, Registry, scheduler, and solver validators.
+- One-tick resumable runtime projections over the existing M6 SQLite store,
+  immediate protected-effect revalidation, typed intents without dispatch,
+  fresh-output recovery, ambiguity preservation, and truthful Outcomes.
+- Four completion profiles composing existing G1-G4 and Automated Handoff,
+  plus twelve fixed-clock offline simulations and nine separate measurement
+  groups.
+
+Limits:
+
+- The core does not launch an agent, host, worktree, browser, real UI, process,
+  network call, hosted adapter, or external solver.
+- Workflow JSON is an immutable integration read model, not another scheduler,
+  approval, evidence, review, Gate, solver, candidate, or handoff authority.
+- The earlier round-three independent review accepted F1 through F11 but
+  retained an overall NO-GO because successor Plans lost predecessor scheduler
+  authority on resume, status, recovery, and Python terminal-observation
+  finalization.
+- The follow-up remediation propagates that exact optional authority without
+  changing schema, artifact identity, or transaction boundaries. The latest
+  independent successor lifecycle compatibility review returned GO for the
+  current local candidate, maintained every F1-through-F11 ACCEPT result, and
+  left zero unresolved findings within its scope.
+- That review records PASS for the 28-test compatibility selection, 120-test
+  complete M8 selection, round-three 9-test selection, Ruff, strict mypy,
+  M5-through-M8 validators, and M0-through-M8 CLI smoke. It did not rerun full
+  pytest or coverage.
+- The latest GO supersedes the earlier M8 overall NO-GO for this local candidate
+  only. M8 remains Experimental and unreleased; release GO, production
+  readiness, commit, push, and exact-SHA remote CI are not claimed. That M8
+  review did not decide M5 or M6. Their historical later final NO-GO reviews
+  remain recorded; the latest M5 disposition is now GO, while M6 compatibility
+  remediation is complete with status publication pending and no M6 GO claimed.
+  None of these dispositions revises the M7 or M8 disposition.
+
+The current dispositions are independent: M5 GO, M6 status publication pending
+(not GO), M7 GO, and M8 successor lifecycle GO.
+
+See [Integrated Vibe-Coding Framework](integrated-vibe-coding-framework.md).

@@ -20,6 +20,10 @@ from sdaqf.adapters.context import (
 from sdaqf.adapters.process import SubprocessRunner
 from sdaqf.adapters.scheduler import SchedulerAdapterError
 from sdaqf.adapters.solver import SolverAdapterError
+from sdaqf.adapters.workflow import (
+    RuntimePrivateCandidateVerifier,
+    WorkflowAdapterError,
+)
 from sdaqf.application.approvals import ApprovalContractError, ApprovalLoader
 from sdaqf.application.baselines import BaselineContractError, load_baseline
 from sdaqf.application.checkpoints import (
@@ -86,6 +90,7 @@ from sdaqf.application.requirements import SpecificationError, SpecificationInge
 from sdaqf.application.requirements_gate import RequirementsGateService
 from sdaqf.application.scheduler import SchedulerService
 from sdaqf.application.scheduler_contracts import SchedulerContractError
+from sdaqf.application.scheduler_migrations import SchedulerMigrationService
 from sdaqf.application.scheduler_recovery import SchedulerRecoveryService
 from sdaqf.application.scheduler_simulation import SCENARIOS, SchedulerSimulationService
 from sdaqf.application.skills import (
@@ -111,10 +116,30 @@ from sdaqf.application.ui_validation import (
     load_ui_validation,
 )
 from sdaqf.application.validation import ProjectValidator
+from sdaqf.application.workflow_contracts import (
+    WorkflowContractError,
+    load_workflow_artifact,
+)
+from sdaqf.application.workflow_explanation import WorkflowExplainer
+from sdaqf.application.workflow_outcome import WorkflowOutcomeService
+from sdaqf.application.workflow_planning import (
+    IntegratedPlanner,
+    WorkflowPlanningError,
+    artifact_reference_for,
+)
+from sdaqf.application.workflow_recovery import WorkflowRecoveryService
+from sdaqf.application.workflow_runtime import WorkflowRuntimeService
+from sdaqf.application.workflow_simulation import (
+    SCENARIOS as WORKFLOW_SCENARIOS,
+)
+from sdaqf.application.workflow_simulation import (
+    WorkflowSimulationService,
+)
 from sdaqf.application.workspace import WorkspaceInitializer, is_reparse_point
 from sdaqf.domain.quality import CandidateIdentity, GitObservation
 from sdaqf.domain.scheduler import TaskGraph
 from sdaqf.domain.tooling import ExecutionContext, ToolObservationStatus
+from sdaqf.domain.workflow import NativeArtifactBinding, WorkflowArtifactType
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -411,7 +436,18 @@ def build_parser() -> argparse.ArgumentParser:
     schedule_init.add_argument("task_graph", type=Path)
     schedule_init.add_argument("--root", type=Path, required=True)
     schedule_init.add_argument("--state", type=Path, required=True)
+    schedule_init.add_argument("--workflow-authority", action="store_true")
     schedule_init.add_argument("--json", action="store_true")
+    schedule_migrate = schedule_commands.add_parser(
+        "migrate",
+        help="Copy one validated v1 scheduler store to a fresh v2 workflow authority.",
+    )
+    schedule_migrate.add_argument("state", type=Path)
+    schedule_migrate.add_argument("--root", type=Path, required=True)
+    schedule_migrate.add_argument("--output", type=Path, required=True)
+    schedule_migrate.add_argument("--to-version", choices=("2",), required=True)
+    schedule_migrate.add_argument("--approval", type=Path, required=True)
+    schedule_migrate.add_argument("--json", action="store_true")
     schedule_tick = schedule_commands.add_parser(
         "tick",
         help="Run one bounded scheduler transaction without host dispatch.",
@@ -436,7 +472,15 @@ def build_parser() -> argparse.ArgumentParser:
     schedule_export.add_argument("--root", type=Path, required=True)
     schedule_export.add_argument(
         "--kind",
-        choices=("state", "leases", "messages", "events", "budget", "worktrees"),
+        choices=(
+            "state",
+            "leases",
+            "messages",
+            "events",
+            "budget",
+            "worktrees",
+            "workflow-epochs",
+        ),
         required=True,
     )
     schedule_export.add_argument("--output", type=Path, required=True)
@@ -686,6 +730,137 @@ def build_parser() -> argparse.ArgumentParser:
     solver_verify.add_argument("--lease-id", required=True)
     solver_verify.add_argument("--output", type=Path, required=True)
     solver_verify.add_argument("--json", action="store_true")
+
+    workflow = subparsers.add_parser(
+        "workflow",
+        help="Plan, explain, simulate, and resume deterministic M8 workflows.",
+    )
+    workflow_commands = workflow.add_subparsers(dest="workflow_command", required=True)
+    workflow_validate = workflow_commands.add_parser(
+        "validate", help="Validate one strict M8 workflow artifact."
+    )
+    workflow_validate.add_argument("artifact", type=Path)
+    workflow_validate.add_argument("--json", action="store_true")
+    workflow_plan = workflow_commands.add_parser(
+        "plan", help="Derive and publish one M6-authenticated deterministic Integrated Plan."
+    )
+    workflow_plan.add_argument("intent", type=Path)
+    workflow_plan.add_argument("--root", type=Path, required=True)
+    workflow_plan.add_argument("--scheduler-state", type=Path, required=True)
+    workflow_plan.add_argument(
+        "--predecessor-scheduler-state",
+        type=Path,
+        help="Required only when the Intent carries predecessor lineage.",
+    )
+    workflow_plan.add_argument("--output", type=Path, required=True)
+    workflow_plan.add_argument("--json", action="store_true")
+    workflow_explain = workflow_commands.add_parser(
+        "explain", help="Recompute exact Plan selection and exclusion reasons."
+    )
+    workflow_explain.add_argument("plan", type=Path)
+    workflow_explain.add_argument("--root", type=Path, required=True)
+    workflow_explain.add_argument("--scheduler-state", type=Path, required=True)
+    workflow_explain.add_argument(
+        "--predecessor-scheduler-state",
+        type=Path,
+        help="Required only to reproduce a successor Plan; omit for genesis.",
+    )
+    workflow_explain.add_argument("--json", action="store_true")
+    workflow_simulate = workflow_commands.add_parser(
+        "simulate", help="Run one fixed-clock offline workflow scenario."
+    )
+    workflow_simulate.add_argument("plan", type=Path)
+    workflow_simulate.add_argument("--root", type=Path, required=True)
+    workflow_simulate.add_argument("--scheduler-state", type=Path, required=True)
+    workflow_simulate.add_argument(
+        "--predecessor-scheduler-state",
+        type=Path,
+        help="Required only to reproduce a successor Plan; omit for genesis.",
+    )
+    workflow_simulate.add_argument("--scenario", choices=WORKFLOW_SCENARIOS, required=True)
+    workflow_simulate.add_argument("--json", action="store_true")
+    workflow_run = workflow_commands.add_parser(
+        "run", help="Start one Plan with at most one native scheduler tick."
+    )
+    workflow_run.add_argument("plan", type=Path)
+    workflow_run.add_argument("--root", type=Path, required=True)
+    workflow_run.add_argument("--scheduler-state", type=Path, required=True)
+    workflow_run.add_argument(
+        "--predecessor-scheduler-state",
+        type=Path,
+        help="Required only to reproduce a successor Plan; omit for genesis.",
+    )
+    workflow_run.add_argument("--output-state", type=Path, required=True)
+    workflow_run.add_argument("--output-event", type=Path, required=True)
+    workflow_run.add_argument("--json", action="store_true")
+    workflow_resume = workflow_commands.add_parser(
+        "resume", help="Resume an exact State/Event chain by one scheduler tick."
+    )
+    workflow_resume.add_argument("state", type=Path)
+    workflow_resume.add_argument("--plan", type=Path, required=True)
+    workflow_resume.add_argument("--root", type=Path, required=True)
+    workflow_resume.add_argument("--scheduler-state", type=Path, required=True)
+    workflow_resume.add_argument(
+        "--predecessor-scheduler-state",
+        type=Path,
+        help="Required only to reproduce a successor Plan; omit for genesis.",
+    )
+    workflow_resume.add_argument("--output-state", type=Path, required=True)
+    workflow_resume.add_argument("--output-event", type=Path, required=True)
+    workflow_resume.add_argument("--json", action="store_true")
+    workflow_status = workflow_commands.add_parser(
+        "status", help="Revalidate workflow and native scheduler state read-only."
+    )
+    workflow_status.add_argument("state", type=Path)
+    workflow_status.add_argument("--plan", type=Path, required=True)
+    workflow_status.add_argument("--root", type=Path, required=True)
+    workflow_status.add_argument("--scheduler-state", type=Path, required=True)
+    workflow_status.add_argument(
+        "--predecessor-scheduler-state",
+        type=Path,
+        help="Required only to reproduce a successor Plan; omit for genesis.",
+    )
+    workflow_status.add_argument("--json", action="store_true")
+    workflow_supersede = workflow_commands.add_parser(
+        "supersede",
+        help="Close an old candidate epoch while preserving its native authority.",
+    )
+    workflow_supersede.add_argument("state", type=Path)
+    workflow_supersede.add_argument("--plan", type=Path, required=True)
+    workflow_supersede.add_argument("--successor-intent", type=Path, required=True)
+    workflow_supersede.add_argument("--root", type=Path, required=True)
+    workflow_supersede.add_argument("--scheduler-state", type=Path, required=True)
+    workflow_supersede.add_argument("--output-state", type=Path, required=True)
+    workflow_supersede.add_argument("--output-event", type=Path, required=True)
+    workflow_supersede.add_argument("--output-outcome", type=Path, required=True)
+    workflow_supersede.add_argument("--json", action="store_true")
+    workflow_recover = workflow_commands.add_parser(
+        "recover", help="Recover native evidence only to fresh Event and State files."
+    )
+    workflow_recover.add_argument("state", type=Path)
+    workflow_recover.add_argument("--plan", type=Path, required=True)
+    workflow_recover.add_argument("--root", type=Path, required=True)
+    workflow_recover.add_argument("--scheduler-state", type=Path, required=True)
+    workflow_recover.add_argument(
+        "--predecessor-scheduler-state",
+        type=Path,
+        help="Required only to reproduce a successor Plan; omit for genesis.",
+    )
+    workflow_recover.add_argument("--event", type=Path, action="append", default=[])
+    workflow_recover.add_argument("--output-state", type=Path, required=True)
+    workflow_recover.add_argument("--output-event", type=Path, required=True)
+    workflow_recover.add_argument("--json", action="store_true")
+    workflow_outcome = workflow_commands.add_parser(
+        "outcome", help="Finalize and publish a truthful Outcome without upgrading native status."
+    )
+    workflow_outcome.add_argument("state", type=Path)
+    workflow_outcome.add_argument("--plan", type=Path, required=True)
+    workflow_outcome.add_argument("--root", type=Path, required=True)
+    workflow_outcome.add_argument("--scheduler-state", type=Path, required=True)
+    workflow_outcome.add_argument("--output", type=Path, required=True)
+    workflow_outcome.add_argument("--output-event", type=Path, required=True)
+    workflow_outcome.add_argument("--output-state", type=Path, required=True)
+    workflow_outcome.add_argument("--json", action="store_true")
 
     schema = subparsers.add_parser(
         "schema",
@@ -1329,6 +1504,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "solver":
         return _run_m7_solver(args)
 
+    if args.command == "workflow":
+        return _run_m8_workflow(args)
+
     if args.command == "skills" and args.skill_command == "validate":
         try:
             skill_records = validate_skills(
@@ -1565,11 +1743,34 @@ def _run_m6_scheduler(args: argparse.Namespace) -> int:
             )
             return 0
         if args.agent_command == "schedule" and args.schedule_command == "init":
-            state = service.initialize(args.task_graph, args.root, args.state)
+            state = service.initialize(
+                args.task_graph,
+                args.root,
+                args.state,
+                workflow_authority=args.workflow_authority,
+            )
             _emit(
                 {
                     "artifact_id": state.artifact_id,
                     "state": args.state.name,
+                    "valid": True,
+                },
+                as_json=args.json,
+            )
+            return 0
+        if args.agent_command == "schedule" and args.schedule_command == "migrate":
+            result = SchedulerMigrationService().migrate(
+                args.state,
+                args.root,
+                args.output,
+                to_version=int(args.to_version),
+                approval=args.approval,
+            )
+            _emit(
+                {
+                    "artifact_id": result.artifact_id,
+                    "result": result.value.to_dict(),
+                    "source_preserved": True,
                     "valid": True,
                 },
                 as_json=args.json,
@@ -1754,6 +1955,283 @@ def _run_m7_solver(args: argparse.Namespace) -> int:
                 file=sys.stderr,
             )
         return 2
+
+
+def _run_m8_workflow(args: argparse.Namespace) -> int:
+    """Run one additive M8 command with bounded fail-closed output."""
+
+    operation = args.workflow_command
+    try:
+        if operation == "validate":
+            artifact = load_workflow_artifact(args.artifact)
+            _emit(
+                {
+                    "artifact_type": artifact.artifact_type.value,
+                    "artifact_id": artifact.artifact_id,
+                    "valid": True,
+                },
+                as_json=args.json,
+            )
+            return 0
+        planner = _workflow_planner_factory()
+        if operation == "plan":
+            intent = load_workflow_artifact(
+                args.intent,
+                expected_type=WorkflowArtifactType.DEVELOPMENT_INTENT,
+            )
+            reference = artifact_reference_for(args.root, args.intent)
+            plan = planner.publish_plan(
+                intent,
+                reference,
+                args.root,
+                args.scheduler_state,
+                args.output,
+                predecessor_scheduler_state=args.predecessor_scheduler_state,
+            )
+            _emit(
+                {
+                    "artifact_id": plan.artifact_id,
+                    "output": args.output.name,
+                    "side_effect_free_derivation": True,
+                    "workflow_epoch_opened": True,
+                    "valid": True,
+                },
+                as_json=args.json,
+            )
+            return 0
+        plan = load_workflow_artifact(
+            args.plan,
+            expected_type=WorkflowArtifactType.INTEGRATED_PLAN,
+        )
+        if operation == "explain":
+            _emit(
+                WorkflowExplainer(planner).explain(
+                    plan,
+                    args.root,
+                    args.scheduler_state,
+                    predecessor_scheduler_state=args.predecessor_scheduler_state,
+                ),
+                as_json=args.json,
+            )
+            return 0
+        if operation == "simulate":
+            result = WorkflowSimulationService(planner).run(
+                plan,
+                args.root,
+                args.scheduler_state,
+                args.scenario,
+                predecessor_scheduler_state=args.predecessor_scheduler_state,
+            )
+            _emit(result.to_dict(), as_json=args.json)
+            return 0
+        if operation == "run":
+            transition = WorkflowRuntimeService(planner=planner).run(
+                plan,
+                args.root,
+                args.scheduler_state,
+                args.output_state,
+                args.output_event,
+                predecessor_scheduler_state=args.predecessor_scheduler_state,
+            )
+            _emit(transition.to_dict(), as_json=args.json)
+            return 0
+        state = load_workflow_artifact(
+            args.state,
+            expected_type=WorkflowArtifactType.WORKFLOW_STATE,
+        )
+        if operation == "resume":
+            transition = WorkflowRuntimeService(planner=planner).resume(
+                state,
+                NativeArtifactBinding(
+                    WorkflowArtifactType.WORKFLOW_STATE.value,
+                    state.artifact_id,
+                    artifact_reference_for(args.root, args.state),
+                    True,
+                ),
+                plan,
+                args.root,
+                args.scheduler_state,
+                args.output_state,
+                args.output_event,
+                predecessor_scheduler_state=args.predecessor_scheduler_state,
+            )
+            _emit(transition.to_dict(), as_json=args.json)
+            return 0
+        if operation == "supersede":
+            successor_intent = load_workflow_artifact(
+                args.successor_intent,
+                expected_type=WorkflowArtifactType.DEVELOPMENT_INTENT,
+            )
+            transition = WorkflowRuntimeService(planner=planner).supersede(
+                state,
+                NativeArtifactBinding(
+                    WorkflowArtifactType.WORKFLOW_STATE.value,
+                    state.artifact_id,
+                    artifact_reference_for(args.root, args.state),
+                    True,
+                ),
+                plan,
+                successor_intent,
+                NativeArtifactBinding(
+                    WorkflowArtifactType.DEVELOPMENT_INTENT.value,
+                    successor_intent.artifact_id,
+                    artifact_reference_for(args.root, args.successor_intent),
+                    True,
+                ),
+                args.root,
+                args.scheduler_state,
+                args.output_state,
+                args.output_event,
+                args.output_outcome,
+            )
+            _emit(transition.to_dict(), as_json=args.json)
+            return 0
+        if operation == "status":
+            payload = WorkflowRuntimeService(planner=planner).status(
+                state,
+                plan,
+                args.root,
+                args.scheduler_state,
+                predecessor_scheduler_state=args.predecessor_scheduler_state,
+            )
+            _emit(payload, as_json=args.json)
+            return 0
+        if operation == "recover":
+            events = tuple(
+                load_workflow_artifact(
+                    path,
+                    expected_type=WorkflowArtifactType.WORKFLOW_EVENT,
+                )
+                for path in args.event
+            )
+            recovered, event = WorkflowRecoveryService(planner=planner).recover(
+                state,
+                NativeArtifactBinding(
+                    WorkflowArtifactType.WORKFLOW_STATE.value,
+                    state.artifact_id,
+                    artifact_reference_for(args.root, args.state),
+                    True,
+                ),
+                plan,
+                events,
+                args.root,
+                args.scheduler_state,
+                args.output_state,
+                args.output_event,
+                tuple(
+                    NativeArtifactBinding(
+                        WorkflowArtifactType.WORKFLOW_EVENT.value,
+                        artifact.artifact_id,
+                        artifact_reference_for(args.root, path),
+                        True,
+                    )
+                    for path, artifact in zip(args.event, events, strict=True)
+                ),
+                predecessor_scheduler_state=args.predecessor_scheduler_state,
+            )
+            _emit(
+                {
+                    "state": recovered.to_dict(),
+                    "event": event.to_dict(),
+                    "source_preserved": True,
+                },
+                as_json=args.json,
+            )
+            return 0
+        outcome, event, closure = WorkflowOutcomeService(planner=planner).publish(
+            state,
+            NativeArtifactBinding(
+                WorkflowArtifactType.WORKFLOW_STATE.value,
+                state.artifact_id,
+                artifact_reference_for(args.root, args.state),
+                True,
+            ),
+            plan,
+            args.root,
+            args.scheduler_state,
+            args.output,
+            args.output_event,
+            args.output_state,
+        )
+        _emit(
+            {
+                "outcome": outcome.to_dict(),
+                "event": event.to_dict(),
+                "state": closure.to_dict(),
+            },
+            as_json=args.json,
+        )
+        return 0
+    except WorkflowPlanningError as exc:
+        payload = {
+            "error": "m8-workflow-proposal-rejected",
+            "operation": operation,
+            "decision": exc.to_dict(),
+        }
+        if getattr(args, "json", False):
+            _emit(payload, as_json=True)
+        else:
+            print(
+                "ERROR: M8 proposal was rejected by a deterministic blocking decision.",
+                file=sys.stderr,
+            )
+        return 2
+    except SchedulerAdapterError as exc:
+        migration_required = str(exc) == (
+            "M6 workflow authority requires scheduler store version 2."
+        )
+        if getattr(args, "json", False):
+            _emit(
+                {
+                    "error": (
+                        "migration-required" if migration_required else "m8-workflow-invalid"
+                    ),
+                    "operation": operation,
+                },
+                as_json=True,
+            )
+        else:
+            print(
+                (
+                    "ERROR: M8 requires an explicitly initialized or migrated M6 v2 store."
+                    if migration_required
+                    else "ERROR: M8 workflow operation failed without overwriting output."
+                ),
+                file=sys.stderr,
+            )
+        return 2
+    except (
+        WorkflowAdapterError,
+        WorkflowContractError,
+        OSError,
+        ValueError,
+    ):
+        if getattr(args, "json", False):
+            _emit(
+                {"error": "m8-workflow-invalid", "operation": operation},
+                as_json=True,
+            )
+        else:
+            print(
+                "ERROR: M8 workflow operation failed without overwriting output.",
+                file=sys.stderr,
+            )
+    return 2
+
+
+def _local_workflow_planner() -> IntegratedPlanner:
+    """Wire the public CLI to existing local M5 observation adapters."""
+
+    return IntegratedPlanner(
+        RuntimePrivateCandidateVerifier(
+            SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)
+        ),
+        LocalContextSourceReader(),
+        CanonicalUTF8ByteEstimator(),
+    )
+
+
+_workflow_planner_factory = _local_workflow_planner
 
 
 def _write_new_file(path: Path, content: str) -> None:

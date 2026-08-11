@@ -6,7 +6,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Protocol
 
-from sdaqf.domain.scheduler import MailboxMessage
+from sdaqf.domain.scheduler import (
+    MailboxMessage,
+    WorkflowEpochHead,
+    WorkflowReceiptSnapshot,
+)
 
 
 class SchedulerClock(Protocol):
@@ -32,6 +36,19 @@ class SchedulerStorePort(Protocol):
 
     def validate(self) -> None:
         """Validate version, shape, audit chain, and projections."""
+
+    @property
+    def store_version(self) -> int:
+        """Return the validated SQLite store format version."""
+
+    def require_workflow_authority(self) -> None:
+        """Require the v2 workflow authority extension."""
+
+    def workflow_head(self, plan_id: str) -> WorkflowEpochHead | None:
+        """Return one replay-validated epoch head."""
+
+    def workflow_receipt_snapshot(self, plan_id: str | None = None) -> WorkflowReceiptSnapshot:
+        """Return a pinned read-only scheduler/receipt observation."""
 
 
 class AgentHostPort(Protocol):

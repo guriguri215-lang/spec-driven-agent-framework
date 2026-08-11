@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sqlite3
 from dataclasses import replace
 from datetime import timedelta
@@ -251,6 +252,31 @@ def test_recovery_preserves_state_events_and_source(tmp_path: Path) -> None:
     assert recovered.status() == before_state
     assert recovered.export("events") == before_events
     assert source.path.read_bytes() == before_source
+
+
+def test_recovery_holds_source_writer_exclusion_through_publication(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = create_store(tmp_path)
+    output = tmp_path / "writer-excluded-recovery.sqlite3"
+    original_link = os.link
+    writer_was_excluded = False
+
+    def assert_writer_excluded(temporary: Path, target: Path) -> None:
+        nonlocal writer_was_excluded
+        contender = sqlite3.connect(source.path, timeout=0, isolation_level=None)
+        try:
+            with pytest.raises(sqlite3.OperationalError, match="locked"):
+                contender.execute("BEGIN IMMEDIATE")
+            writer_was_excluded = True
+        finally:
+            contender.close()
+        original_link(temporary, target)
+
+    monkeypatch.setattr("sdaqf.adapters.scheduler.os.link", assert_writer_excluded)
+    recover_scheduler_database(source.path, output, ROOT)
+    assert writer_was_excluded
 
 
 def test_recovery_rebuilds_logically_corrupt_mutable_projections(tmp_path: Path) -> None:

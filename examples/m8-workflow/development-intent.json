@@ -1,0 +1,139 @@
+{
+  "artifact_id": "M8-DEVELOPMENT-INTENT-A23A451D10A6A1DBE4D587BF1B8F919486A56A6F84F9717C0FBF20CA31491495",
+  "artifact_type": "development-intent",
+  "content": {
+    "allowed_paths": [
+      "src/sdaqf"
+    ],
+    "budget": {
+      "cost": {
+        "currency": null,
+        "max_microunits": null,
+        "status": "not_available"
+      },
+      "max_agents": 2,
+      "max_concurrency": 2,
+      "max_context_bytes_per_dispatch": 8388608,
+      "max_context_bytes_total": 16777216,
+      "max_dispatches": 16,
+      "max_reasoning_effort": "high",
+      "max_retries": 4,
+      "max_solver_calls": 0,
+      "max_solver_steps": 0,
+      "max_tool_calls": 16,
+      "max_wall_time_seconds": 3600
+    },
+    "candidate": {
+      "git_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "repository_digest": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "source_spec_sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+    },
+    "capabilities": [],
+    "clearance": "public",
+    "completion_profile": "plan-only",
+    "context_graph": {
+      "artifact_id": "CTX-GRAPH-D1FC9F96691D7B947FF3CAD08B27336C8E7C305F27E3A908B265D6A5CED96096",
+      "artifact_type": "context-graph",
+      "reference": {
+        "path": "examples/m5-context/context-graph.json",
+        "sha256": "8DB9CB0FF0DD5C66AAC39BA9F9DF2175C45C1EA14AA3122868D714F3FCDD2D32"
+      },
+      "required": true
+    },
+    "context_query": {
+      "artifact_id": "CTX-QUERY-76204DB6D3EE80C6EE8998F1807311BFCA3437055632197008075364F0DABA91",
+      "artifact_type": "context-query",
+      "reference": {
+        "path": "examples/m5-context/context-query.json",
+        "sha256": "BD80754C32FA27957EC7B483F1275362B11092BF4001D5770316B06C3FFD7C43"
+      },
+      "required": true
+    },
+    "context_selection": {
+      "artifact_id": "CTX-SELECTION-3D7E2B0CCDD5C9E637505CBF13F434C4F8DE35100B22EAC4C0C0CC0C7313D5AC",
+      "artifact_type": "context-selection",
+      "reference": {
+        "path": "examples/m5-context/context-selection.json",
+        "sha256": "A0CF082C9887F91CAB28954CBF243A754EB52BD3E6959EA1AC174F18E66BB273"
+      },
+      "required": true
+    },
+    "context_snapshot": {
+      "artifact_id": "CTX-SNAPSHOT-60806B57F8C2C1B3E8AA059428C0FAD2D1629DD06B4E3A402F476497E4038A2C",
+      "artifact_type": "context-snapshot",
+      "reference": {
+        "path": "examples/m5-context/context-snapshot.json",
+        "sha256": "5451B8D5C76A61A1B1D9337D8EA6FC4FD9F7E82B79F0CDEB3FCC4E276488F19C"
+      },
+      "required": true
+    },
+    "objective": "Validate one deterministic offline workflow.",
+    "observation_slots": [
+      "evidence",
+      "handoff",
+      "review",
+      "ui"
+    ],
+    "predecessor_outcome": null,
+    "predecessor_outcome_id": null,
+    "predecessor_plan": null,
+    "predecessor_plan_id": null,
+    "predecessor_state": null,
+    "predecessor_state_id": null,
+    "prohibited_paths": [
+      "state"
+    ],
+    "project_id": "offline-config",
+    "requested_effects": [
+      "read_only"
+    ],
+    "required_acceptance_ids": [
+      "AC-FR-M8-DEMO-01"
+    ],
+    "required_gate_ids": [
+      "G1"
+    ],
+    "required_requirement_ids": [
+      "FR-M8-DEMO"
+    ],
+    "requirement_baseline": {
+      "path": "requirements/baseline.json",
+      "sha256": "13DC1D73329DCC08E3A94A5F6477C0690A0F3ACC938B203448359603ECC4E2F9"
+    },
+    "requirement_baseline_id": "RB-050EA855693A9DD4",
+    "risk": "low",
+    "sensitivity": "public",
+    "solver_registry": null,
+    "solver_requests": [],
+    "specification": {
+      "path": "examples/m5-context/sources/specification.md",
+      "sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+    },
+    "task_graph": {
+      "artifact_id": "M6-TASK-GRAPH-812F1666FD65A7A3251D6414346308EBC5BEA7FDEE488408A3A59BFDDA003BE6",
+      "artifact_type": "task-graph",
+      "reference": {
+        "path": "examples/m6-scheduler/task-graph.json",
+        "sha256": "98EE532A965D6E10131B26F759020B31313C8AAAD10E5DF8453B7053B2561E3E"
+      },
+      "required": true
+    },
+    "task_links": [
+      {
+        "acceptance_ids": [
+          "AC-FR-M8-DEMO-01"
+        ],
+        "context_node_ids": [
+          "CTX-NODE-56D84380E522C62FC0B2411AD045A359AB2870078A9512850FA457F579190B49"
+        ],
+        "requirement_ids": [
+          "FR-M8-DEMO"
+        ],
+        "solver_request_ids": [],
+        "task_id": "TSK-M6-DEMO"
+      }
+    ],
+    "ui_required": false
+  },
+  "schema_version": "1.0"
+}

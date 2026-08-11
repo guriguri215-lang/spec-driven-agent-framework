@@ -61,6 +61,8 @@ from sdaqf.domain.scheduler import (
     SchedulerBudget,
     SchedulerEvent,
     SchedulerState,
+    SchedulerStoreMigrationApproval,
+    SchedulerStoreMigrationResult,
     SchedulerTask,
     SchedulerValue,
     TaskGraph,
@@ -68,6 +70,10 @@ from sdaqf.domain.scheduler import (
     TaskOutcome,
     TaskProjection,
     TaskState,
+    WorkflowArtifactReceipt,
+    WorkflowEpochCause,
+    WorkflowEpochEvent,
+    WorkflowReceiptStatus,
     WorktreeLease,
     WorktreeLeaseStatus,
 )
@@ -116,17 +122,45 @@ _PREFIX: dict[SchedulerArtifactType, str] = {
     SchedulerArtifactType.SCHEDULER_EVENT: "M6-EVENT-",
     SchedulerArtifactType.BUDGET_LEDGER: "M6-BUDGET-LEDGER-",
     SchedulerArtifactType.WORKTREE_LEASE: "M6-WORKTREE-LEASE-",
+    SchedulerArtifactType.WORKFLOW_EPOCH_EVENT: "M6-WORKFLOW-EPOCH-EVENT-",
+    SchedulerArtifactType.SCHEDULER_STORE_MIGRATION_APPROVAL: (
+        "M6-SCHEDULER-STORE-MIGRATION-APPROVAL-"
+    ),
+    SchedulerArtifactType.SCHEDULER_STORE_MIGRATION_RESULT: (
+        "M6-SCHEDULER-STORE-MIGRATION-RESULT-"
+    ),
 }
 _TASK_ID = re.compile(r"^TSK-[A-Z0-9][A-Z0-9-]{0,63}$")
 _HOST_ID = re.compile(r"^HST-[A-Z0-9][A-Z0-9-]{0,63}$")
 _WORKER_ID = re.compile(r"^WRK-[A-Z0-9][A-Z0-9-]{0,63}$")
 _IDEMPOTENCY = re.compile(r"^IDEM-[0-9A-F]{64}$")
+_WORKFLOW_IDEMPOTENCY = re.compile(r"^M8-IDEM-[0-9A-F]{64}$")
 _M6_ID = re.compile(r"^M6-[A-Z-]+-[0-9A-F]{64}$")
 _CONTEXT_ID = re.compile(r"^CTX-SNAPSHOT-[0-9A-F]{64}$")
 _ROLE_ID = re.compile(r"^[a-z][a-z0-9-]{0,63}$")
 _APPROVAL_ID = re.compile(r"^APR-[A-Z0-9][A-Z0-9-]{0,95}$")
 _RFC3339_UTC = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$")
 _CURRENCY = re.compile(r"^[A-Z]{3}$")
+_M8_ARTIFACT_ID = re.compile(
+    r"^M8-(?:INTEGRATED-PLAN|WORKFLOW-STATE|WORKFLOW-EVENT|WORKFLOW-OUTCOME)-[0-9A-F]{64}$"
+)
+_WORKFLOW_PRODUCERS = frozenset(
+    {
+        "workflow-plan",
+        "workflow-run",
+        "workflow-resume",
+        "workflow-recover",
+        "workflow-outcome",
+        "workflow-supersede",
+        "workflow-simulate",
+    }
+)
+_WORKFLOW_ARTIFACT_PREFIXES = {
+    "integrated-plan": "M8-INTEGRATED-PLAN-",
+    "workflow-state": "M8-WORKFLOW-STATE-",
+    "workflow-event": "M8-WORKFLOW-EVENT-",
+    "workflow-outcome": "M8-WORKFLOW-OUTCOME-",
+}
 _APPROVAL_ACTORS = {
     "owner": ("HST-OWNER", "Owner"),
     "technical_sandbox": (
@@ -553,7 +587,13 @@ def _parse_value(
         return _parse_event(value)
     if artifact_type is SchedulerArtifactType.BUDGET_LEDGER:
         return _parse_budget_ledger(value)
-    return _parse_worktree_lease(value)
+    if artifact_type is SchedulerArtifactType.WORKTREE_LEASE:
+        return _parse_worktree_lease(value)
+    if artifact_type is SchedulerArtifactType.WORKFLOW_EPOCH_EVENT:
+        return _parse_workflow_epoch_event(value)
+    if artifact_type is SchedulerArtifactType.SCHEDULER_STORE_MIGRATION_APPROVAL:
+        return _parse_scheduler_store_migration_approval(value)
+    return _parse_scheduler_store_migration_result(value)
 
 
 def _parse_task_graph(value: dict[str, object]) -> TaskGraph:
@@ -1672,3 +1712,360 @@ def _exact_resource_counts(value: object, where: str, required: set[str]) -> dic
     if set(result) != required:
         raise SchedulerContractError(f"{where} must contain every required resource.")
     return result
+
+
+def _parse_workflow_epoch_event(value: dict[str, object]) -> WorkflowEpochEvent:
+    where = "Workflow Epoch Event content"
+    only_keys(
+        value,
+        {
+            "sequence",
+            "epoch_sequence",
+            "previous_event_id",
+            "cause",
+            "plan_id",
+            "predecessor_plan_id",
+            "predecessor_terminal_event_head_id",
+            "predecessor_state_id",
+            "predecessor_outcome_id",
+            "candidate",
+            "graph_id",
+            "scheduler_state_id",
+            "scheduler_event_sequence",
+            "scheduler_event_head_id",
+            "idempotency_key",
+            "producer",
+            "source_state_id",
+            "workflow_event_id",
+            "workflow_event_path",
+            "workflow_state_id",
+            "workflow_state_path",
+            "outcome_id",
+            "outcome_path",
+            "receipts",
+            "recorded_at",
+        },
+        where,
+    )
+    sequence = integer_value(
+        value.get("sequence"), "sequence", minimum=1, maximum=2_147_483_647
+    )
+    epoch_sequence = integer_value(
+        value.get("epoch_sequence"), "epoch_sequence", minimum=1, maximum=2_147_483_647
+    )
+    previous_event_id = (
+        None
+        if value.get("previous_event_id") is None
+        else scheduler_id(
+            value.get("previous_event_id"),
+            "previous_event_id",
+            prefix=_PREFIX[SchedulerArtifactType.WORKFLOW_EPOCH_EVENT],
+        )
+    )
+    if (epoch_sequence == 1) != (previous_event_id is None):
+        raise SchedulerContractError("Workflow epoch chain root is invalid.")
+    cause = enum_value(WorkflowEpochCause, value.get("cause"), "cause")
+    plan_id = _workflow_artifact_id(value.get("plan_id"), "plan_id", "integrated-plan")
+    predecessor_plan_id = (
+        None
+        if value.get("predecessor_plan_id") is None
+        else _workflow_artifact_id(
+            value.get("predecessor_plan_id"), "predecessor_plan_id", "integrated-plan"
+        )
+    )
+    predecessor_terminal_event_head_id = (
+        None
+        if value.get("predecessor_terminal_event_head_id") is None
+        else scheduler_id(
+            value.get("predecessor_terminal_event_head_id"),
+            "predecessor_terminal_event_head_id",
+            prefix=_PREFIX[SchedulerArtifactType.WORKFLOW_EPOCH_EVENT],
+        )
+    )
+    predecessor_state_id = (
+        None
+        if value.get("predecessor_state_id") is None
+        else _workflow_artifact_id(
+            value.get("predecessor_state_id"), "predecessor_state_id", "workflow-state"
+        )
+    )
+    predecessor_outcome_id = (
+        None
+        if value.get("predecessor_outcome_id") is None
+        else _workflow_artifact_id(
+            value.get("predecessor_outcome_id"), "predecessor_outcome_id", "workflow-outcome"
+        )
+    )
+    predecessor_fields = (
+        predecessor_plan_id,
+        predecessor_terminal_event_head_id,
+        predecessor_state_id,
+        predecessor_outcome_id,
+    )
+    if any(item is None for item in predecessor_fields) and any(
+        item is not None for item in predecessor_fields
+    ):
+        raise SchedulerContractError(
+            "Workflow predecessor epoch attestation must be all-null or all-present."
+        )
+    graph_id = scheduler_id(
+        value.get("graph_id"),
+        "graph_id",
+        prefix=_PREFIX[SchedulerArtifactType.TASK_GRAPH],
+    )
+    scheduler_state_id = scheduler_id(
+        value.get("scheduler_state_id"),
+        "scheduler_state_id",
+        prefix=_PREFIX[SchedulerArtifactType.SCHEDULER_STATE],
+    )
+    scheduler_event_head_id = scheduler_id(
+        value.get("scheduler_event_head_id"),
+        "scheduler_event_head_id",
+        prefix=_PREFIX[SchedulerArtifactType.SCHEDULER_EVENT],
+    )
+    producer = _choice(value.get("producer"), "producer", set(_WORKFLOW_PRODUCERS))
+    receipts = tuple(
+        _parse_workflow_receipt(item, f"receipts[{index}]")
+        for index, item in enumerate(array_value(value.get("receipts"), "receipts", maximum=1024))
+    )
+    if not receipts:
+        raise SchedulerContractError("Workflow Epoch Event requires at least one receipt.")
+    receipt_keys = tuple((item.path.casefold(), item.artifact_id) for item in receipts)
+    if (
+        receipt_keys != tuple(sorted(receipt_keys))
+        or len({item[0] for item in receipt_keys}) != len(receipt_keys)
+    ):
+        raise SchedulerContractError(
+            "Workflow Epoch Event receipts must be path-sorted and unique."
+        )
+    source_state_id = (
+        None
+        if value.get("source_state_id") is None
+        else _workflow_artifact_id(
+            value.get("source_state_id"), "source_state_id", "workflow-state"
+        )
+    )
+    workflow_event_id = (
+        None
+        if value.get("workflow_event_id") is None
+        else _workflow_artifact_id(
+            value.get("workflow_event_id"), "workflow_event_id", "workflow-event"
+        )
+    )
+    workflow_event_path = (
+        None
+        if value.get("workflow_event_path") is None
+        else safe_relative_path(value.get("workflow_event_path"), "workflow_event_path")
+    )
+    workflow_state_id = (
+        None
+        if value.get("workflow_state_id") is None
+        else _workflow_artifact_id(
+            value.get("workflow_state_id"), "workflow_state_id", "workflow-state"
+        )
+    )
+    workflow_state_path = (
+        None
+        if value.get("workflow_state_path") is None
+        else safe_relative_path(value.get("workflow_state_path"), "workflow_state_path")
+    )
+    outcome_id = (
+        None
+        if value.get("outcome_id") is None
+        else _workflow_artifact_id(value.get("outcome_id"), "outcome_id", "workflow-outcome")
+    )
+    outcome_path = (
+        None
+        if value.get("outcome_path") is None
+        else safe_relative_path(value.get("outcome_path"), "outcome_path")
+    )
+    if any(
+        (artifact_id is None) != (path is None)
+        for artifact_id, path in (
+            (workflow_event_id, workflow_event_path),
+            (workflow_state_id, workflow_state_path),
+            (outcome_id, outcome_path),
+        )
+    ):
+        raise SchedulerContractError("Workflow artifact head IDs and paths must be paired.")
+    recorded_at = format_utc(parse_utc(utc_timestamp(value.get("recorded_at"), "recorded_at")))
+    return WorkflowEpochEvent(
+        sequence=sequence,
+        epoch_sequence=epoch_sequence,
+        previous_event_id=previous_event_id,
+        cause=cause,
+        plan_id=plan_id,
+        predecessor_plan_id=predecessor_plan_id,
+        predecessor_terminal_event_head_id=predecessor_terminal_event_head_id,
+        predecessor_state_id=predecessor_state_id,
+        predecessor_outcome_id=predecessor_outcome_id,
+        candidate=parse_candidate_identity(value.get("candidate"), "candidate"),
+        graph_id=graph_id,
+        scheduler_state_id=scheduler_state_id,
+        scheduler_event_sequence=integer_value(
+            value.get("scheduler_event_sequence"),
+            "scheduler_event_sequence",
+            minimum=1,
+            maximum=2_147_483_647,
+        ),
+        scheduler_event_head_id=scheduler_event_head_id,
+        idempotency_key=_workflow_idempotency_key(value.get("idempotency_key")),
+        producer=producer,
+        source_state_id=source_state_id,
+        workflow_event_id=workflow_event_id,
+        workflow_event_path=workflow_event_path,
+        workflow_state_id=workflow_state_id,
+        workflow_state_path=workflow_state_path,
+        outcome_id=outcome_id,
+        outcome_path=outcome_path,
+        receipts=receipts,
+        recorded_at=recorded_at,
+    )
+
+
+def _parse_workflow_receipt(value: object, where: str) -> WorkflowArtifactReceipt:
+    item = object_value(value, where)
+    only_keys(item, {"artifact_type", "artifact_id", "path", "producer", "status"}, where)
+    artifact_type = _choice(
+        item.get("artifact_type"), f"{where}.artifact_type", set(_WORKFLOW_ARTIFACT_PREFIXES)
+    )
+    return WorkflowArtifactReceipt(
+        artifact_type=artifact_type,
+        artifact_id=_workflow_artifact_id(
+            item.get("artifact_id"), f"{where}.artifact_id", artifact_type
+        ),
+        path=safe_relative_path(item.get("path"), f"{where}.path"),
+        producer=_choice(item.get("producer"), f"{where}.producer", set(_WORKFLOW_PRODUCERS)),
+        status=enum_value(WorkflowReceiptStatus, item.get("status"), f"{where}.status"),
+    )
+
+
+def _parse_scheduler_store_migration_approval(
+    value: dict[str, object],
+) -> SchedulerStoreMigrationApproval:
+    where = "Scheduler Store Migration Approval content"
+    only_keys(
+        value,
+        {
+            "action",
+            "root_sha256",
+            "source_path",
+            "output_path",
+            "source_graph_id",
+            "source_current_event_head_id",
+            "to_version",
+            "approved_by",
+            "issued_at",
+            "not_before",
+            "expires_at",
+        },
+        where,
+    )
+    action = _choice(
+        value.get("action"), "action", {"migrate-scheduler-store-v1-to-v2"}
+    )
+    approved_by = _choice(value.get("approved_by"), "approved_by", {"Owner"})
+    issued_at = format_utc(parse_utc(utc_timestamp(value.get("issued_at"), "issued_at")))
+    not_before = format_utc(
+        parse_utc(utc_timestamp(value.get("not_before"), "not_before"))
+    )
+    expires_at = format_utc(
+        parse_utc(utc_timestamp(value.get("expires_at"), "expires_at"))
+    )
+    if not parse_utc(issued_at) <= parse_utc(not_before) < parse_utc(expires_at):
+        raise SchedulerContractError("Migration approval time window is invalid.")
+    return SchedulerStoreMigrationApproval(
+        action=action,
+        root_sha256=sha256(value.get("root_sha256"), "root_sha256"),
+        source_path=safe_relative_path(value.get("source_path"), "source_path"),
+        output_path=safe_relative_path(value.get("output_path"), "output_path"),
+        source_graph_id=scheduler_id(
+            value.get("source_graph_id"),
+            "source_graph_id",
+            prefix=_PREFIX[SchedulerArtifactType.TASK_GRAPH],
+        ),
+        source_current_event_head_id=scheduler_id(
+            value.get("source_current_event_head_id"),
+            "source_current_event_head_id",
+            prefix=_PREFIX[SchedulerArtifactType.SCHEDULER_EVENT],
+        ),
+        to_version=integer_value(value.get("to_version"), "to_version", minimum=2, maximum=2),
+        approved_by=approved_by,
+        issued_at=issued_at,
+        not_before=not_before,
+        expires_at=expires_at,
+    )
+
+
+def _parse_scheduler_store_migration_result(
+    value: dict[str, object],
+) -> SchedulerStoreMigrationResult:
+    where = "Scheduler Store Migration Result content"
+    only_keys(
+        value,
+        {
+            "source_path",
+            "root_sha256",
+            "output_path",
+            "source_graph_id",
+            "source_current_event_head_id",
+            "output_current_event_head_id",
+            "from_version",
+            "to_version",
+            "approval_id",
+            "workflow_epoch_count",
+            "migrated_at",
+        },
+        where,
+    )
+    return SchedulerStoreMigrationResult(
+        source_path=safe_relative_path(value.get("source_path"), "source_path"),
+        root_sha256=sha256(value.get("root_sha256"), "root_sha256"),
+        output_path=safe_relative_path(value.get("output_path"), "output_path"),
+        source_graph_id=scheduler_id(
+            value.get("source_graph_id"),
+            "source_graph_id",
+            prefix=_PREFIX[SchedulerArtifactType.TASK_GRAPH],
+        ),
+        source_current_event_head_id=scheduler_id(
+            value.get("source_current_event_head_id"),
+            "source_current_event_head_id",
+            prefix=_PREFIX[SchedulerArtifactType.SCHEDULER_EVENT],
+        ),
+        output_current_event_head_id=scheduler_id(
+            value.get("output_current_event_head_id"),
+            "output_current_event_head_id",
+            prefix=_PREFIX[SchedulerArtifactType.SCHEDULER_EVENT],
+        ),
+        from_version=integer_value(value.get("from_version"), "from_version", minimum=1, maximum=1),
+        to_version=integer_value(value.get("to_version"), "to_version", minimum=2, maximum=2),
+        approval_id=scheduler_id(
+            value.get("approval_id"),
+            "approval_id",
+            prefix=_PREFIX[SchedulerArtifactType.SCHEDULER_STORE_MIGRATION_APPROVAL],
+        ),
+        workflow_epoch_count=integer_value(
+            value.get("workflow_epoch_count"),
+            "workflow_epoch_count",
+            minimum=0,
+            maximum=0,
+        ),
+        migrated_at=format_utc(
+            parse_utc(utc_timestamp(value.get("migrated_at"), "migrated_at"))
+        ),
+    )
+
+
+def _workflow_artifact_id(value: object, where: str, artifact_type: str) -> str:
+    text = string_value(value, where, maximum=128)
+    prefix = _WORKFLOW_ARTIFACT_PREFIXES[artifact_type]
+    if not text.startswith(prefix) or not _M8_ARTIFACT_ID.fullmatch(text):
+        raise SchedulerContractError(f"{where} is not the expected canonical workflow artifact ID.")
+    return text
+
+
+def _workflow_idempotency_key(value: object) -> str:
+    text = string_value(value, "idempotency_key", maximum=72)
+    if not _WORKFLOW_IDEMPOTENCY.fullmatch(text):
+        raise SchedulerContractError("idempotency_key must be a canonical M8 idempotency identity.")
+    return text

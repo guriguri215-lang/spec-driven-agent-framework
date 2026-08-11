@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/workflow-epoch-event.schema.json",
+  "title": "M6 Workflow Epoch Event",
+  "type": "object",
+  "required": ["schema_version", "artifact_type", "artifact_id", "content"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "artifact_type": {"const": "workflow-epoch-event"},
+    "artifact_id": {"pattern": "^M6-WORKFLOW-EPOCH-EVENT-[0-9A-F]{64}$"},
+    "content": {
+      "type": "object",
+      "required": [
+        "sequence", "epoch_sequence", "previous_event_id", "cause", "plan_id",
+        "predecessor_plan_id", "predecessor_terminal_event_head_id",
+        "predecessor_state_id", "predecessor_outcome_id",
+        "candidate", "graph_id", "scheduler_state_id", "scheduler_event_sequence",
+        "scheduler_event_head_id", "idempotency_key", "producer", "source_state_id",
+        "workflow_event_id", "workflow_event_path", "workflow_state_id",
+        "workflow_state_path", "outcome_id", "outcome_path",
+        "receipts", "recorded_at"
+      ],
+      "properties": {
+        "sequence": {"type": "integer", "minimum": 1, "maximum": 2147483647},
+        "epoch_sequence": {"type": "integer", "minimum": 1, "maximum": 2147483647},
+        "previous_event_id": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "pattern": "^M6-WORKFLOW-EPOCH-EVENT-[0-9A-F]{64}$"}
+          ]
+        },
+        "cause": {
+          "enum": [
+            "epoch-opened", "transition-reserved", "artifact-publication-reserved",
+            "artifact-publication-confirmed", "terminal-reserved", "terminal-confirmed"
+          ]
+        },
+        "plan_id": {"pattern": "^M8-INTEGRATED-PLAN-[0-9A-F]{64}$"},
+        "predecessor_plan_id": {
+          "type": ["string", "null"],
+          "pattern": "^M8-INTEGRATED-PLAN-[0-9A-F]{64}$"
+        },
+        "predecessor_terminal_event_head_id": {
+          "type": ["string", "null"],
+          "pattern": "^M6-WORKFLOW-EPOCH-EVENT-[0-9A-F]{64}$"
+        },
+        "predecessor_state_id": {
+          "type": ["string", "null"],
+          "pattern": "^M8-WORKFLOW-STATE-[0-9A-F]{64}$"
+        },
+        "predecessor_outcome_id": {
+          "type": ["string", "null"],
+          "pattern": "^M8-WORKFLOW-OUTCOME-[0-9A-F]{64}$"
+        },
+        "candidate": {"$ref": "task-graph.schema.json#/$defs/candidate"},
+        "graph_id": {"$ref": "task-graph.schema.json#/$defs/task_graph_id"},
+        "scheduler_state_id": {"$ref": "task-graph.schema.json#/$defs/scheduler_state_id"},
+        "scheduler_event_sequence": {"type": "integer", "minimum": 1, "maximum": 2147483647},
+        "scheduler_event_head_id": {"$ref": "task-graph.schema.json#/$defs/event_id"},
+        "idempotency_key": {"pattern": "^M8-IDEM-[0-9A-F]{64}$"},
+        "producer": {
+          "enum": [
+            "workflow-plan", "workflow-run", "workflow-resume", "workflow-recover",
+            "workflow-outcome", "workflow-supersede", "workflow-simulate"
+          ]
+        },
+        "source_state_id": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "pattern": "^M8-WORKFLOW-STATE-[0-9A-F]{64}$"}
+          ]
+        },
+        "workflow_event_id": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "pattern": "^M8-WORKFLOW-EVENT-[0-9A-F]{64}$"}
+          ]
+        },
+        "workflow_event_path": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "task-graph.schema.json#/$defs/safe_path"}
+          ]
+        },
+        "workflow_state_id": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "pattern": "^M8-WORKFLOW-STATE-[0-9A-F]{64}$"}
+          ]
+        },
+        "workflow_state_path": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "task-graph.schema.json#/$defs/safe_path"}
+          ]
+        },
+        "outcome_id": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "pattern": "^M8-WORKFLOW-OUTCOME-[0-9A-F]{64}$"}
+          ]
+        },
+        "outcome_path": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "task-graph.schema.json#/$defs/safe_path"}
+          ]
+        },
+        "receipts": {
+          "type": "array", "minItems": 1, "maxItems": 1024, "uniqueItems": true,
+          "items": {"$ref": "#/$defs/receipt"}
+        },
+        "recorded_at": {
+          "$ref": "task-graph.schema.json#/$defs/timestamp",
+          "description": "A terminal-confirmed event and exact terminal retries use the terminal-reserved timestamp."
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "predecessor_plan_id": {"type": "null"},
+            "predecessor_terminal_event_head_id": {"type": "null"},
+            "predecessor_state_id": {"type": "null"},
+            "predecessor_outcome_id": {"type": "null"}
+          }
+        },
+        {
+          "properties": {
+            "predecessor_plan_id": {"type": "string"},
+            "predecessor_terminal_event_head_id": {"type": "string"},
+            "predecessor_state_id": {"type": "string"},
+            "predecessor_outcome_id": {"type": "string"}
+          }
+        }
+      ],
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "properties": {
+                "workflow_event_id": {"type": "null"},
+                "workflow_event_path": {"type": "null"}
+              }
+            },
+            {
+              "properties": {
+                "workflow_event_id": {"type": "string"},
+                "workflow_event_path": {"type": "string"}
+              }
+            }
+          ]
+        },
+        {
+          "oneOf": [
+            {
+              "properties": {
+                "workflow_state_id": {"type": "null"},
+                "workflow_state_path": {"type": "null"}
+              }
+            },
+            {
+              "properties": {
+                "workflow_state_id": {"type": "string"},
+                "workflow_state_path": {"type": "string"}
+              }
+            }
+          ]
+        },
+        {
+          "oneOf": [
+            {
+              "properties": {
+                "outcome_id": {"type": "null"},
+                "outcome_path": {"type": "null"}
+              }
+            },
+            {
+              "properties": {
+                "outcome_id": {"type": "string"},
+                "outcome_path": {"type": "string"}
+              }
+            }
+          ]
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "receipt": {
+      "type": "object",
+      "required": ["artifact_type", "artifact_id", "path", "producer", "status"],
+      "properties": {
+        "artifact_type": {
+          "enum": ["integrated-plan", "workflow-state", "workflow-event", "workflow-outcome"]
+        },
+        "artifact_id": {
+          "type": "string",
+          "pattern": "^M8-(?:INTEGRATED-PLAN|WORKFLOW-STATE|WORKFLOW-EVENT|WORKFLOW-OUTCOME)-[0-9A-F]{64}$"
+        },
+        "path": {"$ref": "task-graph.schema.json#/$defs/safe_path"},
+        "producer": {
+          "enum": [
+            "workflow-plan", "workflow-run", "workflow-resume", "workflow-recover",
+            "workflow-outcome", "workflow-supersede", "workflow-simulate"
+          ]
+        },
+        "status": {"enum": ["reserved", "confirmed"]}
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "artifact_type": {"const": "integrated-plan"},
+            "artifact_id": {"pattern": "^M8-INTEGRATED-PLAN-[0-9A-F]{64}$"}
+          }
+        },
+        {
+          "properties": {
+            "artifact_type": {"const": "workflow-state"},
+            "artifact_id": {"pattern": "^M8-WORKFLOW-STATE-[0-9A-F]{64}$"}
+          }
+        },
+        {
+          "properties": {
+            "artifact_type": {"const": "workflow-event"},
+            "artifact_id": {"pattern": "^M8-WORKFLOW-EVENT-[0-9A-F]{64}$"}
+          }
+        },
+        {
+          "properties": {
+            "artifact_type": {"const": "workflow-outcome"},
+            "artifact_id": {"pattern": "^M8-WORKFLOW-OUTCOME-[0-9A-F]{64}$"}
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -59,11 +59,22 @@ from sdaqf.domain.solver import (
     SolverResultStatus,
     SolverVerificationOutcome,
 )
+from sdaqf.domain.workflow import (
+    CompletionProfile,
+    DevelopmentIntent,
+    IntegratedPlan,
+    WorkflowArtifactType,
+    WorkflowDisposition,
+    WorkflowEvent,
+    WorkflowOutcome,
+    WorkflowState,
+)
 
 __all__ = [
     "AcceptanceCriterion",
     "AuthorityClass",
     "BudgetLedger",
+    "CompletionProfile",
     "ContextArtifactType",
     "ContextBudget",
     "ContextCompaction",
@@ -76,6 +87,7 @@ __all__ = [
     "ContextSelection",
     "ContextSnapshot",
     "ContextSourceExclusion",
+    "DevelopmentIntent",
     "Diagnostic",
     "DiagnosticKind",
     "DiagnosticSeverity",
@@ -85,6 +97,7 @@ __all__ = [
     "FreshnessKind",
     "GateCheck",
     "GateResult",
+    "IntegratedPlan",
     "Lease",
     "LoadedSolverArtifact",
     "MailboxMessage",
@@ -113,6 +126,11 @@ __all__ = [
     "ToolCapability",
     "ToolStatus",
     "TraceLinks",
+    "WorkflowArtifactType",
+    "WorkflowDisposition",
+    "WorkflowEvent",
+    "WorkflowOutcome",
+    "WorkflowState",
     "WorktreeLease",
     "generated_requirement_id",
 ]

@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import sqlite3
 import subprocess
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -13,12 +14,29 @@ from sdaqf.adapters.scheduler import (
     APPLICATION_ID,
     TABLE_NAMES,
     USER_VERSION,
+    WORKFLOW_TABLE_NAMES,
+    WORKFLOW_USER_VERSION,
     SchedulerAdapterError,
     SQLiteSchedulerStore,
+    _reduce_workflow_event,
+    _validate_workflow_epoch_evidence,
+    recover_scheduler_database,
 )
+from sdaqf.application.context_contracts import canonical_json_bytes
 from sdaqf.application.scheduler import _existing_under_root
-from sdaqf.application.scheduler_contracts import SchedulerContractError, load_scheduler_artifact
-from sdaqf.domain.scheduler import Lease, MailboxMessage, SchedulerArtifactType, SchedulerState
+from sdaqf.application.scheduler_contracts import (
+    SchedulerContractError,
+    artifact_from_value,
+    load_scheduler_artifact,
+)
+from sdaqf.domain.scheduler import (
+    Lease,
+    MailboxMessage,
+    SchedulerArtifactType,
+    SchedulerState,
+    WorkflowEpochEvent,
+    WorkflowEpochPhase,
+)
 from tests.m6_scheduler_helpers import FIXED_TIME, ROOT, create_store, graph_artifact
 
 
@@ -43,6 +61,419 @@ def test_initial_database_has_exact_identity_shape_and_projection(tmp_path: Path
     assert state.event_sequence == 1
     assert state.ready_order == ("TSK-M6-DEMO",)
     assert store.graph_artifact() == graph_artifact()
+
+
+def test_v2_workflow_epoch_terminal_reserve_confirm_and_replay(tmp_path: Path) -> None:
+    store = create_store(tmp_path, workflow_authority=True)
+    assert store.store_version == WORKFLOW_USER_VERSION
+    connection = sqlite3.connect(store.path)
+    try:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == WORKFLOW_USER_VERSION
+        tables = {
+            row[0]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+            )
+        }
+    finally:
+        connection.close()
+    assert tables == WORKFLOW_TABLE_NAMES
+    graph = graph_artifact()
+    state = store.status()
+    state_value = state.value
+    assert isinstance(state_value, SchedulerState)
+    plan_id = "M8-INTEGRATED-PLAN-" + "A" * 64
+    plan_path = "workflow/plan.json"
+    head = store.open_workflow_epoch(
+        plan_id=plan_id,
+        candidate=graph.value.candidate,  # type: ignore[union-attr]
+        graph_id=graph.artifact_id,
+        scheduler_state_id=state.artifact_id,
+        scheduler_event_sequence=state_value.event_sequence,
+        scheduler_event_head_id=store.current_event_head_id,
+        idempotency_key="M8-IDEM-" + "1" * 64,
+        producer="workflow-plan",
+        artifact_id=plan_id,
+        artifact_type="integrated-plan",
+        path=plan_path,
+        recorded_at=FIXED_TIME,
+    )
+    assert head.phase is WorkflowEpochPhase.OPEN
+    assert (
+        store.open_workflow_epoch(
+            plan_id=plan_id,
+            candidate=graph.value.candidate,  # type: ignore[union-attr]
+            graph_id=graph.artifact_id,
+            scheduler_state_id=state.artifact_id,
+            scheduler_event_sequence=state_value.event_sequence,
+            scheduler_event_head_id=store.current_event_head_id,
+            idempotency_key="M8-IDEM-" + "1" * 64,
+            producer="workflow-plan",
+            artifact_id=plan_id,
+            artifact_type="integrated-plan",
+            path=plan_path,
+            recorded_at=FIXED_TIME,
+        )
+        == head
+    )
+    with pytest.raises(SchedulerAdapterError, match="different authority"):
+        store.open_workflow_epoch(
+            plan_id=plan_id,
+            candidate=graph.value.candidate,  # type: ignore[union-attr]
+            graph_id=graph.artifact_id,
+            scheduler_state_id=state.artifact_id,
+            scheduler_event_sequence=state_value.event_sequence,
+            scheduler_event_head_id=store.current_event_head_id,
+            idempotency_key="M8-IDEM-" + "1" * 64,
+            producer="workflow-plan",
+            artifact_id=plan_id,
+            artifact_type="integrated-plan",
+            path=plan_path,
+            recorded_at=FIXED_TIME,
+            predecessor_plan_id="M8-INTEGRATED-PLAN-" + "B" * 64,
+            predecessor_terminal_event_head_id="M6-WORKFLOW-EPOCH-EVENT-" + "C" * 64,
+            predecessor_state_id="M8-WORKFLOW-STATE-" + "D" * 64,
+            predecessor_outcome_id="M8-WORKFLOW-OUTCOME-" + "E" * 64,
+        )
+    head = store.confirm_workflow_artifact(
+        plan_id=plan_id,
+        expected_head_id=head.current_event_head_id,
+        artifact_id=plan_id,
+        artifact_type="integrated-plan",
+        path=plan_path,
+        idempotency_key="M8-IDEM-" + "1" * 64,
+        producer="workflow-plan",
+        recorded_at=FIXED_TIME,
+    )
+    assert head.phase is WorkflowEpochPhase.ACTIVE
+    head = store.reserve_workflow_transition(
+        plan_id=plan_id,
+        expected_head_id=head.current_event_head_id,
+        scheduler_state_id=state.artifact_id,
+        scheduler_event_sequence=state_value.event_sequence,
+        scheduler_event_head_id=store.current_event_head_id,
+        source_state_id=None,
+        workflow_event_id="M8-WORKFLOW-EVENT-" + "F" * 64,
+        workflow_state_id="M8-WORKFLOW-STATE-" + "B" * 64,
+        idempotency_key="M8-IDEM-" + "3" * 64,
+        producer="workflow-run",
+        event_path="workflow/run-event.json",
+        state_path="workflow/run-state.json",
+        recorded_at=FIXED_TIME,
+    )
+    for artifact_type, artifact_id, path in (
+        ("workflow-event", "M8-WORKFLOW-EVENT-" + "F" * 64, "workflow/run-event.json"),
+        ("workflow-state", "M8-WORKFLOW-STATE-" + "B" * 64, "workflow/run-state.json"),
+    ):
+        head = store.confirm_workflow_artifact(
+            plan_id=plan_id,
+            expected_head_id=head.current_event_head_id,
+            artifact_type=artifact_type,
+            artifact_id=artifact_id,
+            path=path,
+            idempotency_key="M8-IDEM-" + "3" * 64,
+            producer="workflow-run",
+            recorded_at=FIXED_TIME,
+        )
+    assert head.phase is WorkflowEpochPhase.ACTIVE
+    head = store.reserve_workflow_terminal(
+        plan_id=plan_id,
+        expected_head_id=head.current_event_head_id,
+        scheduler_state_id=state.artifact_id,
+        scheduler_event_sequence=state_value.event_sequence,
+        scheduler_event_head_id=store.current_event_head_id,
+        source_state_id="M8-WORKFLOW-STATE-" + "B" * 64,
+        workflow_event_id="M8-WORKFLOW-EVENT-" + "C" * 64,
+        workflow_state_id="M8-WORKFLOW-STATE-" + "D" * 64,
+        outcome_id="M8-WORKFLOW-OUTCOME-" + "E" * 64,
+        idempotency_key="M8-IDEM-" + "2" * 64,
+        producer="workflow-outcome",
+        event_path="workflow/event.json",
+        state_path="workflow/state.json",
+        outcome_path="workflow/outcome.json",
+        recorded_at=FIXED_TIME,
+    )
+    assert head.phase is WorkflowEpochPhase.TERMINAL_RESERVED
+    for artifact_type, artifact_id, path in (
+        ("workflow-event", "M8-WORKFLOW-EVENT-" + "C" * 64, "workflow/event.json"),
+        ("workflow-outcome", "M8-WORKFLOW-OUTCOME-" + "E" * 64, "workflow/outcome.json"),
+        ("workflow-state", "M8-WORKFLOW-STATE-" + "D" * 64, "workflow/state.json"),
+    ):
+        head = store.confirm_workflow_artifact(
+            plan_id=plan_id,
+            expected_head_id=head.current_event_head_id,
+            artifact_type=artifact_type,
+            artifact_id=artifact_id,
+            path=path,
+            idempotency_key="M8-IDEM-" + "2" * 64,
+            producer="workflow-outcome",
+            recorded_at=FIXED_TIME,
+        )
+        assert head.phase is WorkflowEpochPhase.TERMINAL_RESERVED
+    head = store.confirm_workflow_terminal(
+        plan_id=plan_id,
+        expected_head_id=head.current_event_head_id,
+        idempotency_key="M8-IDEM-" + "2" * 64,
+        producer="workflow-outcome",
+        recorded_at=FIXED_TIME,
+    )
+    assert head.phase is WorkflowEpochPhase.TERMINAL_CONFIRMED
+    assert store.workflow_head(plan_id) == head
+    assert len(store.export("workflow-epochs")) == 10
+    recovered = recover_scheduler_database(
+        store.path,
+        tmp_path / "recovered-v2.sqlite3",
+        ROOT,
+    )
+    assert recovered.store_version == WORKFLOW_USER_VERSION
+    assert recovered.workflow_head(plan_id) == head
+
+
+def test_pending_terminal_blocks_mutators_and_allows_only_exact_finalization(
+    tmp_path: Path,
+) -> None:
+    store = create_store(tmp_path, workflow_authority=True)
+    graph = graph_artifact()
+    state = store.status()
+    state_value = state.value
+    assert isinstance(state_value, SchedulerState)
+    plan_id = "M8-INTEGRATED-PLAN-" + "A" * 64
+    head = store.open_workflow_epoch(
+        plan_id=plan_id,
+        candidate=graph.value.candidate,  # type: ignore[union-attr]
+        graph_id=graph.artifact_id,
+        scheduler_state_id=state.artifact_id,
+        scheduler_event_sequence=state_value.event_sequence,
+        scheduler_event_head_id=store.current_event_head_id,
+        idempotency_key="M8-IDEM-" + "1" * 64,
+        producer="workflow-plan",
+        artifact_id=plan_id,
+        artifact_type="integrated-plan",
+        path="workflow/plan.json",
+        recorded_at=FIXED_TIME,
+    )
+    head = store.confirm_workflow_artifact(
+        plan_id=plan_id,
+        expected_head_id=head.current_event_head_id,
+        artifact_id=plan_id,
+        artifact_type="integrated-plan",
+        path="workflow/plan.json",
+        idempotency_key="M8-IDEM-" + "1" * 64,
+        producer="workflow-plan",
+        recorded_at=FIXED_TIME,
+    )
+    source_state_id = "M8-WORKFLOW-STATE-" + "B" * 64
+    transition_event_id = "M8-WORKFLOW-EVENT-" + "F" * 64
+    head = store.reserve_workflow_transition(
+        plan_id=plan_id,
+        expected_head_id=head.current_event_head_id,
+        scheduler_state_id=state.artifact_id,
+        scheduler_event_sequence=state_value.event_sequence,
+        scheduler_event_head_id=store.current_event_head_id,
+        source_state_id=None,
+        workflow_event_id=transition_event_id,
+        workflow_state_id=source_state_id,
+        idempotency_key="M8-IDEM-" + "3" * 64,
+        producer="workflow-run",
+        event_path="workflow/run-event.json",
+        state_path="workflow/run-state.json",
+        recorded_at=FIXED_TIME,
+    )
+    for artifact_type, artifact_id, path in (
+        ("workflow-event", transition_event_id, "workflow/run-event.json"),
+        ("workflow-state", source_state_id, "workflow/run-state.json"),
+    ):
+        head = store.confirm_workflow_artifact(
+            plan_id=plan_id,
+            expected_head_id=head.current_event_head_id,
+            artifact_id=artifact_id,
+            artifact_type=artifact_type,
+            path=path,
+            idempotency_key="M8-IDEM-" + "3" * 64,
+            producer="workflow-run",
+            recorded_at=FIXED_TIME,
+        )
+    event_id = "M8-WORKFLOW-EVENT-" + "C" * 64
+    state_id = "M8-WORKFLOW-STATE-" + "D" * 64
+    outcome_id = "M8-WORKFLOW-OUTCOME-" + "E" * 64
+    head = store.reserve_workflow_terminal(
+        plan_id=plan_id,
+        expected_head_id=head.current_event_head_id,
+        scheduler_state_id=state.artifact_id,
+        scheduler_event_sequence=state_value.event_sequence,
+        scheduler_event_head_id=store.current_event_head_id,
+        source_state_id=source_state_id,
+        workflow_event_id=event_id,
+        workflow_state_id=state_id,
+        outcome_id=outcome_id,
+        idempotency_key="M8-IDEM-" + "2" * 64,
+        producer="workflow-outcome",
+        event_path="workflow/event.json",
+        state_path="workflow/state.json",
+        outcome_path="workflow/outcome.json",
+        recorded_at=FIXED_TIME,
+    )
+    assert head.phase is WorkflowEpochPhase.TERMINAL_RESERVED
+    with pytest.raises(SchedulerAdapterError, match="Pending terminal"):
+        store.tick(ROOT, "HST-TEST", (), FIXED_TIME)
+    with pytest.raises(SchedulerAdapterError, match="Workflow epoch phase"):
+        store.reserve_workflow_terminal(
+            plan_id=plan_id,
+            expected_head_id=head.current_event_head_id,
+            scheduler_state_id="M6-SCHEDULER-STATE-" + "0" * 64,
+            scheduler_event_sequence=state_value.event_sequence,
+            scheduler_event_head_id=store.current_event_head_id,
+            source_state_id=source_state_id,
+            workflow_event_id=event_id,
+            workflow_state_id=state_id,
+            outcome_id=outcome_id,
+            idempotency_key="M8-IDEM-" + "2" * 64,
+            producer="workflow-outcome",
+            event_path="workflow/event.json",
+            state_path="workflow/state.json",
+            outcome_path="workflow/outcome.json",
+            recorded_at=FIXED_TIME,
+        )
+    retry = store.reserve_workflow_terminal(
+        plan_id=plan_id,
+        expected_head_id=head.current_event_head_id,
+        scheduler_state_id=state.artifact_id,
+        scheduler_event_sequence=state_value.event_sequence,
+        scheduler_event_head_id=store.current_event_head_id,
+        source_state_id=source_state_id,
+        workflow_event_id=event_id,
+        workflow_state_id=state_id,
+        outcome_id=outcome_id,
+        idempotency_key="M8-IDEM-" + "2" * 64,
+        producer="workflow-outcome",
+        event_path="workflow/event.json",
+        state_path="workflow/state.json",
+        outcome_path="workflow/outcome.json",
+        recorded_at=FIXED_TIME,
+    )
+    assert retry == head
+    with pytest.raises(SchedulerAdapterError, match="phase rejects"):
+        store.reserve_workflow_terminal(
+            plan_id=plan_id,
+            expected_head_id=head.current_event_head_id,
+            scheduler_state_id=state.artifact_id,
+            scheduler_event_sequence=state_value.event_sequence,
+            scheduler_event_head_id=store.current_event_head_id,
+            source_state_id=source_state_id,
+            workflow_event_id=event_id,
+            workflow_state_id=state_id,
+            outcome_id=outcome_id,
+            idempotency_key="M8-IDEM-" + "2" * 64,
+            producer="workflow-outcome",
+            event_path="workflow/event.json",
+            state_path="workflow/state.json",
+            outcome_path="workflow/outcome.json",
+            recorded_at="2026-08-01T00:00:01Z",
+        )
+    for artifact_type, artifact_id, path in (
+        ("workflow-event", event_id, "workflow/event.json"),
+        ("workflow-state", state_id, "workflow/state.json"),
+        ("workflow-outcome", outcome_id, "workflow/outcome.json"),
+    ):
+        head = store.confirm_workflow_artifact(
+            plan_id=plan_id,
+            expected_head_id=head.current_event_head_id,
+            artifact_type=artifact_type,
+            artifact_id=artifact_id,
+            path=path,
+            idempotency_key="M8-IDEM-" + "2" * 64,
+            producer="workflow-outcome",
+            recorded_at=FIXED_TIME,
+        )
+    with pytest.raises(SchedulerAdapterError, match="not admissible"):
+        store.confirm_workflow_terminal(
+            plan_id=plan_id,
+            expected_head_id=head.current_event_head_id,
+            idempotency_key="M8-IDEM-" + "2" * 64,
+            producer="workflow-outcome",
+            recorded_at="2026-08-01T00:00:01Z",
+        )
+    head = store.confirm_workflow_terminal(
+        plan_id=plan_id,
+        expected_head_id=head.current_event_head_id,
+        idempotency_key="M8-IDEM-" + "2" * 64,
+        producer="workflow-outcome",
+        recorded_at=FIXED_TIME,
+    )
+    assert head.phase is WorkflowEpochPhase.TERMINAL_CONFIRMED
+    with pytest.raises(SchedulerAdapterError, match="retry differs"):
+        store.confirm_workflow_terminal(
+            plan_id=plan_id,
+            expected_head_id=head.current_event_head_id,
+            idempotency_key="M8-IDEM-" + "2" * 64,
+            producer="workflow-outcome",
+            recorded_at="2026-08-01T00:00:01Z",
+        )
+    epoch_events = store.export("workflow-epochs")
+    replayed = None
+    for epoch_event in epoch_events[:-1]:
+        replayed = _reduce_workflow_event(replayed, epoch_event)
+    confirmed_value = epoch_events[-1].value
+    assert isinstance(confirmed_value, WorkflowEpochEvent)
+    forged_confirmation = artifact_from_value(
+        SchedulerArtifactType.WORKFLOW_EPOCH_EVENT,
+        replace(confirmed_value, recorded_at="2026-08-01T00:00:01Z"),
+    )
+    with pytest.raises(SchedulerAdapterError, match="terminal confirmation"):
+        _reduce_workflow_event(replayed, forged_confirmation)
+    assert store.tick(ROOT, "HST-TEST", (), FIXED_TIME).state.value is not None
+
+
+def test_workflow_epoch_rejects_mixed_historical_scheduler_triple(
+    tmp_path: Path,
+) -> None:
+    store = create_store(tmp_path, workflow_authority=True)
+    graph = graph_artifact()
+    historical = store.status()
+    historical_value = historical.value
+    assert isinstance(historical_value, SchedulerState)
+    plan_id = "M8-INTEGRATED-PLAN-" + "9" * 64
+    store.open_workflow_epoch(
+        plan_id=plan_id,
+        candidate=graph.value.candidate,  # type: ignore[union-attr]
+        graph_id=graph.artifact_id,
+        scheduler_state_id=historical.artifact_id,
+        scheduler_event_sequence=historical_value.event_sequence,
+        scheduler_event_head_id=store.current_event_head_id,
+        idempotency_key="M8-IDEM-" + "9" * 64,
+        producer="workflow-plan",
+        artifact_id=plan_id,
+        artifact_type="integrated-plan",
+        path="workflow/mixed-plan.json",
+        recorded_at=FIXED_TIME,
+    )
+    original = store.export("workflow-epochs")[0]
+    original_value = original.value
+    assert isinstance(original_value, WorkflowEpochEvent)
+    forged = artifact_from_value(
+        SchedulerArtifactType.WORKFLOW_EPOCH_EVENT,
+        replace(
+            original_value,
+            scheduler_state_id="M6-SCHEDULER-STATE-" + "0" * 64,
+        ),
+    )
+    connection = sqlite3.connect(store.path)
+    connection.row_factory = sqlite3.Row
+    try:
+        connection.execute(
+            "UPDATE workflow_epoch_events SET artifact_id = ?, artifact_json = ? "
+            "WHERE artifact_id = ?",
+            (
+                forged.artifact_id,
+                canonical_json_bytes(forged.to_dict()).decode("ascii"),
+                original.artifact_id,
+            ),
+        )
+        connection.commit()
+        with pytest.raises(SchedulerAdapterError, match="immutable historical evidence"):
+            _validate_workflow_epoch_evidence(connection, graph)
+    finally:
+        connection.close()
 
 
 def test_initialization_is_exclusive_and_paths_are_confined(tmp_path: Path) -> None:

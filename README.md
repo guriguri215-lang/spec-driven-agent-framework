@@ -10,11 +10,25 @@ results for Codex-assisted software projects.
 > **Status: experimental reference implementation.** The
 > [`v1.0.0-rc.1`](https://github.com/guriguri215-lang/spec-driven-agent-framework/releases/tag/v1.0.0-rc.1)
 > prerelease contains the M0-M4 baseline. The current `main` branch adds the
-> unreleased M5-M7 context, scheduling, and solver frameworks. Current CI
-> verifies Windows and Linux on Python 3.12 and 3.13, but the project is not
-> production-ready, macOS is not verified, and the current M5/M6
-> implementations do not have a final independent GO review recorded in their
-> execution plans.
+> unreleased M5-M8 context, scheduling, solver, and integrated workflow
+> frameworks. The earlier independent review of the third M8 remediation round
+> accepted F1 through F11 but retained an overall NO-GO because successor Plans
+> lost predecessor scheduler authority after their first run. The latest
+> independent successor lifecycle compatibility review returned GO for the
+> current local candidate: F1 through F11 remain ACCEPT, predecessor scheduler
+> state propagates through successor resume, status, recovery, and Python
+> terminal-observation finalization, and zero findings remain unresolved within
+> the review scope. This supersedes the earlier M8 overall NO-GO for this local
+> candidate only; the project is not production-ready, and this does not
+> constitute release GO, commit, push, or exact-SHA remote CI. The historical
+> 2026-08-10 final
+> compatibility reviews remain recorded as M5 NO-GO and M6 NO-GO. The latest
+> M5 disposition is GO for the current local candidate. M6 compatibility
+> remediation is complete, but its status publication is pending and no M6 GO
+> is claimed. The current dispositions are independent: M5 GO, M6 status
+> publication pending (not GO), M7 GO, and M8 successor lifecycle GO. Local
+> focused validation passes, but the current uncommitted candidate has no
+> exact-SHA remote CI result, and macOS is not verified.
 
 ## Why SDAQF
 
@@ -37,7 +51,7 @@ workflow. It is not an autonomous coding product or an LLM runtime.
 | Deterministic context indexing, selection, snapshots, and extractive compaction | Experimental | [Context Framework](docs/context-framework.md), M5 tests and validator |
 | Durable SQLite scheduling, leases, mailboxes, budgets, recovery, and simulations | Experimental | [Multi-Agent Control Framework](docs/multi-agent-control-framework.md), M6 tests and validator |
 | Exact-integer finite-domain feasibility and optimization with independent result verification | Experimental | [Mathematical Solver Framework](docs/mathematical-solver-framework.md), M7 tests and validator |
-| Integrated end-to-end M8 workflow | Planned | [Roadmap](docs/roadmap.md) |
+| Deterministic integrated planning, immutable workflow projections, recovery, Outcomes, and offline simulation | Experimental | [Integrated Vibe-Coding Framework](docs/integrated-vibe-coding-framework.md), M8 tests and validator |
 
 See [Implementation status](docs/implementation-status.md) for the detailed
 milestone inventory, validation boundaries, and the distinction between code
@@ -168,6 +182,41 @@ commands:
 
 - [Multi-Agent Control Framework](docs/multi-agent-control-framework.md)
 - [Mathematical Solver Framework](docs/mathematical-solver-framework.md)
+- [Integrated Vibe-Coding Framework](docs/integrated-vibe-coding-framework.md)
+
+### Plan and inspect an integrated workflow
+
+The public M8 files are structural synthetic examples. A runnable Plan must
+reference exact current requirements, Context, Registry, Task Graph, and any
+Solver Request bytes under the supplied root.
+
+```text
+python -m sdaqf workflow validate examples/m8-workflow/development-intent.json --json
+python -m sdaqf agents schedule init examples/m6-scheduler/task-graph.json --root . --state workflow/m8.sqlite3 --workflow-authority --json
+python -m sdaqf workflow plan examples/m8-workflow/development-intent.json --root . --scheduler-state workflow/m8.sqlite3 --output workflow/plan.json --json
+python -m sdaqf workflow simulate workflow/plan.json --root . --scheduler-state workflow/m8.sqlite3 --scenario ui-observation-unavailable --json
+```
+
+For an all-present predecessor lineage, planning uses two distinct databases:
+
+```text
+python -m sdaqf workflow plan INTENT --root ROOT --scheduler-state SUCCESSOR_DB --predecessor-scheduler-state PREDECESSOR_DB --output PLAN --json
+python -m sdaqf workflow explain PLAN --root ROOT --scheduler-state SUCCESSOR_DB --predecessor-scheduler-state PREDECESSOR_DB --json
+python -m sdaqf workflow simulate PLAN --root ROOT --scheduler-state SUCCESSOR_DB --predecessor-scheduler-state PREDECESSOR_DB --scenario ui-observation-unavailable --json
+python -m sdaqf workflow run PLAN --root ROOT --scheduler-state SUCCESSOR_DB --predecessor-scheduler-state PREDECESSOR_DB --output-state STATE --output-event EVENT --json
+python -m sdaqf workflow resume STATE --plan PLAN --root ROOT --scheduler-state SUCCESSOR_DB --predecessor-scheduler-state PREDECESSOR_DB --output-state NEXT_STATE --output-event NEXT_EVENT --json
+python -m sdaqf workflow status STATE --plan PLAN --root ROOT --scheduler-state SUCCESSOR_DB --predecessor-scheduler-state PREDECESSOR_DB --json
+python -m sdaqf workflow recover STATE --plan PLAN --root ROOT --scheduler-state SUCCESSOR_DB --predecessor-scheduler-state PREDECESSOR_DB --output-state RECOVERED_STATE --output-event RECOVERY_EVENT --json
+```
+
+The predecessor flag is forbidden when all predecessor fields are null and is
+required when they are all present for plan, explain, simulate, run, resume,
+status, and recover. It remains optional for backward-compatible genesis calls.
+
+Plan, explanation, and simulation authenticate the same M6 v2 workflow
+authority. Simulation uses a fresh isolated v2 store after authentication.
+Planning, explanation, simulation, Outcome, and generated handoff content do
+not dispatch a host action.
 
 ## Use cases
 
@@ -181,6 +230,9 @@ commands:
   without launching agents.
 - Solve and independently verify small exact-integer finite-domain feasibility
   or optimization requests with the reference adapter.
+- Validate and explain one exact cross-framework Plan, project native M6 truth
+  into immutable workflow records, and exercise recovery paths offline without
+  launching a host.
 
 ## Validation and evidence
 
@@ -191,12 +243,13 @@ input models.
 
 | Check | Current evidence |
 |---|---|
-| Automated tests | 1,111 passed and 4 platform-capability skips locally on 2026-08-03 |
-| Current `main` CI | [Run 30816315795](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/runs/30816315795) passed on Windows/Linux and Python 3.12/3.13 |
-| Static checks | Ruff and strict mypy are required by CI |
-| Coverage | Total branch coverage must be at least 80%; critical M1, M2, M6, and M7 groups must be at least 90% |
-| Named validators | M5 context integrity, M6 scheduler safety, and M7 solver evidence are exercised in the release contract |
-| Independent review | Recorded for milestone candidates; the current M5/M6 plans still identify a final review gap |
+| Automated tests | The prior M8 review passed 28 focused compatibility/CLI tests, 120 complete M8 tests, and 9 round-three regression tests; it did not rerun full pytest. This remediation passes 87 focused M5 tests, 102 focused M6 scheduler/public-contract tests, and 14 focused M5/M6-to-M8 integration tests; the prior 1,241-test full run remains supporting evidence |
+| Last remotely observed pre-M8 `main` CI | [Run 30824066485](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/runs/30824066485) passed on Windows/Linux and Python 3.12/3.13; it does not verify the uncommitted local M8 candidate |
+| Static checks | Ruff passes `src`, `tests`, and `scripts`; strict mypy passes 178 source files for the local remediation |
+| Coverage | The latest independent review did not rerun coverage; the prior threshold-passing full run remains supporting evidence only |
+| Named validators | M5 context integrity, M6 scheduler safety, M7 solver evidence, and M8 workflow integration pass locally |
+| CLI smoke | The offline M0-through-M8 smoke passes locally without network access or persistent Git configuration changes |
+| Independent review | The historical M5 and M6 final NO-GO reviews remain recorded; the latest M5 disposition is GO for the current local candidate, while M6 compatibility remediation is complete with status publication pending and no M6 GO claimed; M7 retains its independent GO and the latest M8 successor lifecycle review retains its separate GO with zero unresolved scope findings |
 | External validation | No independent production deployment, macOS run, hosted-agent evaluation, or third-party solver validation |
 
 The exact local gate commands are in the
@@ -205,7 +258,7 @@ evidence is under `docs/evidence/` and `docs/exec-plans/`.
 
 ## Limitations
 
-- The release is a prerelease and the post-RC M5-M7 changes on `main` are
+- The release is a prerelease and the post-RC M5-M8 changes on `main` are
   unreleased.
 - The M6 scheduler provides durable state and host intents, not an agent
   runtime; delivery is at-least-once and exactly-once execution is not claimed.
@@ -249,11 +302,17 @@ evidence is under `docs/evidence/` and `docs/exec-plans/`.
 
 ## Roadmap
 
-M0-M4 form the published release-candidate baseline. M5-M7 are implemented on
-`main` with the validation qualifications above. M8, an integrated workflow
-that composes the existing contracts without bypassing their validators, is
-planned. See the [Roadmap](docs/roadmap.md) for scope, exclusions, risks, and
-completion criteria.
+M0-M4 form the published release-candidate baseline. M5-M8 are implemented on
+`main` with the validation qualifications above. M8 composes the existing
+contracts without bypassing their validators and remains experimental and
+unreleased. Its latest successor lifecycle compatibility review is GO for the
+current local candidate. The historical M5 and M6 NO-GO reviews remain recorded
+and do not revise the M7 or M8 dispositions. The latest M5 disposition is GO;
+M6 compatibility remediation is complete, but its status publication is
+pending and no M6 GO is claimed. Release GO,
+production readiness, commit, push, and exact-SHA remote CI remain separate. See the
+[Roadmap](docs/roadmap.md) for scope, exclusions, risks, and completion
+criteria.
 
 ## Contributing, security, and support
 

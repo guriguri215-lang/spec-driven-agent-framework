@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/scheduler-store-migration-result.schema.json",
+  "title": "M6 Scheduler Store Migration Result",
+  "type": "object",
+  "required": ["schema_version", "artifact_type", "artifact_id", "content"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "artifact_type": {"const": "scheduler-store-migration-result"},
+    "artifact_id": {"pattern": "^M6-SCHEDULER-STORE-MIGRATION-RESULT-[0-9A-F]{64}$"},
+    "content": {
+      "type": "object",
+      "required": [
+        "source_path", "output_path", "source_graph_id", "source_current_event_head_id",
+        "output_current_event_head_id", "root_sha256", "from_version", "to_version", "approval_id",
+        "workflow_epoch_count", "migrated_at"
+      ],
+      "properties": {
+        "source_path": {"$ref": "task-graph.schema.json#/$defs/safe_path"},
+        "output_path": {"$ref": "task-graph.schema.json#/$defs/safe_path"},
+        "source_graph_id": {"$ref": "task-graph.schema.json#/$defs/task_graph_id"},
+        "source_current_event_head_id": {"$ref": "task-graph.schema.json#/$defs/event_id"},
+        "output_current_event_head_id": {"$ref": "task-graph.schema.json#/$defs/event_id"},
+        "root_sha256": {"pattern": "^[0-9A-F]{64}$"},
+        "from_version": {"const": 1},
+        "to_version": {"const": 2},
+        "approval_id": {"pattern": "^M6-SCHEDULER-STORE-MIGRATION-APPROVAL-[0-9A-F]{64}$"},
+        "workflow_epoch_count": {"const": 0},
+        "migrated_at": {"$ref": "task-graph.schema.json#/$defs/timestamp"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

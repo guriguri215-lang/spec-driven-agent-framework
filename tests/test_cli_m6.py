@@ -9,10 +9,25 @@ from pathlib import Path
 
 import pytest
 
+from sdaqf.adapters.scheduler import SQLiteSchedulerStore
+from sdaqf.application.migrations import migration_root_identity
 from sdaqf.application.scheduler import SchedulerService
-from sdaqf.application.scheduler_contracts import SchedulerContractError
+from sdaqf.application.scheduler_contracts import (
+    SchedulerContractError,
+    artifact_from_value,
+    serialize_scheduler_artifact,
+)
 from sdaqf.cli import main
-from tests.m6_scheduler_helpers import ROOT, TASK_GRAPH_PATH, MutableClock
+from sdaqf.domain.scheduler import (
+    SchedulerArtifactType,
+    SchedulerStoreMigrationApproval,
+)
+from tests.m6_scheduler_helpers import (
+    ROOT,
+    TASK_GRAPH_PATH,
+    MutableClock,
+    materialize_scheduler_root,
+)
 
 
 def _run(arguments: list[str], *, expected: int = 0) -> dict[str, object]:
@@ -27,13 +42,14 @@ def _run(arguments: list[str], *, expected: int = 0) -> dict[str, object]:
 
 
 def test_exact_m6_cli_commands_cover_the_local_lifecycle(tmp_path: Path) -> None:
-    root = str(ROOT)
-    graph = str(TASK_GRAPH_PATH)
+    project_root, project_graph = materialize_scheduler_root(tmp_path)
+    root = str(project_root)
+    graph = str(project_graph)
     validated = _run(["agents", "schedule", "validate", graph, "--root", root, "--json"])
     assert validated["valid"] is True
     assert validated["tasks"] == 1
 
-    state = tmp_path / "cli.sqlite3"
+    state = project_root / "cli.sqlite3"
     initialized = _run(
         [
             "agents",
@@ -66,9 +82,71 @@ def test_exact_m6_cli_commands_cover_the_local_lifecycle(tmp_path: Path) -> None
     assert status["state"]["artifact_type"] == "scheduler-state"  # type: ignore[index]
     assert status["wait_report"]["kind"] == "stall"  # type: ignore[index]
 
+    migrated = project_root / "cli-migrated.sqlite3"
+    approval = project_root / "scheduler-migration-approval.json"
+    source_store = SQLiteSchedulerStore(state, project_root)
+    graph_id = source_store.graph_artifact().artifact_id
+    approval.write_bytes(
+        serialize_scheduler_artifact(
+            artifact_from_value(
+                SchedulerArtifactType.SCHEDULER_STORE_MIGRATION_APPROVAL,
+                SchedulerStoreMigrationApproval(
+                    action="migrate-scheduler-store-v1-to-v2",
+                    source_path=state.relative_to(project_root).as_posix(),
+                    output_path=migrated.relative_to(project_root).as_posix(),
+                    source_graph_id=graph_id,
+                    source_current_event_head_id=source_store.current_event_head_id,
+                    root_sha256=migration_root_identity(project_root.resolve()),
+                    to_version=2,
+                    approved_by="Owner",
+                    issued_at="2020-01-01T00:00:00Z",
+                    not_before="2020-01-01T00:00:00Z",
+                    expires_at="2030-01-01T00:00:00Z",
+                ),
+            )
+        )
+    )
+    migration = _run(
+        [
+            "agents",
+            "schedule",
+            "migrate",
+            str(state),
+            "--root",
+            root,
+            "--output",
+            str(migrated),
+            "--to-version",
+            "2",
+            "--approval",
+            str(approval),
+            "--json",
+        ]
+    )
+    assert migration["source_preserved"] is True
+    assert SQLiteSchedulerStore(migrated, project_root).store_version == 2
+
+    workflow_state = project_root / "cli-workflow-authority.sqlite3"
+    workflow_initialized = _run(
+        [
+            "agents",
+            "schedule",
+            "init",
+            graph,
+            "--root",
+            root,
+            "--state",
+            str(workflow_state),
+            "--workflow-authority",
+            "--json",
+        ]
+    )
+    assert workflow_initialized["valid"] is True
+    assert SQLiteSchedulerStore(workflow_state, project_root).store_version == 2
+
     mailbox = _run(["agents", "mailbox", "inspect", str(state), "--root", root, "--json"])
     assert mailbox["count"] == 1
-    exported = tmp_path / "events.json"
+    exported = project_root / "events.json"
     result = _run(
         [
             "agents",
@@ -95,7 +173,7 @@ def test_exact_m6_cli_commands_cover_the_local_lifecycle(tmp_path: Path) -> None
     assert result["count"] == len(causes)
     assert exported.is_file()
 
-    recovered = tmp_path / "recovered.sqlite3"
+    recovered = project_root / "recovered.sqlite3"
     result = _run(
         [
             "agents",

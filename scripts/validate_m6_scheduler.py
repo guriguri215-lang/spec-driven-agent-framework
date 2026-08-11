@@ -20,7 +20,12 @@ _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPOSITORY_ROOT))
 
-from tests.m6_scheduler_helpers import host_message, worktree_graph
+from tests.m6_scheduler_helpers import (
+    MutableClock,
+    host_message,
+    materialize_scheduler_root,
+    worktree_graph,
+)
 from tests.schema_validation import LocalSchemaValidator
 
 import sdaqf
@@ -28,11 +33,14 @@ from sdaqf.adapters.scheduler import (
     APPLICATION_ID,
     TABLE_NAMES,
     USER_VERSION,
+    WORKFLOW_TABLE_NAMES,
+    WORKFLOW_USER_VERSION,
     SchedulerAdapterError,
     SQLiteSchedulerStore,
     recover_scheduler_database,
 )
 from sdaqf.application.context_contracts import canonical_json_bytes
+from sdaqf.application.migrations import migration_root_identity
 from sdaqf.application.scheduler_contracts import (
     LoadedSchedulerArtifact,
     SchedulerContractError,
@@ -43,6 +51,7 @@ from sdaqf.application.scheduler_contracts import (
     scheduler_identity,
     serialize_scheduler_artifact,
 )
+from sdaqf.application.scheduler_migrations import SchedulerMigrationService
 from sdaqf.application.scheduler_simulation import (
     FIXED_START,
     HOST_ID,
@@ -58,7 +67,11 @@ from sdaqf.domain.scheduler import (
     MessageType,
     SchedulerArtifactType,
     SchedulerEvent,
+    SchedulerState,
+    SchedulerStoreMigrationApproval,
+    SchedulerStoreMigrationResult,
     TaskGraph,
+    WorkflowEpochPhase,
     WorktreeLease,
     WorktreeLeaseStatus,
 )
@@ -71,6 +84,13 @@ _FILES = {
     SchedulerArtifactType.SCHEDULER_EVENT: "scheduler-event.json",
     SchedulerArtifactType.BUDGET_LEDGER: "budget-ledger.json",
     SchedulerArtifactType.WORKTREE_LEASE: "worktree-lease.json",
+    SchedulerArtifactType.WORKFLOW_EPOCH_EVENT: "workflow-epoch-event.json",
+    SchedulerArtifactType.SCHEDULER_STORE_MIGRATION_APPROVAL: (
+        "scheduler-store-migration-approval.json"
+    ),
+    SchedulerArtifactType.SCHEDULER_STORE_MIGRATION_RESULT: (
+        "scheduler-store-migration-result.json"
+    ),
 }
 
 
@@ -104,7 +124,7 @@ def main() -> int:
         expected_type=SchedulerArtifactType.TASK_GRAPH,
         root=root,
     )
-    with tempfile.TemporaryDirectory(prefix=".sdaqf-m6-validator-", dir=root) as directory:
+    with tempfile.TemporaryDirectory(prefix="m6-") as directory:
         temporary = Path(directory)
         state = temporary / "state.sqlite3"
         store = SQLiteSchedulerStore.initialize(
@@ -234,6 +254,7 @@ def main() -> int:
             root,
             temporary,
         )
+        _validate_v2_migration_lifecycle(temporary)
 
     first = run_all_scenarios(examples / "task-graph.json", root)
     second = run_all_scenarios(examples / "task-graph.json", root)
@@ -291,13 +312,225 @@ def main() -> int:
         raise RuntimeError("M6 changed the stable top-level export surface.")
 
     print(
-        "PASS: M6-SCHEDULER-SAFETY validated 7 artifacts, SQLite schema 1, "
+        "PASS: M6-SCHEDULER-SAFETY validated 10 artifacts, SQLite schemas 1 and 2, "
         "structural contract parity, authoritative time safety, one-owner concurrency, "
         "result/egress/non-result/adoption/budget-cause semantic corruption recovery, "
         "immutable Lease policy, exact Worktree observation authority and Lease-history "
         "cardinality, causal cancellation, wall-chain safety, and 10 deterministic scenarios."
     )
     return 0
+
+
+def _validate_v2_migration_lifecycle(temporary: Path) -> None:
+    """Execute every v2/migration/epoch/terminal/recovery phase before PASS."""
+
+    phases: set[str] = set()
+    isolated_root, graph_path = materialize_scheduler_root(temporary / "v2-lifecycle")
+    graph_artifact = load_scheduler_artifact(
+        graph_path,
+        expected_type=SchedulerArtifactType.TASK_GRAPH,
+        root=isolated_root,
+    )
+    source_path = isolated_root / "source-v1.sqlite3"
+    source = SQLiteSchedulerStore.initialize(
+        source_path,
+        isolated_root,
+        graph_artifact,
+        FIXED_START,
+    )
+    source.tick(isolated_root, HOST_ID, (), FIXED_START)
+    source.validate()
+    phases.add("v1-initialize-and-replay")
+
+    fresh_v2 = SQLiteSchedulerStore.initialize(
+        isolated_root / "fresh-v2.sqlite3",
+        isolated_root,
+        graph_artifact,
+        FIXED_START,
+        workflow_authority=True,
+    )
+    if fresh_v2.store_version != WORKFLOW_USER_VERSION:
+        raise RuntimeError("Fresh v2 initialization did not use schema 2.")
+    connection = sqlite3.connect(fresh_v2.path)
+    try:
+        tables = {
+            row[0]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' "
+                "AND name NOT LIKE 'sqlite_%'"
+            )
+        }
+    finally:
+        connection.close()
+    if tables != WORKFLOW_TABLE_NAMES:
+        raise RuntimeError("Fresh v2 initialization has the wrong table set.")
+    phases.add("fresh-v2-initialize")
+
+    output_path = isolated_root / "migrated-v2.sqlite3"
+    approval_path = isolated_root / "migration-approval.json"
+    approval = artifact_from_value(
+        SchedulerArtifactType.SCHEDULER_STORE_MIGRATION_APPROVAL,
+        SchedulerStoreMigrationApproval(
+            action="migrate-scheduler-store-v1-to-v2",
+            source_path=source_path.relative_to(isolated_root).as_posix(),
+            output_path=output_path.relative_to(isolated_root).as_posix(),
+            source_graph_id=graph_artifact.artifact_id,
+            source_current_event_head_id=source.current_event_head_id,
+            root_sha256=migration_root_identity(isolated_root.resolve()),
+            to_version=2,
+            approved_by="Owner",
+            issued_at="2026-08-01T00:00:00Z",
+            not_before="2026-08-01T00:00:00Z",
+            expires_at="2026-08-02T00:00:00Z",
+        ),
+    )
+    approval_path.write_bytes(serialize_scheduler_artifact(approval))
+    migration_result = SchedulerMigrationService(MutableClock(FIXED_START)).migrate(
+        source_path,
+        isolated_root,
+        output_path,
+        to_version=2,
+        approval=approval_path,
+    )
+    if not isinstance(migration_result.value, SchedulerStoreMigrationResult):
+        raise RuntimeError("v1-to-v2 migration did not return its public result.")
+    store = SQLiteSchedulerStore(output_path, isolated_root)
+    store.validate()
+    if (
+        store.store_version != WORKFLOW_USER_VERSION
+        or store.current_event_head_id != source.current_event_head_id
+    ):
+        raise RuntimeError("v1-to-v2 migration did not preserve scheduler authority.")
+    phases.add("v1-to-v2-migration")
+
+    state = store.status()
+    state_value = state.value
+    if not isinstance(state_value, SchedulerState):
+        raise RuntimeError("Migrated v2 status has the wrong type.")
+    plan_id = "M8-INTEGRATED-PLAN-" + "A" * 64
+    plan_path = "workflow/plan.json"
+    head = store.open_workflow_epoch(
+        plan_id=plan_id,
+        candidate=graph_artifact.value.candidate,  # type: ignore[union-attr]
+        graph_id=graph_artifact.artifact_id,
+        scheduler_state_id=state.artifact_id,
+        scheduler_event_sequence=state_value.event_sequence,
+        scheduler_event_head_id=store.current_event_head_id,
+        idempotency_key="M8-IDEM-" + "1" * 64,
+        producer="workflow-plan",
+        artifact_id=plan_id,
+        artifact_type="integrated-plan",
+        path=plan_path,
+        recorded_at=FIXED_START,
+    )
+    phases.add("epoch-open")
+    head = store.confirm_workflow_artifact(
+        plan_id=plan_id,
+        expected_head_id=head.current_event_head_id,
+        artifact_id=plan_id,
+        artifact_type="integrated-plan",
+        path=plan_path,
+        idempotency_key="M8-IDEM-" + "1" * 64,
+        producer="workflow-plan",
+        recorded_at=FIXED_START,
+    )
+    phases.add("plan-receipt")
+    head = store.reserve_workflow_transition(
+        plan_id=plan_id,
+        expected_head_id=head.current_event_head_id,
+        scheduler_state_id=state.artifact_id,
+        scheduler_event_sequence=state_value.event_sequence,
+        scheduler_event_head_id=store.current_event_head_id,
+        source_state_id=None,
+        workflow_event_id="M8-WORKFLOW-EVENT-" + "F" * 64,
+        workflow_state_id="M8-WORKFLOW-STATE-" + "B" * 64,
+        idempotency_key="M8-IDEM-" + "2" * 64,
+        producer="workflow-run",
+        event_path="workflow/run-event.json",
+        state_path="workflow/run-state.json",
+        recorded_at=FIXED_START,
+    )
+    for artifact_type, artifact_id, path in (
+        ("workflow-event", "M8-WORKFLOW-EVENT-" + "F" * 64, "workflow/run-event.json"),
+        ("workflow-state", "M8-WORKFLOW-STATE-" + "B" * 64, "workflow/run-state.json"),
+    ):
+        head = store.confirm_workflow_artifact(
+            plan_id=plan_id,
+            expected_head_id=head.current_event_head_id,
+            artifact_type=artifact_type,
+            artifact_id=artifact_id,
+            path=path,
+            idempotency_key="M8-IDEM-" + "2" * 64,
+            producer="workflow-run",
+            recorded_at=FIXED_START,
+        )
+    phases.add("transition-and-receipts")
+    head = store.reserve_workflow_terminal(
+        plan_id=plan_id,
+        expected_head_id=head.current_event_head_id,
+        scheduler_state_id=state.artifact_id,
+        scheduler_event_sequence=state_value.event_sequence,
+        scheduler_event_head_id=store.current_event_head_id,
+        source_state_id="M8-WORKFLOW-STATE-" + "B" * 64,
+        workflow_event_id="M8-WORKFLOW-EVENT-" + "C" * 64,
+        workflow_state_id="M8-WORKFLOW-STATE-" + "D" * 64,
+        outcome_id="M8-WORKFLOW-OUTCOME-" + "E" * 64,
+        idempotency_key="M8-IDEM-" + "3" * 64,
+        producer="workflow-outcome",
+        event_path="workflow/event.json",
+        state_path="workflow/state.json",
+        outcome_path="workflow/outcome.json",
+        recorded_at=FIXED_START,
+    )
+    phases.add("terminal-reserve")
+    for artifact_type, artifact_id, path in (
+        ("workflow-event", "M8-WORKFLOW-EVENT-" + "C" * 64, "workflow/event.json"),
+        ("workflow-state", "M8-WORKFLOW-STATE-" + "D" * 64, "workflow/state.json"),
+        ("workflow-outcome", "M8-WORKFLOW-OUTCOME-" + "E" * 64, "workflow/outcome.json"),
+    ):
+        head = store.confirm_workflow_artifact(
+            plan_id=plan_id,
+            expected_head_id=head.current_event_head_id,
+            artifact_type=artifact_type,
+            artifact_id=artifact_id,
+            path=path,
+            idempotency_key="M8-IDEM-" + "3" * 64,
+            producer="workflow-outcome",
+            recorded_at=FIXED_START,
+        )
+    phases.add("terminal-receipts")
+    head = store.confirm_workflow_terminal(
+        plan_id=plan_id,
+        expected_head_id=head.current_event_head_id,
+        idempotency_key="M8-IDEM-" + "3" * 64,
+        producer="workflow-outcome",
+        recorded_at=FIXED_START,
+    )
+    if head.phase is not WorkflowEpochPhase.TERMINAL_CONFIRMED:
+        raise RuntimeError("v2 terminal confirmation did not complete.")
+    phases.add("terminal-confirm")
+    recovered = recover_scheduler_database(
+        store.path,
+        isolated_root / "recovered-v2.sqlite3",
+        isolated_root,
+    )
+    if recovered.workflow_head(plan_id) != head:
+        raise RuntimeError("v2 recovery did not reproduce the terminal epoch head.")
+    phases.add("v2-recovery")
+    expected = {
+        "v1-initialize-and-replay",
+        "fresh-v2-initialize",
+        "v1-to-v2-migration",
+        "epoch-open",
+        "plan-receipt",
+        "transition-and-receipts",
+        "terminal-reserve",
+        "terminal-receipts",
+        "terminal-confirm",
+        "v2-recovery",
+    }
+    if phases != expected:
+        raise RuntimeError("M6 v2 lifecycle phase coverage is incomplete.")
 
 
 def _validate_semantic_corruption_recovery(

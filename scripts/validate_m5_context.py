@@ -7,6 +7,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sys
+import tempfile
 from dataclasses import replace
 from pathlib import Path
 
@@ -715,18 +716,19 @@ def _validate_publication_candidate_binding(
         ),
         publisher,
     )
-    try:
-        compactor.publish(
-            caller_artifact,
-            repository_root=root,
-            owner_root=None,
-            host_summary_artifact=None,
-            output=root / ".sdaqf-publication-binding-probe.json",
-        )
-    except ContextSourceError:
-        pass
-    else:
-        raise RuntimeError("Publication candidate binding failed open.")
+    with tempfile.TemporaryDirectory(prefix="m5-") as raw:
+        try:
+            compactor.publish(
+                caller_artifact,
+                repository_root=root,
+                owner_root=None,
+                host_summary_artifact=None,
+                output=Path(raw) / "publication-binding-probe.json",
+            )
+        except ContextSourceError:
+            pass
+        else:
+            raise RuntimeError("Publication candidate binding failed open.")
     if (
         caller_snapshot.candidate != replacement_candidate
         or verifier.observed[-1] != compacted_candidate

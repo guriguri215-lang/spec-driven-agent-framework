@@ -184,7 +184,7 @@ def test_m4_public_documentation_covers_contributor_and_release_boundaries() -> 
     for command in (
         "src/sdaqf/domain/evaluation.py",
         "src/sdaqf/application/migrations.py",
-        "python -m sdaqf eval validate evals/comparison-suite.json",
+        "python scripts/run_local_gate.py evaluation",
         "--fail-under=90",
     ):
         assert command in release

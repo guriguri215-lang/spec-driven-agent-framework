@@ -1,0 +1,326 @@
+{
+  "schema_version": "1.0",
+  "suite_id": "M8-WORKFLOW-INTEGRATION",
+  "offline": true,
+  "hosted_runtime_required": false,
+  "measurement_authority": "native-artifacts-and-event-history",
+  "required_contracts": [
+    "planner",
+    "runtime",
+    "status",
+    "recovery",
+    "supersession",
+    "outcome"
+  ],
+  "fixture_bundles": [
+    {
+      "project_fixture": "offline-config",
+      "root": "evals/projects/offline-config",
+      "fixture_bundle_id": "M8-FIXTURE-BUNDLE-752AB4DFD99FAA017941C1971DB255BD2F1204B76CF06A302C03551D1DAD0A80",
+      "paths": [
+        "evidence/structured-regression.md",
+        "evidence/structured-source-review.md",
+        "evidence/unstructured-cause.md",
+        "evidence/unstructured-unit.md",
+        "expected-normalized.json",
+        "specification.md",
+        "structured-run.json",
+        "task.md",
+        "unstructured-run.json"
+      ]
+    },
+    {
+      "project_fixture": "ui-issue-tracker",
+      "root": "evals/projects/ui-issue-tracker",
+      "fixture_bundle_id": "M8-FIXTURE-BUNDLE-56E7495AB88356529E665C4D9D5AB04A1046465F2BDB91FA645D1C052C0F9C8A",
+      "paths": [
+        "evidence/structured-accessibility.md",
+        "evidence/structured-states.md",
+        "evidence/unstructured-happy-path.md",
+        "evidence/unstructured-review.md",
+        "expected-normalized.json",
+        "specification.md",
+        "structured-run.json",
+        "task.md",
+        "unstructured-run.json"
+      ]
+    },
+    {
+      "project_fixture": "secure-export",
+      "root": "evals/projects/secure-export",
+      "fixture_bundle_id": "M8-FIXTURE-BUNDLE-08D7CB3B00E438F77DD298F5186717F93DAB9356326FEA7F6A2002EAF3DDDA16",
+      "paths": [
+        "evidence/structured-approval.md",
+        "evidence/structured-security.md",
+        "evidence/unstructured-cause.md",
+        "evidence/unstructured-review.md",
+        "expected-normalized.json",
+        "specification.md",
+        "structured-run.json",
+        "task.md",
+        "unstructured-run.json"
+      ]
+    }
+  ],
+  "measurement_contract": {
+    "requirements": ["required_requirement_count", "covered_requirement_count", "uncovered_requirement_ids", "scope_addition_count", "blocking_diagnostic_count"],
+    "context": ["required_reference_count", "selected_required_reference_count", "stale_required_count", "provenance_missing_count", "sensitivity_violation_count", "selected_context_bytes", "context_budget_bytes", "unresolved_contradiction_count"],
+    "scheduling": ["task_count", "completed_task_count", "blocked_task_count", "retry_used_count", "duplicate_rejection_count", "late_result_rejection_count", "deadlock_count"],
+    "solver": ["solver_task_count", "status_counts", "verified_result_count", "adoptable_result_count", "solver_calls_used", "solver_steps_used"],
+    "evidence": ["claim_count", "verified_claim_count", "unverified_claim_count", "known_problem_count", "missing_evidence_count"],
+    "handoff": ["handoff_created_count", "handoff_resume_failure_count", "incomplete_item_count", "open_decision_count", "known_problem_count"],
+    "recovery": ["resume_attempt_count", "successful_resume_count", "recovery_attempt_count", "successful_recovery_count", "ambiguous_effect_count"],
+    "approval": ["required_approval_count", "consumed_approval_count", "refused_approval_count", "expired_approval_count", "pending_approval_count", "approval_revalidation_failure_count"],
+    "available_cost": ["status", "currency", "budget_microunits", "used_microunits", "remaining_microunits"]
+  },
+  "cases": [
+    {
+      "case_id": "M8-01",
+      "scenario": "non-ui-success",
+      "project_fixture": "offline-config",
+      "expected_outcome": "completed",
+      "expected_blockers": [],
+      "required_measurement_groups": [
+        "approval",
+        "context",
+        "available_cost",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "real_ui_expected": false
+    },
+    {
+      "case_id": "M8-02",
+      "scenario": "ui-observation-unavailable",
+      "project_fixture": "ui-issue-tracker",
+      "expected_outcome": "blocked",
+      "expected_blockers": [
+        "ui-evidence-unavailable"
+      ],
+      "required_measurement_groups": [
+        "approval",
+        "context",
+        "available_cost",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "real_ui_expected": false
+    },
+    {
+      "case_id": "M8-03",
+      "scenario": "approval-required",
+      "project_fixture": "secure-export",
+      "expected_outcome": "blocked",
+      "expected_blockers": [
+        "approval-required"
+      ],
+      "required_measurement_groups": [
+        "approval",
+        "context",
+        "available_cost",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "real_ui_expected": false
+    },
+    {
+      "case_id": "M8-04",
+      "scenario": "approval-refused",
+      "project_fixture": "secure-export",
+      "expected_outcome": "blocked",
+      "expected_blockers": [
+        "approval-refused"
+      ],
+      "required_measurement_groups": [
+        "approval",
+        "context",
+        "available_cost",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "real_ui_expected": false
+    },
+    {
+      "case_id": "M8-05",
+      "scenario": "approval-expired",
+      "project_fixture": "secure-export",
+      "expected_outcome": "blocked",
+      "expected_blockers": [
+        "approval-expired"
+      ],
+      "required_measurement_groups": [
+        "approval",
+        "context",
+        "available_cost",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "real_ui_expected": false
+    },
+    {
+      "case_id": "M8-06",
+      "scenario": "stale-candidate",
+      "project_fixture": "secure-export",
+      "expected_outcome": "blocked",
+      "expected_blockers": [
+        "stale-candidate"
+      ],
+      "required_measurement_groups": [
+        "approval",
+        "context",
+        "available_cost",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "real_ui_expected": false
+    },
+    {
+      "case_id": "M8-07",
+      "scenario": "stale-context",
+      "project_fixture": "offline-config",
+      "expected_outcome": "blocked",
+      "expected_blockers": [
+        "stale-context"
+      ],
+      "required_measurement_groups": [
+        "approval",
+        "context",
+        "available_cost",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "real_ui_expected": false
+    },
+    {
+      "case_id": "M8-08",
+      "scenario": "lease-lost",
+      "project_fixture": "offline-config",
+      "expected_outcome": "blocked",
+      "expected_blockers": [
+        "lease-lost"
+      ],
+      "required_measurement_groups": [
+        "approval",
+        "context",
+        "available_cost",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "real_ui_expected": false
+    },
+    {
+      "case_id": "M8-09",
+      "scenario": "solver-inconclusive",
+      "project_fixture": "offline-config",
+      "expected_outcome": "blocked",
+      "expected_blockers": [
+        "solver-inconclusive"
+      ],
+      "required_measurement_groups": [
+        "approval",
+        "context",
+        "available_cost",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "real_ui_expected": false
+    },
+    {
+      "case_id": "M8-10",
+      "scenario": "ambiguous-external-effect",
+      "project_fixture": "secure-export",
+      "expected_outcome": "blocked",
+      "expected_blockers": [
+        "external-effect-ambiguous"
+      ],
+      "required_measurement_groups": [
+        "approval",
+        "context",
+        "available_cost",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "real_ui_expected": false
+    },
+    {
+      "case_id": "M8-11",
+      "scenario": "crash-and-recovery",
+      "project_fixture": "offline-config",
+      "expected_outcome": "completed",
+      "expected_blockers": [],
+      "required_measurement_groups": [
+        "approval",
+        "context",
+        "available_cost",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "real_ui_expected": false
+    },
+    {
+      "case_id": "M8-12",
+      "scenario": "candidate-supersession",
+      "project_fixture": "offline-config",
+      "expected_outcome": "superseded",
+      "expected_blockers": [
+        "predecessor-superseded"
+      ],
+      "required_measurement_groups": [
+        "approval",
+        "context",
+        "available_cost",
+        "evidence",
+        "handoff",
+        "recovery",
+        "requirements",
+        "scheduling",
+        "solver"
+      ],
+      "real_ui_expected": false
+    }
+  ]
+}

@@ -110,10 +110,25 @@ The observable result is:
   tests with three explicit environment link skips, Ruff, strict mypy over 115
   files, total/M1/M2/M3/M4/M5 branch coverage of 89/94/90/91/92/83 percent,
   CLI smoke, the strengthened validator, and all local audits.
-- [ ] Checkpoint 4 review: freeze the remediated candidate and obtain the
-  separate Owner boundary for independent read-only re-review.
-- [ ] Check roadmap truth and prepare a separately approved patch only if the
-  implementation evidence requires one.
+- [x] (2026-08-10) Completed the final independent compatibility re-review.
+  It returned NO-GO with one unresolved High blocking finding in Snapshot
+  publication CandidateIdentity revalidation and one unresolved Medium
+  non-blocking finding in serialized Selection rank provenance. No production
+  remediation was performed in this review task.
+- [x] (2026-08-10) Updated public status and compatibility documentation to
+  record the NO-GO without deleting the five historical NO-GO rounds.
+- [x] (2026-08-10) Remediated the two final compatibility findings. Snapshot
+  publication now revalidates the CandidateIdentity on the validated Snapshot
+  being serialized, and Selection ranking plus its published rank share one
+  authoritative graph distance without changing ordering, budget, or replay.
+  Added estimator-mutation and edge-free identifier-only regressions.
+- [x] (2026-08-10) Local remediation validation passes 87 focused M5 tests,
+  14 focused M5/M6-to-M8 integration tests, Ruff, strict mypy on the changed
+  Python, and `M5-CONTEXT-INTEGRITY`.
+- [x] Publish the current M5 disposition. The latest disposition is GO for the
+  current local candidate; the historical NO-GO review record remains intact.
+  No new validation count, review-evidence detail, or remote CI result is
+  claimed for this current-status update.
 - [ ] Update the private M6 handoff and present the separate Git boundary.
 
 ## Surprises & Discoveries
@@ -448,6 +463,26 @@ mypy, every coverage threshold, the M0-through-M5 CLI smoke, the executable
 `M5-CONTEXT-INTEGRITY` validator, workspace/publication/dependency audits,
 `pip check`, and whitespace checks. Git and remote mutation remain excluded.
 
-A sixth independent re-review of newly frozen bytes, exact-candidate Git
-finalization, Windows/Linux CI, and the private M6 handoff remain pending at
-their separate boundaries.
+The sixth and final independent compatibility re-review returned NO-GO. It
+reproduced a High blocking window in which an injected budget estimator can run
+after the last Snapshot candidate verification and publication can then
+serialize the old CandidateIdentity without another check. It also reproduced
+a Medium non-blocking mismatch between the graph distance used to rank an
+identifier-only non-traversed node and the distance serialized in its Selection
+rank. Both findings remain unresolved because this review did not change
+production code. The focused M5 contract selection and
+`M5-CONTEXT-INTEGRITY` still pass, but those results do not close the findings.
+
+That paragraph preserves the historical final-review checkpoint. Subsequent
+local remediation now closes both reproduced code paths: publication binds its
+last verification to the validated Snapshot being serialized, and ranking and
+published rank share one authoritative graph distance. The estimator-mutation
+and edge-free identifier-only regressions pass as part of 87 focused M5 tests;
+14 focused M5/M6-to-M8 integration tests, Ruff, strict mypy on the changed
+Python, and `M5-CONTEXT-INTEGRITY` also pass. Those results remain the recorded
+remediation evidence. The latest M5 disposition is GO for the current local
+candidate; this current-status update adds no validation count, review-evidence
+detail, or remote CI result and leaves the historical NO-GO paragraph intact.
+
+Exact-candidate Git finalization, exact-SHA remote CI, release judgment, and the
+private M6 handoff remain pending at their separate human boundaries.

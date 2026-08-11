@@ -336,15 +336,19 @@ M5 Context Snapshots. Validation repeats the M2 plan and candidate, role,
 tool, reviewer, integrator, path-ownership, sensitivity, and Context identity
 checks. The scheduler never receives authority from agent-authored text.
 
-SQLite is the single mutable projection and uses application ID `0x53444151`,
-`user_version=1`, metadata schema `1.0`, rollback journaling, synchronous FULL,
-foreign keys, trusted schema off, zero busy wait, and explicit
-`BEGIN IMMEDIATE`. Portable messages, events, leases, budget snapshots, and
-worktree observations remain immutable content-addressed JSON. Events form a
-complete SHA-256 chain. Every task-bound event contains the full post-event task
-projection. Recovery validates immutable evidence, rebuilds every mutable
-projection in a fresh exact schema, and publishes only an evidence-equivalent
-database.
+SQLite is the single mutable projection and keeps application ID `0x53444151`,
+rollback journaling, synchronous FULL, foreign keys, trusted schema off, zero
+busy wait, and explicit `BEGIN IMMEDIATE`. M6-only v1 remains `user_version=1`
+with metadata `1.0`; workflow-authority v2 is `user_version=2` with metadata
+`2.0`. Portable messages, events, leases, budget snapshots, worktree
+observations, and Workflow Epoch Events remain immutable content-addressed
+JSON. Scheduler Events form a complete SHA-256 chain. Every task-bound event
+contains the full post-event task projection. V2 adds an append-only epoch
+chain and replay-checked current-head projection. Recovery validates immutable
+evidence, rebuilds every mutable projection in a fresh same-version schema, and
+publishes only an evidence-equivalent database. V1-to-v2 conversion is explicit
+copy-on-write under an exact Owner approval; implicit or in-place migration and
+downgrade after epoch creation are prohibited.
 
 Dispatch is at least once. Each attempt has one current owner, a monotonically
 increasing fence, an exact Context identity, and a stable idempotency key.
@@ -432,3 +436,83 @@ version matcher and observation, license/provenance, network prohibition, and
 fresh single-use Owner plus technical-sandbox approval requirements. Selecting
 it produces `unavailable` without process or network access. An executable
 adapter would be a future separately approved architecture change.
+
+## M8 Integrated Vibe-Coding Framework
+
+M8 is an additive integration layer, not a new authority layer. Frozen
+artifact, status, reason, completion, disposition, measurement, and projection
+values live in `domain/workflow.py`. `ports/workflow.py` contains only a clock
+and immutable artifact-store protocol. Strict contracts, deterministic
+planning and explanation, runtime projection, recovery, Outcome derivation,
+and simulation live in `application/workflow_*.py`.
+`adapters/workflow.py` supplies a system clock, one pinned Git-plus-M6
+publication observation, and an exclusive bounded local JSON store. Candidate,
+G3, and G4 consume that exact observation. A tracked file is never hidden; an
+untracked, non-ignored runtime output is excluded only when its canonical
+artifact ID, path, producer, Plan/epoch, Candidate, graph, and reservation
+authority agree with validated M6 v2 receipts. Content shape, SQLite header,
+filename, directory, sibling discovery, and caller assertions grant no private
+provenance. Case collisions, symbolic links, junctions, and reparse points fail
+closed. The adapter contains no host, worktree, browser, network, hosted,
+credential, solver, or publication adapter.
+
+The receipt observation records whether it was store-wide or scoped to one
+Plan. Revalidation preserves that exact scope even when a store-wide snapshot
+initially contains one head. Plan publication revalidates the same observation
+after preflight and immediately before epoch-open.
+
+Development Intent is untrusted scope data. The planner invokes the M1
+baseline and G1 checks, M5 Context validators, M2 validation through the exact
+M6 Task Graph inputs, the M6 Task Graph validator, and selected M7 Request
+validators. The resulting Integrated Plan references exact native bytes,
+artifact IDs, CandidateIdentity, and budget rather than copying or replacing
+their authority. A changed candidate, Context, graph, or solver contract makes
+the Plan stale and begins a separately linked epoch. That epoch binds the exact
+predecessor Plan, superseded State, and superseded Outcome and preserves prior
+approval, evidence, review, handoff, Gate, measurement, and ambiguity truth.
+
+M6 SQLite v2 remains the sole mutable workflow-epoch authority. One M8 transition performs
+at most one native scheduler tick, derives one Workflow Event and one Workflow
+State, and returns typed host-intent identities without dispatch. Every Event
+and adopted State is semantically reconstructed from exact M6/M3/M7 artifacts.
+M6 input/output State identities resolve to immutable sidecars, and historical
+State validation rebuilds the corresponding SQLite projection from immutable
+evidence; a new content hash alone cannot authorize a fabricated chain. Event is
+published exclusively before State. This can leave an observable orphan Event
+after a crash, but avoids a false cross-store atomicity claim. Resume reloads
+the latest Event and native projections. Recovery performs complete semantic
+replay of supplied orphan Events before writing fresh artifacts and never
+modifies its source JSON or database. Terminal publication first commits
+`terminal-reserved` in M6, then publishes the non-circular Event, adopting
+closure State, and Outcome exclusively, confirms each canonical artifact
+receipt, and commits `terminal-confirmed`. `terminal-reserved` is already
+terminal, so later resume, ordinary recovery, supersession, or another Outcome
+is rejected. Only the same exact pending request may be finalized at least once
+after a crash; foreign collisions are left untouched and unrepaired. The
+reservation timestamp is part of terminal retry authority and must be identical
+on `terminal-confirmed` and exact retry. Canonical confirmed Plan and terminal
+bytes remain admissible only through matching receipts.
+
+Before a scheduler tick, M8 replays candidate, Context, graph, task, effect
+identity, and Tool policy. M6 owns transactional budget, actor, Lease, fence,
+idempotency, and approval admission. M8 returns no protected outgoing intent
+unless those resulting M6 identities and consumed approvals revalidate. M8
+defines no Approval schema or consumption store. Ambiguous external or
+protected effects remain blocked and are not retried or erased by supersession.
+
+G3 scope is independently derived from the same exact Git publication set used
+by Candidate and G4, and G4 can pass a UI-required plan only from exact native
+M3 UI evidence. Multiple Ledgers, Reviews, UI observations, and release
+observations are exact-slot bound and aggregate failure or contradiction without
+compensation. Workflow
+Outcome composes native task status, solver verification, evidence,
+review, G1-G4, and Automated Handoff under four completion profiles. It cannot
+upgrade native truth. Each fixed-clock simulation authenticates its input Plan,
+uses one of three exact real fixture bundles, one fresh real M6 SQLite v2 store
+and Event history, and the Outcome derived from that same execution. Public
+disposition and blockers come only from that Outcome and terminal State. The
+twelve scenarios report exactly 52 independently re-resolved measurements in
+nine native-derived non-aggregate groups, including `available_cost`. Missing
+evidence remains `not-available`.
+An unavailable real UI
+is represented as an honest blocker, never as a synthetic browser claim.

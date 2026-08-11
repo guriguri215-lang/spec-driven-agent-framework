@@ -1,0 +1,18 @@
+{
+  "artifact_id": "M6-SCHEDULER-STORE-MIGRATION-RESULT-DE99858BB4DE8B278CC1E6706EFD09168E862C9EE9BAB025FB54437DB29F1E87",
+  "artifact_type": "scheduler-store-migration-result",
+  "content": {
+    "approval_id": "M6-SCHEDULER-STORE-MIGRATION-APPROVAL-88F8AD7CA9C22CC3B147259344121E4D81BA170EF488CDC170D734A8020CBA90",
+    "from_version": 1,
+    "migrated_at": "2026-08-01T00:00:00Z",
+    "output_current_event_head_id": "M6-EVENT-530A9D3793B5ECD9AB0FB9CDCCFCC42559A59B354B6E6A237F65B565F06B5D50",
+    "output_path": "workflow/scheduler-v2.sqlite3",
+    "root_sha256": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+    "source_current_event_head_id": "M6-EVENT-530A9D3793B5ECD9AB0FB9CDCCFCC42559A59B354B6E6A237F65B565F06B5D50",
+    "source_graph_id": "M6-TASK-GRAPH-812F1666FD65A7A3251D6414346308EBC5BEA7FDEE488408A3A59BFDDA003BE6",
+    "source_path": "workflow/scheduler-v1.sqlite3",
+    "to_version": 2,
+    "workflow_epoch_count": 0
+  },
+  "schema_version": "1.0"
+}

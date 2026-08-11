@@ -19,7 +19,7 @@ sdaqf = "sdaqf.cli:main"
 where = ["src"]
 
 [tool.pytest.ini_options]
-addopts = "-ra --strict-config --strict-markers --basetemp=.pytest-tmp"
+addopts = "-ra --strict-config --strict-markers"
 testpaths = ["tests"]
 pythonpath = ["src"]
 

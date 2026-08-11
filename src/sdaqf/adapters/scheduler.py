@@ -7,7 +7,7 @@ import json
 import os
 import sqlite3
 import tempfile
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
@@ -35,6 +35,7 @@ from sdaqf.application.scheduler_contracts import (
 from sdaqf.application.solver_contracts import SolverContractError, parse_solver_capability_token
 from sdaqf.application.workspace import is_reparse_point
 from sdaqf.domain.context import SENSITIVITY_RANK, Sensitivity
+from sdaqf.domain.quality import CandidateIdentity
 from sdaqf.domain.scheduler import (
     Blocker,
     BudgetLedger,
@@ -52,6 +53,13 @@ from sdaqf.domain.scheduler import (
     TaskOutcome,
     TaskProjection,
     TaskState,
+    WorkflowArtifactReceipt,
+    WorkflowEpochCause,
+    WorkflowEpochEvent,
+    WorkflowEpochHead,
+    WorkflowEpochPhase,
+    WorkflowReceiptSnapshot,
+    WorkflowReceiptStatus,
     WorktreeLease,
     WorktreeLeaseStatus,
 )
@@ -60,6 +68,8 @@ from sdaqf.domain.solver import SolverLeaseEvidence
 APPLICATION_ID = 0x53444151
 USER_VERSION = 1
 SCHEMA_VERSION = "1.0"
+WORKFLOW_USER_VERSION = 2
+WORKFLOW_SCHEMA_VERSION = "2.0"
 MAX_DATABASE_BYTES = 64 * 1024 * 1024
 MAX_EXPORT = 1000
 DEFAULT_LEASE_TTL_SECONDS = 60
@@ -89,6 +99,10 @@ TABLE_NAMES = {
     "task_graph",
     "tasks",
     "worktree_lease_history",
+}
+WORKFLOW_TABLE_NAMES = TABLE_NAMES | {
+    "workflow_epoch_events",
+    "current_workflow_epoch_heads",
 }
 
 
@@ -442,6 +456,28 @@ CREATE TABLE approval_consumptions (
 ) WITHOUT ROWID;
 """
 
+_WORKFLOW_SCHEMA = _SCHEMA + """
+CREATE TABLE workflow_epoch_events (
+    sequence INTEGER PRIMARY KEY CHECK (sequence > 0),
+    plan_id TEXT NOT NULL,
+    epoch_sequence INTEGER NOT NULL CHECK (epoch_sequence > 0),
+    artifact_id TEXT NOT NULL UNIQUE,
+    previous_event_id TEXT,
+    cause TEXT NOT NULL,
+    recorded_at TEXT NOT NULL,
+    artifact_json TEXT NOT NULL,
+    UNIQUE(plan_id, epoch_sequence),
+    FOREIGN KEY(previous_event_id) REFERENCES workflow_epoch_events(artifact_id)
+) WITHOUT ROWID;
+CREATE TABLE current_workflow_epoch_heads (
+    plan_id TEXT PRIMARY KEY,
+    current_event_head_id TEXT NOT NULL UNIQUE
+        REFERENCES workflow_epoch_events(artifact_id),
+    phase TEXT NOT NULL,
+    head_json TEXT NOT NULL
+) WITHOUT ROWID;
+"""
+
 
 class SchedulerAdapterError(SchedulerContractError):
     """A scheduler persistence or host boundary failed closed."""
@@ -539,6 +575,395 @@ class SQLiteSchedulerStore:
     def path(self) -> Path:
         return self._path
 
+    @property
+    def store_version(self) -> int:
+        """Return the validated SQLite format version."""
+
+        self.validate()
+        connection = self._connect(read_only=True)
+        try:
+            return int(connection.execute("PRAGMA user_version").fetchone()[0])
+        finally:
+            connection.close()
+
+    def require_workflow_authority(self) -> None:
+        """Require the Owner-approved v2 workflow authority extension."""
+
+        if self.store_version != WORKFLOW_USER_VERSION:
+            raise SchedulerAdapterError("M6 workflow authority requires scheduler store version 2.")
+
+    @property
+    def current_event_head_id(self) -> str:
+        """Return the sole canonical identity of current mutable scheduler state."""
+
+        with self._read_connection() as connection:
+            return _current_scheduler_event_id(connection)
+
+    def workflow_head(self, plan_id: str) -> WorkflowEpochHead | None:
+        """Return one replay-validated Plan epoch head."""
+
+        self.require_workflow_authority()
+        with self._read_connection() as connection:
+            row = connection.execute(
+                "SELECT head_json FROM current_workflow_epoch_heads WHERE plan_id = ?",
+                (plan_id,),
+            ).fetchone()
+            return None if row is None else _workflow_head(connection, plan_id)
+
+    def workflow_receipt_snapshot(self, plan_id: str | None = None) -> WorkflowReceiptSnapshot:
+        """Pin the exact scheduler head and current workflow receipt projections."""
+
+        self.require_workflow_authority()
+        with self._read_connection() as connection:
+            graph_artifact = self._graph(connection)
+            graph = graph_artifact.value
+            assert isinstance(graph, TaskGraph)
+            scheduler_state = self._status(connection)
+            current_scheduler_event_id = _current_scheduler_event_id(connection)
+            if plan_id is None:
+                rows = connection.execute(
+                    "SELECT plan_id FROM current_workflow_epoch_heads ORDER BY plan_id"
+                ).fetchall()
+            else:
+                rows = connection.execute(
+                    "SELECT plan_id FROM current_workflow_epoch_heads WHERE plan_id = ?",
+                    (plan_id,),
+                ).fetchall()
+            return WorkflowReceiptSnapshot(
+                graph_id=graph_artifact.artifact_id,
+                candidate=graph.candidate,
+                current_event_head_id=current_scheduler_event_id,
+                scheduler_state_id=scheduler_state.artifact_id,
+                heads=tuple(
+                    _required_workflow_head(connection, str(row["plan_id"])) for row in rows
+                ),
+            )
+
+    def open_workflow_epoch(
+        self,
+        *,
+        plan_id: str,
+        candidate: CandidateIdentity,
+        graph_id: str,
+        scheduler_state_id: str,
+        scheduler_event_sequence: int,
+        scheduler_event_head_id: str,
+        idempotency_key: str,
+        producer: str,
+        artifact_id: str,
+        artifact_type: str,
+        path: str,
+        recorded_at: datetime | str,
+        predecessor_plan_id: str | None = None,
+        predecessor_terminal_event_head_id: str | None = None,
+        predecessor_state_id: str | None = None,
+        predecessor_outcome_id: str | None = None,
+    ) -> WorkflowEpochHead:
+        """Open exactly one Plan epoch and reserve its Plan publication."""
+
+        receipt = WorkflowArtifactReceipt(
+            artifact_type=artifact_type,
+            artifact_id=artifact_id,
+            path=path,
+            producer=producer,
+            status=WorkflowReceiptStatus.RESERVED,
+        )
+        timestamp = _workflow_timestamp(recorded_at)
+        with self._workflow_transaction() as connection:
+            existing = _workflow_head(connection, plan_id)
+            if existing is not None:
+                if _same_workflow_request(
+                    existing,
+                    candidate=candidate,
+                    graph_id=graph_id,
+                    scheduler_state_id=scheduler_state_id,
+                    scheduler_event_sequence=scheduler_event_sequence,
+                    scheduler_event_head_id=scheduler_event_head_id,
+                    idempotency_key=idempotency_key,
+                    producer=producer,
+                    source_state_id=None,
+                    receipts=(receipt,),
+                ) and (
+                    existing.predecessor_plan_id,
+                    existing.predecessor_terminal_event_head_id,
+                    existing.predecessor_state_id,
+                    existing.predecessor_outcome_id,
+                ) == (
+                    predecessor_plan_id,
+                    predecessor_terminal_event_head_id,
+                    predecessor_state_id,
+                    predecessor_outcome_id,
+                ):
+                    return existing
+                raise SchedulerAdapterError(
+                    "Workflow epoch already exists with different authority."
+                )
+            self._require_scheduler_head(
+                connection,
+                candidate,
+                graph_id,
+                scheduler_state_id,
+                scheduler_event_sequence,
+                scheduler_event_head_id,
+            )
+            return self._append_workflow_event(
+                connection,
+                cause=WorkflowEpochCause.EPOCH_OPENED,
+                plan_id=plan_id,
+                candidate=candidate,
+                graph_id=graph_id,
+                scheduler_state_id=scheduler_state_id,
+                scheduler_event_sequence=scheduler_event_sequence,
+                scheduler_event_head_id=scheduler_event_head_id,
+                idempotency_key=idempotency_key,
+                producer=producer,
+                source_state_id=None,
+                receipts=(receipt,),
+                recorded_at=timestamp,
+                predecessor_plan_id=predecessor_plan_id,
+                predecessor_terminal_event_head_id=predecessor_terminal_event_head_id,
+                predecessor_state_id=predecessor_state_id,
+                predecessor_outcome_id=predecessor_outcome_id,
+            )
+
+    def reserve_workflow_transition(
+        self,
+        *,
+        plan_id: str,
+        expected_head_id: str,
+        scheduler_state_id: str,
+        scheduler_event_sequence: int,
+        scheduler_event_head_id: str,
+        source_state_id: str | None,
+        workflow_event_id: str,
+        workflow_state_id: str,
+        idempotency_key: str,
+        producer: str,
+        event_path: str,
+        state_path: str,
+        recorded_at: datetime | str,
+    ) -> WorkflowEpochHead:
+        """Compare-and-set reserve one nonterminal Event/State publication."""
+
+        receipts = _ordered_workflow_receipts(
+            (
+                WorkflowArtifactReceipt(
+                    "workflow-event", workflow_event_id, event_path, producer,
+                    WorkflowReceiptStatus.RESERVED,
+                ),
+                WorkflowArtifactReceipt(
+                    "workflow-state", workflow_state_id, state_path, producer,
+                    WorkflowReceiptStatus.RESERVED,
+                ),
+            )
+        )
+        return self._reserve_workflow_change(
+            cause=WorkflowEpochCause.TRANSITION_RESERVED,
+            phase_guard={WorkflowEpochPhase.OPEN, WorkflowEpochPhase.ACTIVE},
+            plan_id=plan_id,
+            expected_head_id=expected_head_id,
+            scheduler_state_id=scheduler_state_id,
+            scheduler_event_sequence=scheduler_event_sequence,
+            scheduler_event_head_id=scheduler_event_head_id,
+            source_state_id=source_state_id,
+            idempotency_key=idempotency_key,
+            producer=producer,
+            receipts=receipts,
+            recorded_at=recorded_at,
+        )
+
+    def reserve_workflow_terminal(
+        self,
+        *,
+        plan_id: str,
+        expected_head_id: str,
+        scheduler_state_id: str,
+        scheduler_event_sequence: int,
+        scheduler_event_head_id: str,
+        source_state_id: str,
+        workflow_event_id: str,
+        workflow_state_id: str,
+        outcome_id: str,
+        idempotency_key: str,
+        producer: str,
+        event_path: str,
+        state_path: str,
+        outcome_path: str,
+        recorded_at: datetime | str,
+    ) -> WorkflowEpochHead:
+        """Commit the terminal linearization point before filesystem publication."""
+
+        receipts = _ordered_workflow_receipts(
+            (
+                WorkflowArtifactReceipt(
+                    "workflow-event", workflow_event_id, event_path, producer,
+                    WorkflowReceiptStatus.RESERVED,
+                ),
+                WorkflowArtifactReceipt(
+                    "workflow-state", workflow_state_id, state_path, producer,
+                    WorkflowReceiptStatus.RESERVED,
+                ),
+                WorkflowArtifactReceipt(
+                    "workflow-outcome", outcome_id, outcome_path, producer,
+                    WorkflowReceiptStatus.RESERVED,
+                ),
+            )
+        )
+        return self._reserve_workflow_change(
+            cause=WorkflowEpochCause.TERMINAL_RESERVED,
+            phase_guard={WorkflowEpochPhase.OPEN, WorkflowEpochPhase.ACTIVE},
+            plan_id=plan_id,
+            expected_head_id=expected_head_id,
+            scheduler_state_id=scheduler_state_id,
+            scheduler_event_sequence=scheduler_event_sequence,
+            scheduler_event_head_id=scheduler_event_head_id,
+            source_state_id=source_state_id,
+            idempotency_key=idempotency_key,
+            producer=producer,
+            receipts=receipts,
+            recorded_at=recorded_at,
+        )
+
+    def confirm_workflow_artifact(
+        self,
+        *,
+        plan_id: str,
+        expected_head_id: str,
+        artifact_id: str,
+        path: str,
+        idempotency_key: str,
+        recorded_at: datetime | str,
+        artifact_type: str | None = None,
+        producer: str | None = None,
+    ) -> WorkflowEpochHead:
+        """Confirm one exact reserved artifact without accepting alternate identity."""
+
+        timestamp = _workflow_timestamp(recorded_at)
+        with self._workflow_transaction(allow_pending_terminal=True) as connection:
+            head = _required_workflow_head(connection, plan_id)
+            _require_pending_terminal_scope(connection, plan_id)
+            match = next(
+                (
+                    item
+                    for item in head.receipts
+                    if item.artifact_id == artifact_id and item.path == path
+                ),
+                None,
+            )
+            if (
+                match is None
+                or (artifact_type is not None and match.artifact_type != artifact_type)
+                or (producer is not None and match.producer != producer)
+                or head.idempotency_key != idempotency_key
+            ):
+                raise SchedulerAdapterError(
+                    "Workflow artifact confirmation differs from reservation."
+                )
+            if match.status is WorkflowReceiptStatus.CONFIRMED:
+                return head
+            if head.current_event_head_id != expected_head_id:
+                raise SchedulerAdapterError("Workflow epoch head changed before confirmation.")
+            _require_unchanged_scheduler_head(connection, head)
+            receipts = _ordered_workflow_receipts(
+                tuple(
+                    replace(item, status=WorkflowReceiptStatus.CONFIRMED)
+                    if item.artifact_id == artifact_id and item.path == path
+                    else item
+                    for item in head.receipts
+                )
+            )
+            return self._append_workflow_event(
+                connection,
+                cause=WorkflowEpochCause.ARTIFACT_PUBLICATION_CONFIRMED,
+                plan_id=head.plan_id,
+                candidate=head.candidate,
+                graph_id=head.graph_id,
+                scheduler_state_id=head.scheduler_state_id,
+                scheduler_event_sequence=head.scheduler_event_sequence,
+                scheduler_event_head_id=head.scheduler_event_head_id,
+                idempotency_key=head.idempotency_key,
+                producer=head.producer,
+                source_state_id=head.source_state_id,
+                receipts=receipts,
+                recorded_at=timestamp,
+            )
+
+    def confirm_workflow_terminal(
+        self,
+        *,
+        plan_id: str,
+        expected_head_id: str,
+        idempotency_key: str,
+        recorded_at: datetime | str,
+        producer: str | None = None,
+    ) -> WorkflowEpochHead:
+        """Confirm an already terminal-reserved epoch after all exact outputs exist."""
+
+        timestamp = _workflow_timestamp(recorded_at)
+        with self._workflow_transaction(allow_pending_terminal=True) as connection:
+            head = _required_workflow_head(connection, plan_id)
+            _require_pending_terminal_scope(connection, plan_id)
+            if head.phase is WorkflowEpochPhase.TERMINAL_CONFIRMED:
+                if (
+                    head.idempotency_key == idempotency_key
+                    and head.terminal_at == timestamp
+                    and (producer is None or head.producer == producer)
+                ):
+                    return head
+                raise SchedulerAdapterError("Terminal retry differs from confirmed authority.")
+            if (
+                head.phase is not WorkflowEpochPhase.TERMINAL_RESERVED
+                or head.current_event_head_id != expected_head_id
+                or head.idempotency_key != idempotency_key
+                or head.terminal_at != timestamp
+                or (producer is not None and head.producer != producer)
+                or any(item.status is not WorkflowReceiptStatus.CONFIRMED for item in head.receipts)
+            ):
+                raise SchedulerAdapterError("Terminal confirmation is not admissible.")
+            _require_unchanged_scheduler_head(connection, head)
+            return self._append_workflow_event(
+                connection,
+                cause=WorkflowEpochCause.TERMINAL_CONFIRMED,
+                plan_id=head.plan_id,
+                candidate=head.candidate,
+                graph_id=head.graph_id,
+                scheduler_state_id=head.scheduler_state_id,
+                scheduler_event_sequence=head.scheduler_event_sequence,
+                scheduler_event_head_id=head.scheduler_event_head_id,
+                idempotency_key=head.idempotency_key,
+                producer=head.producer,
+                source_state_id=head.source_state_id,
+                receipts=head.receipts,
+                recorded_at=timestamp,
+            )
+
+    def authenticate_workflow_artifact(
+        self,
+        *,
+        plan_id: str,
+        artifact_type: str,
+        artifact_id: str,
+        path: str,
+        producer: str,
+        candidate: CandidateIdentity,
+        graph_id: str,
+    ) -> WorkflowEpochHead:
+        """Authenticate one confirmed artifact solely from replayed v2 authority."""
+
+        head = self.workflow_head(plan_id)
+        if head is None or head.candidate != candidate or head.graph_id != graph_id:
+            raise SchedulerAdapterError("Workflow artifact has no matching epoch authority.")
+        if not any(
+            item.artifact_type == artifact_type
+            and item.artifact_id == artifact_id
+            and item.path == path
+            and item.producer == producer
+            and item.status is WorkflowReceiptStatus.CONFIRMED
+            for item in head.receipts
+        ):
+            raise SchedulerAdapterError("Workflow artifact receipt is absent or unconfirmed.")
+        return head
+
     @classmethod
     def initialize(
         cls,
@@ -549,6 +974,7 @@ class SQLiteSchedulerStore:
         *,
         lease_ttl_seconds: int = DEFAULT_LEASE_TTL_SECONDS,
         heartbeat_interval_seconds: int = DEFAULT_HEARTBEAT_INTERVAL_SECONDS,
+        workflow_authority: bool = False,
     ) -> SQLiteSchedulerStore:
         """Create, validate, and exclusively publish a fresh database."""
 
@@ -574,8 +1000,10 @@ class SQLiteSchedulerStore:
             try:
                 _configure(connection)
                 connection.execute(f"PRAGMA application_id = {APPLICATION_ID}")
-                connection.execute(f"PRAGMA user_version = {USER_VERSION}")
-                connection.executescript(_SCHEMA)
+                user_version = WORKFLOW_USER_VERSION if workflow_authority else USER_VERSION
+                schema_version = WORKFLOW_SCHEMA_VERSION if workflow_authority else SCHEMA_VERSION
+                connection.execute(f"PRAGMA user_version = {user_version}")
+                connection.executescript(_WORKFLOW_SCHEMA if workflow_authority else _SCHEMA)
                 connection.execute("BEGIN IMMEDIATE")
                 try:
                     cls._seed(
@@ -585,6 +1013,7 @@ class SQLiteSchedulerStore:
                         timestamp,
                         lease_ttl_seconds,
                         heartbeat_interval_seconds,
+                        schema_version,
                     )
                     connection.commit()
                 except BaseException:
@@ -593,7 +1022,10 @@ class SQLiteSchedulerStore:
             finally:
                 connection.close()
             _validate_database_path(temporary)
-            _validate_connection_file(temporary)
+            _validate_connection_file(
+                temporary,
+                expected_version=(WORKFLOW_USER_VERSION if workflow_authority else USER_VERSION),
+            )
             os.link(temporary, target)
             linked = True
             if not os.path.samefile(temporary, target):
@@ -625,12 +1057,13 @@ class SQLiteSchedulerStore:
         timestamp: str,
         lease_ttl_seconds: int,
         heartbeat_interval_seconds: int,
+        schema_version: str = SCHEMA_VERSION,
     ) -> None:
         graph_json = _artifact_json(graph_artifact)
         connection.executemany(
             "INSERT INTO metadata(key, value) VALUES (?, ?)",
             (
-                ("schema_version", SCHEMA_VERSION),
+                ("schema_version", schema_version),
                 ("graph_id", graph_artifact.artifact_id),
                 ("created_at", timestamp),
                 ("lease_ttl_seconds", str(lease_ttl_seconds)),
@@ -950,7 +1383,15 @@ class SQLiteSchedulerStore:
     ) -> tuple[LoadedSchedulerArtifact, ...]:
         """Return a bounded deterministic portable projection."""
 
-        if kind not in {"state", "leases", "messages", "events", "budget", "worktrees"}:
+        if kind not in {
+            "state",
+            "leases",
+            "messages",
+            "events",
+            "budget",
+            "worktrees",
+            "workflow-epochs",
+        }:
             raise SchedulerAdapterError("Scheduler export kind is unsupported.")
         if after_sequence < 0 or not 1 <= limit <= MAX_EXPORT:
             raise SchedulerAdapterError("Scheduler export bounds are invalid.")
@@ -980,7 +1421,14 @@ class SQLiteSchedulerStore:
                 "event_sequence > ? ORDER BY event_sequence, artifact_id LIMIT ?",
                 SchedulerArtifactType.WORKTREE_LEASE,
             ),
+            "workflow-epochs": (
+                "SELECT artifact_json FROM workflow_epoch_events WHERE sequence > ? "
+                "ORDER BY sequence LIMIT ?",
+                SchedulerArtifactType.WORKFLOW_EPOCH_EVENT,
+            ),
         }
+        if kind == "workflow-epochs":
+            self.require_workflow_authority()
         statement, expected = queries[kind]
         with self._read_connection() as connection:
             rows = connection.execute(statement, (after_sequence, limit)).fetchall()
@@ -1155,6 +1603,231 @@ class SQLiteSchedulerStore:
             _parse_artifact_json(row[0], SchedulerArtifactType.MAILBOX_MESSAGE) for row in rows
         )
 
+    @contextmanager
+    def _workflow_transaction(
+        self, *, allow_pending_terminal: bool = False
+    ) -> Iterator[sqlite3.Connection]:
+        self.require_workflow_authority()
+        with self._transaction(allow_pending_terminal=allow_pending_terminal) as connection:
+            yield connection
+
+    def _reserve_workflow_change(
+        self,
+        *,
+        cause: WorkflowEpochCause,
+        phase_guard: set[WorkflowEpochPhase],
+        plan_id: str,
+        expected_head_id: str,
+        scheduler_state_id: str,
+        scheduler_event_sequence: int,
+        scheduler_event_head_id: str,
+        source_state_id: str | None,
+        idempotency_key: str,
+        producer: str,
+        receipts: tuple[WorkflowArtifactReceipt, ...],
+        recorded_at: datetime | str,
+    ) -> WorkflowEpochHead:
+        timestamp = _workflow_timestamp(recorded_at)
+        with self._workflow_transaction(allow_pending_terminal=True) as connection:
+            pending = tuple(
+                head
+                for head in _replay_workflow_epochs(connection).values()
+                if head.phase is WorkflowEpochPhase.TERMINAL_RESERVED
+            )
+            if pending and (
+                len(pending) != 1
+                or cause is not WorkflowEpochCause.TERMINAL_RESERVED
+                or pending[0].plan_id != plan_id
+            ):
+                raise SchedulerAdapterError(
+                    "Pending terminal publication blocks scheduler mutation."
+                )
+            head = _required_workflow_head(connection, plan_id)
+            if _same_workflow_request(
+                head,
+                candidate=head.candidate,
+                graph_id=head.graph_id,
+                scheduler_state_id=scheduler_state_id,
+                scheduler_event_sequence=scheduler_event_sequence,
+                scheduler_event_head_id=scheduler_event_head_id,
+                idempotency_key=idempotency_key,
+                producer=producer,
+                source_state_id=source_state_id,
+                receipts=receipts,
+            ) and (
+                (
+                    cause is WorkflowEpochCause.TERMINAL_RESERVED
+                    and head.phase
+                    in {
+                        WorkflowEpochPhase.TERMINAL_RESERVED,
+                        WorkflowEpochPhase.TERMINAL_CONFIRMED,
+                    }
+                )
+                or (
+                    cause is WorkflowEpochCause.TRANSITION_RESERVED
+                    and head.phase
+                    in {
+                        WorkflowEpochPhase.TRANSITION_RESERVED,
+                        WorkflowEpochPhase.ACTIVE,
+                    }
+                )
+            ) and (
+                cause is not WorkflowEpochCause.TERMINAL_RESERVED
+                or head.terminal_at == timestamp
+            ):
+                return head
+            if head.phase not in phase_guard:
+                raise SchedulerAdapterError("Workflow epoch phase rejects a new transition.")
+            if head.current_event_head_id != expected_head_id:
+                raise SchedulerAdapterError("Workflow epoch head changed before reservation.")
+            self._require_scheduler_head(
+                connection,
+                head.candidate,
+                head.graph_id,
+                scheduler_state_id,
+                scheduler_event_sequence,
+                scheduler_event_head_id,
+            )
+            merged = _merge_workflow_receipts(head.receipts, receipts)
+            return self._append_workflow_event(
+                connection,
+                cause=cause,
+                plan_id=head.plan_id,
+                candidate=head.candidate,
+                graph_id=head.graph_id,
+                scheduler_state_id=scheduler_state_id,
+                scheduler_event_sequence=scheduler_event_sequence,
+                scheduler_event_head_id=scheduler_event_head_id,
+                idempotency_key=idempotency_key,
+                producer=producer,
+                source_state_id=source_state_id,
+                receipts=merged,
+                recorded_at=timestamp,
+            )
+
+    def _require_scheduler_head(
+        self,
+        connection: sqlite3.Connection,
+        candidate: CandidateIdentity,
+        graph_id: str,
+        scheduler_state_id: str,
+        scheduler_event_sequence: int,
+        scheduler_event_head_id: str,
+    ) -> None:
+        graph_artifact = self._graph(connection)
+        graph = graph_artifact.value
+        assert isinstance(graph, TaskGraph)
+        state = self._status(connection)
+        state_value = state.value
+        assert isinstance(state_value, SchedulerState)
+        if (
+            graph_artifact.artifact_id != graph_id
+            or graph.candidate != candidate
+            or state.artifact_id != scheduler_state_id
+            or state_value.event_sequence != scheduler_event_sequence
+            or _current_scheduler_event_id(connection) != scheduler_event_head_id
+        ):
+            raise SchedulerAdapterError("Workflow request does not match the current M6 authority.")
+
+    def _append_workflow_event(
+        self,
+        connection: sqlite3.Connection,
+        *,
+        cause: WorkflowEpochCause,
+        plan_id: str,
+        candidate: CandidateIdentity,
+        graph_id: str,
+        scheduler_state_id: str,
+        scheduler_event_sequence: int,
+        scheduler_event_head_id: str,
+        idempotency_key: str,
+        producer: str,
+        source_state_id: str | None,
+        receipts: tuple[WorkflowArtifactReceipt, ...],
+        recorded_at: str,
+        predecessor_plan_id: str | None = None,
+        predecessor_terminal_event_head_id: str | None = None,
+        predecessor_state_id: str | None = None,
+        predecessor_outcome_id: str | None = None,
+    ) -> WorkflowEpochHead:
+        prior = _workflow_head(connection, plan_id)
+        if prior is not None:
+            predecessor_plan_id = prior.predecessor_plan_id
+            predecessor_terminal_event_head_id = prior.predecessor_terminal_event_head_id
+            predecessor_state_id = prior.predecessor_state_id
+            predecessor_outcome_id = prior.predecessor_outcome_id
+        sequence = int(
+            connection.execute(
+                "SELECT COALESCE(MAX(sequence), 0) + 1 FROM workflow_epoch_events"
+            ).fetchone()[0]
+        )
+        epoch_sequence = 1 if prior is None else prior.epoch_sequence + 1
+        previous = None if prior is None else prior.current_event_head_id
+        (
+            workflow_event_id,
+            workflow_event_path,
+            workflow_state_id,
+            workflow_state_path,
+            outcome_id,
+            outcome_path,
+        ) = _workflow_artifact_heads(prior, receipts)
+        event = WorkflowEpochEvent(
+            sequence=sequence,
+            epoch_sequence=epoch_sequence,
+            previous_event_id=previous,
+            cause=cause,
+            plan_id=plan_id,
+            predecessor_plan_id=predecessor_plan_id,
+            predecessor_terminal_event_head_id=predecessor_terminal_event_head_id,
+            predecessor_state_id=predecessor_state_id,
+            predecessor_outcome_id=predecessor_outcome_id,
+            candidate=candidate,
+            graph_id=graph_id,
+            scheduler_state_id=scheduler_state_id,
+            scheduler_event_sequence=scheduler_event_sequence,
+            scheduler_event_head_id=scheduler_event_head_id,
+            idempotency_key=idempotency_key,
+            producer=producer,
+            source_state_id=source_state_id,
+            workflow_event_id=workflow_event_id,
+            workflow_event_path=workflow_event_path,
+            workflow_state_id=workflow_state_id,
+            workflow_state_path=workflow_state_path,
+            outcome_id=outcome_id,
+            outcome_path=outcome_path,
+            receipts=_ordered_workflow_receipts(receipts),
+            recorded_at=recorded_at,
+        )
+        artifact = artifact_from_value(SchedulerArtifactType.WORKFLOW_EPOCH_EVENT, event)
+        head = _reduce_workflow_event(prior, artifact)
+        connection.execute(
+            "INSERT INTO workflow_epoch_events(sequence, plan_id, epoch_sequence, artifact_id, "
+            "previous_event_id, cause, recorded_at, artifact_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                event.sequence,
+                event.plan_id,
+                event.epoch_sequence,
+                artifact.artifact_id,
+                event.previous_event_id,
+                event.cause.value,
+                event.recorded_at,
+                _artifact_json(artifact),
+            ),
+        )
+        connection.execute(
+            "INSERT INTO current_workflow_epoch_heads(plan_id, current_event_head_id, phase, "
+            "head_json) VALUES (?, ?, ?, ?) ON CONFLICT(plan_id) DO UPDATE SET "
+            "current_event_head_id = excluded.current_event_head_id, phase = excluded.phase, "
+            "head_json = excluded.head_json",
+            (
+                head.plan_id,
+                head.current_event_head_id,
+                head.phase.value,
+                canonical_json_bytes(head.to_dict()).decode("ascii"),
+            ),
+        )
+        return head
+
     def _connect(self, *, read_only: bool) -> sqlite3.Connection:
         if read_only:
             uri = self._path.as_uri() + "?mode=ro"
@@ -1177,11 +1850,27 @@ class SQLiteSchedulerStore:
             connection.close()
 
     @contextmanager
-    def _transaction(self) -> Iterator[sqlite3.Connection]:
+    def _transaction(
+        self, *, allow_pending_terminal: bool = False
+    ) -> Iterator[sqlite3.Connection]:
         self.validate()
         connection = self._connect(read_only=False)
         try:
             connection.execute("BEGIN IMMEDIATE")
+            if (
+                not allow_pending_terminal
+                and int(connection.execute("PRAGMA user_version").fetchone()[0])
+                == WORKFLOW_USER_VERSION
+                and connection.execute(
+                    "SELECT 1 FROM current_workflow_epoch_heads "
+                    "WHERE phase = ? LIMIT 1",
+                    (WorkflowEpochPhase.TERMINAL_RESERVED.value,),
+                ).fetchone()
+                is not None
+            ):
+                raise SchedulerAdapterError(
+                    "Pending terminal publication blocks scheduler mutation."
+                )
             yield connection
             self._validate_connection(connection)
             connection.commit()
@@ -1197,13 +1886,18 @@ class SQLiteSchedulerStore:
     def _validate_connection(self, connection: sqlite3.Connection) -> None:
         graph = self._validate_evidence_connection(connection)
         self._validate_projections(connection, graph)
+        if int(connection.execute("PRAGMA user_version").fetchone()[0]) == WORKFLOW_USER_VERSION:
+            _validate_workflow_epoch_projection(connection)
 
     def _validate_evidence_connection(
         self, connection: sqlite3.Connection
     ) -> LoadedSchedulerArtifact:
         application_id = int(connection.execute("PRAGMA application_id").fetchone()[0])
         user_version = int(connection.execute("PRAGMA user_version").fetchone()[0])
-        if application_id != APPLICATION_ID or user_version != USER_VERSION:
+        if application_id != APPLICATION_ID or user_version not in {
+            USER_VERSION,
+            WORKFLOW_USER_VERSION,
+        }:
             raise SchedulerAdapterError("Scheduler database version identity is invalid.")
         integrity = connection.execute("PRAGMA integrity_check(1)").fetchone()[0]
         if integrity != "ok":
@@ -1212,9 +1906,10 @@ class SQLiteSchedulerStore:
             "SELECT name, type FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'"
         ).fetchall()
         tables = {str(row["name"]) for row in rows if row["type"] == "table"}
-        if tables != TABLE_NAMES or any(row["type"] in {"trigger", "view"} for row in rows):
+        expected_tables = TABLE_NAMES if user_version == USER_VERSION else WORKFLOW_TABLE_NAMES
+        if tables != expected_tables or any(row["type"] in {"trigger", "view"} for row in rows):
             raise SchedulerAdapterError("Scheduler database schema shape is unexpected.")
-        if _schema_signature(connection) != _expected_schema_signature():
+        if _schema_signature(connection) != _expected_schema_signature(user_version):
             raise SchedulerAdapterError("Scheduler database schema definition drifted.")
         metadata = dict(connection.execute("SELECT key, value FROM metadata").fetchall())
         if set(metadata) != {
@@ -1226,7 +1921,10 @@ class SQLiteSchedulerStore:
             "host_capabilities",
         }:
             raise SchedulerAdapterError("Scheduler metadata shape is invalid.")
-        if metadata["schema_version"] != SCHEMA_VERSION:
+        expected_metadata_version = (
+            SCHEMA_VERSION if user_version == USER_VERSION else WORKFLOW_SCHEMA_VERSION
+        )
+        if metadata["schema_version"] != expected_metadata_version:
             raise SchedulerAdapterError("Scheduler metadata version is unsupported.")
         try:
             parse_utc(metadata["created_at"])
@@ -1265,6 +1963,8 @@ class SQLiteSchedulerStore:
         graph_value = graph.value
         assert isinstance(graph_value, TaskGraph)
         self._validate_budget_evidence(connection, graph, graph_value)
+        if user_version == WORKFLOW_USER_VERSION:
+            _validate_workflow_epoch_evidence(connection, graph)
         return graph
 
     def _graph(self, connection: sqlite3.Connection) -> LoadedSchedulerArtifact:
@@ -6729,48 +7429,660 @@ class SQLiteSchedulerStore:
         return sequence
 
 
+def _workflow_timestamp(value: datetime | str) -> str:
+    return format_utc(value if isinstance(value, datetime) else parse_utc(value))
+
+
+def _current_scheduler_event_id(connection: sqlite3.Connection) -> str:
+    row = connection.execute(
+        "SELECT artifact_id FROM events ORDER BY sequence DESC LIMIT 1"
+    ).fetchone()
+    if row is None:
+        raise SchedulerAdapterError("Scheduler event head is missing.")
+    return str(row["artifact_id"])
+
+
+def _ordered_workflow_receipts(
+    receipts: Iterable[WorkflowArtifactReceipt],
+) -> tuple[WorkflowArtifactReceipt, ...]:
+    return tuple(sorted(receipts, key=lambda item: (item.path.casefold(), item.artifact_id)))
+
+
+def _workflow_artifact_heads(
+    prior: WorkflowEpochHead | None,
+    receipts: tuple[WorkflowArtifactReceipt, ...],
+) -> tuple[str | None, str | None, str | None, str | None, str | None, str | None]:
+    heads: dict[str, tuple[str | None, str | None]] = {
+        "workflow-event": (
+            None if prior is None else prior.workflow_event_id,
+            None if prior is None else prior.workflow_event_path,
+        ),
+        "workflow-state": (
+            None if prior is None else prior.workflow_state_id,
+            None if prior is None else prior.workflow_state_path,
+        ),
+        "workflow-outcome": (
+            None if prior is None else prior.outcome_id,
+            None if prior is None else prior.outcome_path,
+        ),
+    }
+    prior_keys = (
+        set()
+        if prior is None
+        else {
+            (item.artifact_type, item.artifact_id, item.path, item.producer)
+            for item in prior.receipts
+        }
+    )
+    for receipt in receipts:
+        key = (receipt.artifact_type, receipt.artifact_id, receipt.path, receipt.producer)
+        if key not in prior_keys and receipt.artifact_type in heads:
+            heads[receipt.artifact_type] = (receipt.artifact_id, receipt.path)
+    return (
+        *heads["workflow-event"],
+        *heads["workflow-state"],
+        *heads["workflow-outcome"],
+    )
+
+
+def _merge_workflow_receipts(
+    existing: tuple[WorkflowArtifactReceipt, ...],
+    additions: tuple[WorkflowArtifactReceipt, ...],
+) -> tuple[WorkflowArtifactReceipt, ...]:
+    by_path = {item.path.casefold(): item for item in existing}
+    by_id = {item.artifact_id: item for item in existing}
+    for item in additions:
+        path_match = by_path.get(item.path.casefold())
+        id_match = by_id.get(item.artifact_id)
+        if path_match is not None and (
+            path_match.path != item.path
+            or path_match.artifact_id != item.artifact_id
+            or path_match.artifact_type != item.artifact_type
+            or path_match.producer != item.producer
+        ):
+            raise SchedulerAdapterError("Workflow receipt path collides with existing authority.")
+        if id_match is not None and id_match.path != item.path:
+            raise SchedulerAdapterError("Workflow artifact identity is reserved at another path.")
+        if path_match is None:
+            by_path[item.path.casefold()] = item
+            by_id[item.artifact_id] = item
+    return _ordered_workflow_receipts(by_path.values())
+
+
+def _same_workflow_request(
+    head: WorkflowEpochHead,
+    *,
+    candidate: CandidateIdentity,
+    graph_id: str,
+    scheduler_state_id: str,
+    scheduler_event_sequence: int,
+    scheduler_event_head_id: str,
+    idempotency_key: str,
+    producer: str,
+    source_state_id: str | None,
+    receipts: tuple[WorkflowArtifactReceipt, ...],
+) -> bool:
+    existing = {
+        (item.artifact_type, item.artifact_id, item.path, item.producer) for item in head.receipts
+    }
+    requested = {
+        (item.artifact_type, item.artifact_id, item.path, item.producer) for item in receipts
+    }
+    return (
+        head.candidate == candidate
+        and head.graph_id == graph_id
+        and head.scheduler_state_id == scheduler_state_id
+        and head.scheduler_event_sequence == scheduler_event_sequence
+        and head.scheduler_event_head_id == scheduler_event_head_id
+        and head.idempotency_key == idempotency_key
+        and head.producer == producer
+        and head.source_state_id == source_state_id
+        and requested.issubset(existing)
+    )
+
+
+def _workflow_head(
+    connection: sqlite3.Connection, plan_id: str
+) -> WorkflowEpochHead | None:
+    return _replay_workflow_epochs(connection).get(plan_id)
+
+
+def _required_workflow_head(
+    connection: sqlite3.Connection, plan_id: str
+) -> WorkflowEpochHead:
+    head = _workflow_head(connection, plan_id)
+    if head is None:
+        raise SchedulerAdapterError("Workflow epoch does not exist.")
+    return head
+
+
+def _require_pending_terminal_scope(
+    connection: sqlite3.Connection, plan_id: str
+) -> None:
+    pending = tuple(
+        head
+        for head in _replay_workflow_epochs(connection).values()
+        if head.phase is WorkflowEpochPhase.TERMINAL_RESERVED
+    )
+    if pending and (len(pending) != 1 or pending[0].plan_id != plan_id):
+        raise SchedulerAdapterError(
+            "Pending terminal publication permits only same-epoch finalization."
+        )
+
+
+def _require_unchanged_scheduler_head(
+    connection: sqlite3.Connection, head: WorkflowEpochHead
+) -> None:
+    state_row = connection.execute(
+        "SELECT artifact_json FROM events ORDER BY sequence DESC LIMIT 1"
+    ).fetchone()
+    if (
+        state_row is None
+        or _current_scheduler_event_id(connection) != head.scheduler_event_head_id
+    ):
+        raise SchedulerAdapterError("Scheduler authority changed during workflow publication.")
+    current_state = SQLiteSchedulerStore.__new__(SQLiteSchedulerStore)
+    current_state_artifact = current_state._status(connection)
+    value = current_state_artifact.value
+    assert isinstance(value, SchedulerState)
+    if (
+        current_state_artifact.artifact_id != head.scheduler_state_id
+        or value.event_sequence != head.scheduler_event_sequence
+    ):
+        raise SchedulerAdapterError("Scheduler projection changed during workflow publication.")
+
+
+def _reduce_workflow_event(
+    prior: WorkflowEpochHead | None,
+    artifact: LoadedSchedulerArtifact,
+) -> WorkflowEpochHead:
+    event = artifact.value
+    if artifact.artifact_type is not SchedulerArtifactType.WORKFLOW_EPOCH_EVENT or not isinstance(
+        event, WorkflowEpochEvent
+    ):
+        raise SchedulerAdapterError("Workflow replay received a non-epoch artifact.")
+    if prior is None:
+        predecessor_values = (
+            event.predecessor_plan_id,
+            event.predecessor_terminal_event_head_id,
+            event.predecessor_state_id,
+            event.predecessor_outcome_id,
+        )
+        if (
+            event.cause is not WorkflowEpochCause.EPOCH_OPENED
+            or event.epoch_sequence != 1
+            or event.previous_event_id is not None
+            or event.source_state_id is not None
+            or len(event.receipts) != 1
+            or event.receipts[0].artifact_type != "integrated-plan"
+            or event.receipts[0].artifact_id != event.plan_id
+            or event.receipts[0].status is not WorkflowReceiptStatus.RESERVED
+            or (any(item is None for item in predecessor_values) and any(
+                item is not None for item in predecessor_values
+            ))
+        ):
+            raise SchedulerAdapterError("Workflow epoch root semantics are invalid.")
+        phase = WorkflowEpochPhase.OPEN
+        terminal_at = None
+        workflow_event_id = None
+        workflow_event_path = None
+        workflow_state_id = None
+        workflow_state_path = None
+        outcome_id = None
+        outcome_path = None
+    else:
+        if (
+            event.plan_id != prior.plan_id
+            or event.predecessor_plan_id != prior.predecessor_plan_id
+            or event.predecessor_terminal_event_head_id
+            != prior.predecessor_terminal_event_head_id
+            or event.predecessor_state_id != prior.predecessor_state_id
+            or event.predecessor_outcome_id != prior.predecessor_outcome_id
+            or event.candidate != prior.candidate
+            or event.graph_id != prior.graph_id
+            or event.epoch_sequence != prior.epoch_sequence + 1
+            or event.previous_event_id != prior.current_event_head_id
+            or parse_utc(event.recorded_at) < parse_utc(prior.recorded_at)
+        ):
+            raise SchedulerAdapterError("Workflow epoch chain continuity is invalid.")
+        prior_receipts = {
+            (item.artifact_type, item.artifact_id, item.path, item.producer): item
+            for item in prior.receipts
+        }
+        current_receipts = {
+            (item.artifact_type, item.artifact_id, item.path, item.producer): item
+            for item in event.receipts
+        }
+        if not set(prior_receipts).issubset(current_receipts):
+            raise SchedulerAdapterError("Workflow event removed prior publication authority.")
+        phase = prior.phase
+        terminal_at = prior.terminal_at
+        workflow_event_id = prior.workflow_event_id
+        workflow_event_path = prior.workflow_event_path
+        workflow_state_id = prior.workflow_state_id
+        workflow_state_path = prior.workflow_state_path
+        outcome_id = prior.outcome_id
+        outcome_path = prior.outcome_path
+        if event.cause is WorkflowEpochCause.EPOCH_OPENED:
+            raise SchedulerAdapterError("Workflow epoch may be opened only once.")
+        if event.cause in {
+            WorkflowEpochCause.TRANSITION_RESERVED,
+            WorkflowEpochCause.ARTIFACT_PUBLICATION_RESERVED,
+        }:
+            if prior.phase not in {WorkflowEpochPhase.OPEN, WorkflowEpochPhase.ACTIVE}:
+                raise SchedulerAdapterError("Workflow transition reservation phase is invalid.")
+            if event.source_state_id != prior.workflow_state_id:
+                raise SchedulerAdapterError("Workflow transition source differs from epoch head.")
+            added = [current_receipts[key] for key in set(current_receipts) - set(prior_receipts)]
+            if not added or any(
+                item.status is not WorkflowReceiptStatus.RESERVED for item in added
+            ):
+                raise SchedulerAdapterError("Workflow transition did not add reserved artifacts.")
+            added_by_type = {item.artifact_type: item for item in added}
+            if set(added_by_type) != {"workflow-event", "workflow-state"}:
+                raise SchedulerAdapterError("Workflow transition must bind Event and State.")
+            workflow_event_id = added_by_type["workflow-event"].artifact_id
+            workflow_event_path = added_by_type["workflow-event"].path
+            workflow_state_id = added_by_type["workflow-state"].artifact_id
+            workflow_state_path = added_by_type["workflow-state"].path
+            phase = WorkflowEpochPhase.TRANSITION_RESERVED
+        elif event.cause is WorkflowEpochCause.ARTIFACT_PUBLICATION_CONFIRMED:
+            if (
+                event.idempotency_key != prior.idempotency_key
+                or event.producer != prior.producer
+                or event.source_state_id != prior.source_state_id
+                or event.scheduler_state_id != prior.scheduler_state_id
+                or event.scheduler_event_sequence != prior.scheduler_event_sequence
+                or event.scheduler_event_head_id != prior.scheduler_event_head_id
+                or set(current_receipts) != set(prior_receipts)
+            ):
+                raise SchedulerAdapterError(
+                    "Workflow artifact confirmation changed reservation authority."
+                )
+            changed = [
+                key
+                for key in current_receipts
+                if current_receipts[key].status is not prior_receipts[key].status
+            ]
+            if (
+                len(changed) != 1
+                or prior_receipts[changed[0]].status is not WorkflowReceiptStatus.RESERVED
+                or current_receipts[changed[0]].status is not WorkflowReceiptStatus.CONFIRMED
+            ):
+                raise SchedulerAdapterError(
+                    "Workflow confirmation must confirm exactly one receipt."
+                )
+            if prior.phase is not WorkflowEpochPhase.TERMINAL_RESERVED:
+                phase = (
+                    WorkflowEpochPhase.ACTIVE
+                    if all(
+                        item.status is WorkflowReceiptStatus.CONFIRMED
+                        for item in current_receipts.values()
+                    )
+                    else prior.phase
+                )
+        elif event.cause is WorkflowEpochCause.TERMINAL_RESERVED:
+            if prior.phase not in {WorkflowEpochPhase.OPEN, WorkflowEpochPhase.ACTIVE}:
+                raise SchedulerAdapterError("Workflow terminal reservation phase is invalid.")
+            if event.source_state_id is None or event.source_state_id != prior.workflow_state_id:
+                raise SchedulerAdapterError("Workflow terminal source differs from epoch head.")
+            added = [current_receipts[key] for key in set(current_receipts) - set(prior_receipts)]
+            if (
+                {item.artifact_type for item in added}
+                != {"workflow-event", "workflow-state", "workflow-outcome"}
+                or any(item.status is not WorkflowReceiptStatus.RESERVED for item in added)
+            ):
+                raise SchedulerAdapterError(
+                    "Terminal reservation must bind Event, State, and Outcome."
+                )
+            added_by_type = {item.artifact_type: item for item in added}
+            workflow_event_id = added_by_type["workflow-event"].artifact_id
+            workflow_event_path = added_by_type["workflow-event"].path
+            workflow_state_id = added_by_type["workflow-state"].artifact_id
+            workflow_state_path = added_by_type["workflow-state"].path
+            outcome_id = added_by_type["workflow-outcome"].artifact_id
+            outcome_path = added_by_type["workflow-outcome"].path
+            phase = WorkflowEpochPhase.TERMINAL_RESERVED
+            terminal_at = event.recorded_at
+        elif event.cause is WorkflowEpochCause.TERMINAL_CONFIRMED:
+            if (
+                prior.phase is not WorkflowEpochPhase.TERMINAL_RESERVED
+                or event.recorded_at != prior.terminal_at
+                or event.idempotency_key != prior.idempotency_key
+                or event.producer != prior.producer
+                or event.source_state_id != prior.source_state_id
+                or event.scheduler_state_id != prior.scheduler_state_id
+                or event.scheduler_event_sequence != prior.scheduler_event_sequence
+                or event.scheduler_event_head_id != prior.scheduler_event_head_id
+                or set(current_receipts) != set(prior_receipts)
+                or any(
+                    item.status is not WorkflowReceiptStatus.CONFIRMED
+                    for item in event.receipts
+                )
+            ):
+                raise SchedulerAdapterError("Workflow terminal confirmation is invalid.")
+            phase = WorkflowEpochPhase.TERMINAL_CONFIRMED
+    if (
+        event.workflow_event_id,
+        event.workflow_event_path,
+        event.workflow_state_id,
+        event.workflow_state_path,
+        event.outcome_id,
+        event.outcome_path,
+    ) != (
+        workflow_event_id,
+        workflow_event_path,
+        workflow_state_id,
+        workflow_state_path,
+        outcome_id,
+        outcome_path,
+    ):
+        raise SchedulerAdapterError("Workflow event artifact-head projection is invalid.")
+    return WorkflowEpochHead(
+        plan_id=event.plan_id,
+        predecessor_plan_id=event.predecessor_plan_id,
+        predecessor_terminal_event_head_id=event.predecessor_terminal_event_head_id,
+        predecessor_state_id=event.predecessor_state_id,
+        predecessor_outcome_id=event.predecessor_outcome_id,
+        candidate=event.candidate,
+        graph_id=event.graph_id,
+        sequence=event.sequence,
+        epoch_sequence=event.epoch_sequence,
+        current_event_head_id=artifact.artifact_id,
+        phase=phase,
+        scheduler_state_id=event.scheduler_state_id,
+        scheduler_event_sequence=event.scheduler_event_sequence,
+        scheduler_event_head_id=event.scheduler_event_head_id,
+        idempotency_key=event.idempotency_key,
+        producer=event.producer,
+        source_state_id=event.source_state_id,
+        workflow_event_id=workflow_event_id,
+        workflow_event_path=workflow_event_path,
+        workflow_state_id=workflow_state_id,
+        workflow_state_path=workflow_state_path,
+        outcome_id=outcome_id,
+        outcome_path=outcome_path,
+        receipts=event.receipts,
+        recorded_at=event.recorded_at,
+        terminal_at=terminal_at,
+    )
+
+
+def _replay_workflow_epochs(connection: sqlite3.Connection) -> dict[str, WorkflowEpochHead]:
+    rows = connection.execute("SELECT * FROM workflow_epoch_events ORDER BY sequence").fetchall()
+    if [int(row["sequence"]) for row in rows] != list(range(1, len(rows) + 1)):
+        raise SchedulerAdapterError("Workflow epoch global sequence is not contiguous.")
+    heads: dict[str, WorkflowEpochHead] = {}
+    for row in rows:
+        artifact = _parse_artifact_json(
+            str(row["artifact_json"]), SchedulerArtifactType.WORKFLOW_EPOCH_EVENT
+        )
+        event = artifact.value
+        assert isinstance(event, WorkflowEpochEvent)
+        if (
+            event.sequence != row["sequence"]
+            or event.plan_id != row["plan_id"]
+            or event.epoch_sequence != row["epoch_sequence"]
+            or artifact.artifact_id != row["artifact_id"]
+            or event.previous_event_id != row["previous_event_id"]
+            or event.cause.value != row["cause"]
+            or event.recorded_at != row["recorded_at"]
+        ):
+            raise SchedulerAdapterError("Workflow epoch row differs from its immutable artifact.")
+        heads[event.plan_id] = _reduce_workflow_event(heads.get(event.plan_id), artifact)
+    return heads
+
+
+def _validate_workflow_epoch_evidence(
+    connection: sqlite3.Connection, graph_artifact: LoadedSchedulerArtifact
+) -> None:
+    graph = graph_artifact.value
+    assert isinstance(graph, TaskGraph)
+    heads = _replay_workflow_epochs(connection)
+    for head in heads.values():
+        if head.graph_id != graph_artifact.artifact_id or head.candidate != graph.candidate:
+            raise SchedulerAdapterError("Workflow epoch differs from scheduler graph authority.")
+    historical_states: dict[int, LoadedSchedulerArtifact] = {}
+    for row in connection.execute(
+        "SELECT artifact_json FROM workflow_epoch_events ORDER BY sequence"
+    ).fetchall():
+        event = _parse_artifact_json(
+            str(row["artifact_json"]), SchedulerArtifactType.WORKFLOW_EPOCH_EVENT
+        ).value
+        assert isinstance(event, WorkflowEpochEvent)
+        scheduler_row = connection.execute(
+            "SELECT artifact_id FROM events WHERE sequence = ?",
+            (event.scheduler_event_sequence,),
+        ).fetchone()
+        if (
+            scheduler_row is None
+            or str(scheduler_row["artifact_id"]) != event.scheduler_event_head_id
+        ):
+            raise SchedulerAdapterError(
+                "Workflow epoch references a nonauthoritative scheduler event."
+            )
+        historical = historical_states.get(event.scheduler_event_sequence)
+        if historical is None:
+            historical = _historical_scheduler_state(
+                connection, graph_artifact, event.scheduler_event_sequence
+            )
+            historical_states[event.scheduler_event_sequence] = historical
+        historical_value = historical.value
+        assert isinstance(historical_value, SchedulerState)
+        if (
+            historical.artifact_id != event.scheduler_state_id
+            or historical_value.event_sequence != event.scheduler_event_sequence
+        ):
+            raise SchedulerAdapterError(
+                "Workflow epoch scheduler triple differs from immutable historical evidence."
+            )
+    pending = tuple(
+        head for head in heads.values() if head.phase is WorkflowEpochPhase.TERMINAL_RESERVED
+    )
+    if pending:
+        final_event = connection.execute(
+            "SELECT sequence, artifact_id FROM events ORDER BY sequence DESC LIMIT 1"
+        ).fetchone()
+        if final_event is None:
+            raise SchedulerAdapterError("Pending terminal has no scheduler authority.")
+        final_sequence = int(final_event["sequence"])
+        final_state = historical_states.get(final_sequence)
+        if final_state is None:
+            final_state = _historical_scheduler_state(
+                connection, graph_artifact, final_sequence
+            )
+        if len(pending) != 1 or (
+            pending[0].scheduler_state_id,
+            pending[0].scheduler_event_sequence,
+            pending[0].scheduler_event_head_id,
+        ) != (final_state.artifact_id, final_sequence, str(final_event["artifact_id"])):
+            raise SchedulerAdapterError(
+                "Pending terminal publication does not pin the final scheduler authority."
+            )
+
+
+def _historical_scheduler_state(
+    connection: sqlite3.Connection,
+    graph_artifact: LoadedSchedulerArtifact,
+    event_sequence: int,
+) -> LoadedSchedulerArtifact:
+    """Derive one Scheduler State only from the immutable evidence prefix."""
+
+    graph = graph_artifact.value
+    assert isinstance(graph, TaskGraph)
+    event_rows = connection.execute(
+        "SELECT sequence, event_sha256, artifact_json FROM events "
+        "WHERE sequence <= ? ORDER BY sequence",
+        (event_sequence,),
+    ).fetchall()
+    if not event_rows or int(event_rows[-1]["sequence"]) != event_sequence:
+        raise SchedulerAdapterError("Historical Scheduler State prefix is unavailable.")
+    projections = {
+        task.task_id: TaskProjection(
+            task_id=task.task_id,
+            state=TaskState.READY if not task.dependencies else TaskState.PLANNED,
+            dispatch_phase=DispatchPhase.NOT_DISPATCHED,
+            outcome=TaskOutcome.NONE,
+            attempt=0,
+            fence=0,
+            blockers=(),
+        )
+        for task in graph.tasks
+    }
+    message_ids: set[str] = set()
+    for row in event_rows:
+        artifact = _parse_artifact_json(
+            str(row["artifact_json"]), SchedulerArtifactType.SCHEDULER_EVENT
+        )
+        event = artifact.value
+        assert isinstance(event, SchedulerEvent)
+        if event.task_projection is not None:
+            projections[event.task_projection.task_id] = event.task_projection
+        if event.message_id is not None:
+            message_ids.add(event.message_id)
+    ranks = topological_ranks(graph)
+    ordered_projections = tuple(projections[key] for key in sorted(projections))
+    ready_order = tuple(
+        sorted(
+            (
+                item.task_id
+                for item in ordered_projections
+                if item.state is TaskState.READY
+            ),
+            key=lambda identifier: (
+                next(task.wave for task in graph.tasks if task.task_id == identifier),
+                ranks[identifier],
+                identifier,
+            ),
+        )
+    )
+    latest_leases: dict[str, sqlite3.Row] = {}
+    for row in connection.execute(
+        "SELECT * FROM lease_history WHERE event_sequence <= ? "
+        "ORDER BY event_sequence, artifact_id",
+        (event_sequence,),
+    ).fetchall():
+        latest_leases[str(row["task_id"])] = row
+    lease_ids = tuple(
+        sorted(
+            str(row["authority_lease_id"])
+            for row in latest_leases.values()
+            if str(row["status"]) == LeaseStatus.CURRENT.value
+        )
+    )
+    latest_worktrees: dict[str, sqlite3.Row] = {}
+    for row in connection.execute(
+        "SELECT * FROM worktree_lease_history WHERE event_sequence <= ? "
+        "ORDER BY event_sequence, artifact_id",
+        (event_sequence,),
+    ).fetchall():
+        latest_worktrees[str(row["task_id"])] = row
+    worktree_ids = tuple(
+        sorted(
+            str(row["artifact_id"])
+            for row in latest_worktrees.values()
+            if str(row["status"])
+            in {
+                WorktreeLeaseStatus.REQUESTED.value,
+                WorktreeLeaseStatus.OBSERVED.value,
+            }
+        )
+    )
+    ledger_row = connection.execute(
+        "SELECT artifact_json FROM budget_entries WHERE event_sequence <= ? "
+        "ORDER BY event_sequence DESC LIMIT 1",
+        (event_sequence,),
+    ).fetchone()
+    if ledger_row is None:
+        raise SchedulerAdapterError("Historical Scheduler State lacks budget evidence.")
+    loaded_ledger = _parse_artifact_json(
+        str(ledger_row["artifact_json"]), SchedulerArtifactType.BUDGET_LEDGER
+    ).value
+    assert isinstance(loaded_ledger, BudgetLedger)
+    historical_ledger = artifact_from_value(
+        SchedulerArtifactType.BUDGET_LEDGER,
+        replace(loaded_ledger, event_sequence=event_sequence),
+    )
+    state = SchedulerState(
+        graph_id=graph_artifact.artifact_id,
+        candidate=graph.candidate,
+        tasks=ordered_projections,
+        ready_order=ready_order,
+        lease_ids=lease_ids,
+        message_ids=tuple(sorted(message_ids)[:1000]),
+        budget_ledger_id=historical_ledger.artifact_id,
+        worktree_lease_ids=worktree_ids,
+        event_sequence=event_sequence,
+        event_head_sha256=str(event_rows[-1]["event_sha256"]),
+    )
+    return artifact_from_value(SchedulerArtifactType.SCHEDULER_STATE, state)
+
+
+def _validate_workflow_epoch_projection(connection: sqlite3.Connection) -> None:
+    expected = _replay_workflow_epochs(connection)
+    rows = connection.execute(
+        "SELECT plan_id, current_event_head_id, phase, head_json "
+        "FROM current_workflow_epoch_heads ORDER BY plan_id"
+    ).fetchall()
+    if [str(row["plan_id"]) for row in rows] != sorted(expected):
+        raise SchedulerAdapterError("Workflow epoch head projection shape differs from replay.")
+    for row in rows:
+        head = expected[str(row["plan_id"])]
+        if (
+            str(row["current_event_head_id"]) != head.current_event_head_id
+            or str(row["phase"]) != head.phase.value
+            or str(row["head_json"]) != canonical_json_bytes(head.to_dict()).decode("ascii")
+        ):
+            raise SchedulerAdapterError("Workflow epoch head projection differs from replay.")
+
+
 def recover_scheduler_database(source: Path, output: Path, root: Path) -> SQLiteSchedulerStore:
     """Rebuild mutable projections from validated immutable evidence."""
 
     source_store = SQLiteSchedulerStore(source, root)
-    source_store.validate_evidence()
     resolved_root = _regular_root(root)
     target = _path_under_root(resolved_root, output, suffix=".sqlite3", existing=False)
-    source_connection = source_store._connect(read_only=True)
+    descriptor = -1
+    temporary: Path | None = None
+    source_connection = source_store._connect(read_only=False)
+    before_evidence = ""
     try:
+        source_connection.execute("BEGIN IMMEDIATE")
+        source_store._validate_evidence_connection(source_connection)
+        source_version = int(source_connection.execute("PRAGMA user_version").fetchone()[0])
         graph_artifact = source_store._graph(source_connection)
         validate_task_graph_inputs(graph_artifact, resolved_root)
         before_evidence = _immutable_evidence_digest(source_connection)
-    finally:
-        source_connection.close()
-    descriptor = -1
-    temporary: Path | None = None
-    try:
         descriptor, name = tempfile.mkstemp(
             prefix=f".{target.name}.", suffix=".tmp", dir=target.parent
         )
         os.close(descriptor)
         descriptor = -1
         temporary = Path(name)
-        source_connection = source_store._connect(read_only=True)
         target_connection = sqlite3.connect(temporary, timeout=0, isolation_level=None)
         target_connection.row_factory = sqlite3.Row
         try:
             _configure(target_connection)
             target_connection.execute(f"PRAGMA application_id = {APPLICATION_ID}")
-            target_connection.execute(f"PRAGMA user_version = {USER_VERSION}")
-            target_connection.executescript(_SCHEMA)
+            target_connection.execute(f"PRAGMA user_version = {source_version}")
+            target_connection.executescript(
+                _WORKFLOW_SCHEMA if source_version == WORKFLOW_USER_VERSION else _SCHEMA
+            )
             target_connection.execute("BEGIN IMMEDIATE")
             try:
-                _rebuild_from_evidence(source_connection, target_connection, graph_artifact)
+                _rebuild_from_evidence(
+                    source_connection,
+                    target_connection,
+                    graph_artifact,
+                    user_version=source_version,
+                )
                 target_connection.commit()
             except BaseException:
                 target_connection.rollback()
                 raise
         finally:
             target_connection.close()
-            source_connection.close()
-        _validate_connection_file(temporary)
+        _validate_connection_file(temporary, expected_version=source_version)
         temporary_store = SQLiteSchedulerStore.__new__(SQLiteSchedulerStore)
         temporary_store._root = resolved_root
         temporary_store._path = temporary
@@ -6784,6 +8096,7 @@ def recover_scheduler_database(source: Path, output: Path, root: Path) -> SQLite
         os.link(temporary, target)
         if not os.path.samefile(temporary, target):
             raise SchedulerAdapterError("Recovery publication identity is indeterminate.")
+        source_connection.commit()
     except FileExistsError as exc:
         raise SchedulerAdapterError("Recovery output already exists.") from exc
     except SchedulerAdapterError:
@@ -6791,6 +8104,9 @@ def recover_scheduler_database(source: Path, output: Path, root: Path) -> SQLite
     except (OSError, sqlite3.Error) as exc:
         raise SchedulerAdapterError("Recovery failed or publication is indeterminate.") from exc
     finally:
+        if source_connection.in_transaction:
+            source_connection.rollback()
+        source_connection.close()
         if descriptor >= 0:
             os.close(descriptor)
         if temporary is not None:
@@ -6804,6 +8120,144 @@ def recover_scheduler_database(source: Path, output: Path, root: Path) -> SQLite
     finally:
         recovered_connection.close()
     return recovered
+
+
+def migrate_scheduler_database_v1_to_v2(
+    source: Path,
+    output: Path,
+    root: Path,
+    *,
+    expected_source_head_id: str | None = None,
+    before_publish: Callable[[], None] | None = None,
+) -> SQLiteSchedulerStore:
+    """Copy validated v1 evidence into a fresh v2 store with an empty epoch chain."""
+
+    source_store = SQLiteSchedulerStore(source, root)
+    resolved_root = _regular_root(root)
+    target = _path_under_root(resolved_root, output, suffix=".sqlite3", existing=False)
+    descriptor = -1
+    temporary: Path | None = None
+    source_connection = source_store._connect(read_only=False)
+    try:
+        source_connection.execute("BEGIN IMMEDIATE")
+        source_store._validate_connection(source_connection)
+        if int(source_connection.execute("PRAGMA user_version").fetchone()[0]) != USER_VERSION:
+            raise SchedulerAdapterError("Scheduler migration source must be version 1.")
+        graph_artifact = source_store._graph(source_connection)
+        validate_task_graph_inputs(graph_artifact, resolved_root)
+        before_evidence = _scheduler_v1_evidence_identity(source_connection)
+        before_head = _current_scheduler_event_id(source_connection)
+        if expected_source_head_id is not None and before_head != expected_source_head_id:
+            raise SchedulerAdapterError(
+                "Scheduler migration source differs from approved authority."
+            )
+        descriptor, name = tempfile.mkstemp(
+            prefix=f".{target.name}.", suffix=".tmp", dir=target.parent
+        )
+        os.close(descriptor)
+        descriptor = -1
+        temporary = Path(name)
+        target_connection = sqlite3.connect(temporary, timeout=0, isolation_level=None)
+        target_connection.row_factory = sqlite3.Row
+        try:
+            _configure(target_connection)
+            target_connection.execute(f"PRAGMA application_id = {APPLICATION_ID}")
+            target_connection.execute(f"PRAGMA user_version = {WORKFLOW_USER_VERSION}")
+            target_connection.executescript(_WORKFLOW_SCHEMA)
+            target_connection.execute("BEGIN IMMEDIATE")
+            try:
+                _rebuild_from_evidence(
+                    source_connection,
+                    target_connection,
+                    graph_artifact,
+                    user_version=USER_VERSION,
+                )
+                target_connection.execute(
+                    "UPDATE metadata SET value = ? WHERE key = 'schema_version'",
+                    (WORKFLOW_SCHEMA_VERSION,),
+                )
+                target_connection.commit()
+            except BaseException:
+                target_connection.rollback()
+                raise
+        finally:
+            target_connection.close()
+        _validate_connection_file(temporary, expected_version=WORKFLOW_USER_VERSION)
+        temporary_store = SQLiteSchedulerStore.__new__(SQLiteSchedulerStore)
+        temporary_store._root = resolved_root
+        temporary_store._path = temporary
+        temporary_store.validate()
+        temporary_connection = temporary_store._connect(read_only=True)
+        try:
+            if (
+                _scheduler_v1_evidence_identity(temporary_connection) != before_evidence
+                or _current_scheduler_event_id(temporary_connection) != before_head
+                or temporary_connection.execute(
+                    "SELECT COUNT(*) FROM workflow_epoch_events"
+                ).fetchone()[0]
+                != 0
+            ):
+                raise SchedulerAdapterError("Scheduler migration changed source evidence.")
+        finally:
+            temporary_connection.close()
+        if (
+            _scheduler_v1_evidence_identity(source_connection) != before_evidence
+            or _current_scheduler_event_id(source_connection) != before_head
+        ):
+            raise SchedulerAdapterError("Scheduler migration source changed during copy.")
+        if before_publish is not None:
+            before_publish()
+        os.link(temporary, target)
+        if not os.path.samefile(temporary, target):
+            raise SchedulerAdapterError("Migration publication identity is indeterminate.")
+        source_connection.commit()
+    except FileExistsError as exc:
+        raise SchedulerAdapterError("Migration output already exists.") from exc
+    except SchedulerAdapterError:
+        raise
+    except (OSError, sqlite3.Error) as exc:
+        raise SchedulerAdapterError(
+            "Scheduler migration failed or publication is indeterminate."
+        ) from exc
+    finally:
+        if source_connection.in_transaction:
+            source_connection.rollback()
+        source_connection.close()
+        if descriptor >= 0:
+            os.close(descriptor)
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+    migrated = SQLiteSchedulerStore(target, resolved_root)
+    migrated.validate()
+    return migrated
+
+
+def _scheduler_v1_evidence_identity(connection: sqlite3.Connection) -> str:
+    metadata = dict(connection.execute("SELECT key, value FROM metadata").fetchall())
+    payload: dict[str, object] = {
+        "metadata": {
+            key: metadata[key]
+            for key in (
+                "created_at",
+                "graph_id",
+                "heartbeat_interval_seconds",
+                "lease_ttl_seconds",
+            )
+        }
+    }
+    for table, order in (
+        ("task_graph", "graph_id"),
+        ("events", "sequence"),
+        ("messages", "sequence"),
+        ("lease_history", "event_sequence, artifact_id"),
+        ("budget_entries", "event_sequence"),
+        ("worktree_lease_history", "event_sequence, artifact_id"),
+    ):
+        payload[table] = [
+            dict(row)
+            for row in connection.execute(f"SELECT * FROM {table} ORDER BY {order}").fetchall()
+        ]
+    return _sha256_json(payload)
 
 
 def _immutable_evidence_digest(connection: sqlite3.Connection) -> str:
@@ -6820,14 +8274,17 @@ def _immutable_evidence_digest(connection: sqlite3.Connection) -> str:
             )
         }
     }
-    for table, order in (
+    tables = [
         ("task_graph", "graph_id"),
         ("events", "sequence"),
         ("messages", "sequence"),
         ("lease_history", "event_sequence, artifact_id"),
         ("budget_entries", "event_sequence"),
         ("worktree_lease_history", "event_sequence, artifact_id"),
-    ):
+    ]
+    if int(connection.execute("PRAGMA user_version").fetchone()[0]) == WORKFLOW_USER_VERSION:
+        tables.append(("workflow_epoch_events", "sequence"))
+    for table, order in tables:
         rows = connection.execute(f"SELECT * FROM {table} ORDER BY {order}").fetchall()
         payload[table] = [dict(row) for row in rows]
     return _sha256_json(payload)
@@ -6837,6 +8294,8 @@ def _rebuild_from_evidence(
     source: sqlite3.Connection,
     target: sqlite3.Connection,
     graph_artifact: LoadedSchedulerArtifact,
+    *,
+    user_version: int = USER_VERSION,
 ) -> None:
     graph = graph_artifact.value
     assert isinstance(graph, TaskGraph)
@@ -6844,7 +8303,12 @@ def _rebuild_from_evidence(
     target.executemany(
         "INSERT INTO metadata(key, value) VALUES (?, ?)",
         (
-            ("schema_version", SCHEMA_VERSION),
+            (
+                "schema_version",
+                WORKFLOW_SCHEMA_VERSION
+                if user_version == WORKFLOW_USER_VERSION
+                else SCHEMA_VERSION,
+            ),
             ("graph_id", graph_artifact.artifact_id),
             ("created_at", metadata["created_at"]),
             ("lease_ttl_seconds", metadata["lease_ttl_seconds"]),
@@ -7069,6 +8533,34 @@ def _rebuild_from_evidence(
         "UPDATE metadata SET value = ? WHERE key = 'host_capabilities'",
         (canonical_json_bytes(capabilities_by_host).decode("ascii"),),
     )
+    if user_version == WORKFLOW_USER_VERSION:
+        _copy_rows(
+            source,
+            target,
+            "workflow_epoch_events",
+            (
+                "sequence",
+                "plan_id",
+                "epoch_sequence",
+                "artifact_id",
+                "previous_event_id",
+                "cause",
+                "recorded_at",
+                "artifact_json",
+            ),
+            "sequence",
+        )
+        for plan_id, head in sorted(_replay_workflow_epochs(target).items()):
+            target.execute(
+                "INSERT INTO current_workflow_epoch_heads(plan_id, current_event_head_id, "
+                "phase, head_json) VALUES (?, ?, ?, ?)",
+                (
+                    plan_id,
+                    head.current_event_head_id,
+                    head.phase.value,
+                    canonical_json_bytes(head.to_dict()).decode("ascii"),
+                ),
+            )
 
 
 def _copy_rows(
@@ -7135,11 +8627,15 @@ def _schema_signature(connection: sqlite3.Connection) -> tuple[tuple[str, str, s
     )
 
 
-def _expected_schema_signature() -> tuple[tuple[str, str, str, str], ...]:
+def _expected_schema_signature(
+    user_version: int = USER_VERSION,
+) -> tuple[tuple[str, str, str, str], ...]:
     connection = sqlite3.connect(":memory:", isolation_level=None)
     connection.row_factory = sqlite3.Row
     try:
-        connection.executescript(_SCHEMA)
+        connection.executescript(
+            _WORKFLOW_SCHEMA if user_version == WORKFLOW_USER_VERSION else _SCHEMA
+        )
         return _schema_signature(connection)
     finally:
         connection.close()
@@ -7153,14 +8649,14 @@ def _configure(connection: sqlite3.Connection) -> None:
     connection.execute("PRAGMA busy_timeout = 0")
 
 
-def _validate_connection_file(path: Path) -> None:
+def _validate_connection_file(path: Path, *, expected_version: int = USER_VERSION) -> None:
     connection = sqlite3.connect(path, timeout=0, isolation_level=None)
     connection.row_factory = sqlite3.Row
     try:
         _configure(connection)
         application_id = int(connection.execute("PRAGMA application_id").fetchone()[0])
         user_version = int(connection.execute("PRAGMA user_version").fetchone()[0])
-        if application_id != APPLICATION_ID or user_version != USER_VERSION:
+        if application_id != APPLICATION_ID or user_version != expected_version:
             raise SchedulerAdapterError("Temporary scheduler database version is invalid.")
         if connection.execute("PRAGMA integrity_check(1)").fetchone()[0] != "ok":
             raise SchedulerAdapterError("Temporary scheduler database is corrupt.")

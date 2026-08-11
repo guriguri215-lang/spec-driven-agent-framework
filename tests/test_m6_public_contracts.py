@@ -8,7 +8,17 @@ import pytest
 from scripts.validate_m6_scheduler import main
 
 import sdaqf
-from tests.m6_scheduler_helpers import ROOT
+from sdaqf.application.scheduler_contracts import (
+    SchedulerContractError,
+    parse_scheduler_artifact_bytes,
+)
+from sdaqf.domain.scheduler import SchedulerArtifactType
+from tests.m6_scheduler_helpers import (
+    ROOT,
+    example_payload,
+    refresh_identity,
+    strict_bytes,
+)
 from tests.schema_validation import LocalSchemaValidator, SchemaValidationError
 
 EXAMPLE_TO_SCHEMA = {
@@ -19,15 +29,99 @@ EXAMPLE_TO_SCHEMA = {
     "scheduler-event.json": "scheduler-event.schema.json",
     "budget-ledger.json": "budget-ledger.schema.json",
     "worktree-lease.json": "worktree-lease.schema.json",
+    "workflow-epoch-event.json": "workflow-epoch-event.schema.json",
+    "scheduler-store-migration-approval.json": "scheduler-store-migration-approval.schema.json",
+    "scheduler-store-migration-result.json": "scheduler-store-migration-result.schema.json",
 }
 
 
-def test_all_seven_public_examples_validate_against_local_schemas() -> None:
+def test_all_ten_public_examples_validate_against_local_schemas() -> None:
     for example, schema_name in EXAMPLE_TO_SCHEMA.items():
         instance = json.loads(
             (ROOT / "examples" / "m6-scheduler" / example).read_text(encoding="utf-8")
         )
         LocalSchemaValidator(ROOT / "schemas").validate(schema_name, instance)
+
+
+@pytest.mark.parametrize(
+    ("artifact_type", "artifact_id"),
+    [
+        ("integrated-plan", "M8-WORKFLOW-STATE-" + "A" * 64),
+        ("workflow-state", "M8-WORKFLOW-EVENT-" + "A" * 64),
+        ("workflow-event", "M8-WORKFLOW-OUTCOME-" + "A" * 64),
+        ("workflow-outcome", "M8-INTEGRATED-PLAN-" + "A" * 64),
+    ],
+)
+def test_workflow_epoch_receipt_type_and_id_prefix_mismatch_is_rejected(
+    artifact_type: str,
+    artifact_id: str,
+) -> None:
+    payload = example_payload("workflow-epoch-event.json")
+    content = payload["content"]
+    assert isinstance(content, dict)
+    receipts = content["receipts"]
+    assert isinstance(receipts, list)
+    receipt = receipts[0]
+    assert isinstance(receipt, dict)
+    receipt["artifact_type"] = artifact_type
+    receipt["artifact_id"] = artifact_id
+
+    _assert_workflow_epoch_schema_and_runtime_reject(payload)
+
+
+@pytest.mark.parametrize("artifact_id", [None, 1, [], {}])
+def test_workflow_epoch_receipt_non_string_artifact_id_is_rejected(
+    artifact_id: object,
+) -> None:
+    payload = example_payload("workflow-epoch-event.json")
+    content = payload["content"]
+    assert isinstance(content, dict)
+    receipts = content["receipts"]
+    assert isinstance(receipts, list)
+    receipt = receipts[0]
+    assert isinstance(receipt, dict)
+    receipt["artifact_id"] = artifact_id
+
+    _assert_workflow_epoch_schema_and_runtime_reject(payload)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("workflow_event_id", "M8-WORKFLOW-EVENT-" + "A" * 64),
+        ("workflow_event_path", "workflow/event.json"),
+        ("workflow_state_id", "M8-WORKFLOW-STATE-" + "A" * 64),
+        ("workflow_state_path", "workflow/state.json"),
+        ("outcome_id", "M8-WORKFLOW-OUTCOME-" + "A" * 64),
+        ("outcome_path", "workflow/outcome.json"),
+    ],
+)
+def test_workflow_epoch_artifact_head_id_and_path_must_be_paired(
+    field: str,
+    value: str,
+) -> None:
+    payload = example_payload("workflow-epoch-event.json")
+    content = payload["content"]
+    assert isinstance(content, dict)
+    content[field] = value
+
+    _assert_workflow_epoch_schema_and_runtime_reject(payload)
+
+
+def _assert_workflow_epoch_schema_and_runtime_reject(
+    payload: dict[str, object],
+) -> None:
+    refresh_identity(payload)
+    with pytest.raises(SchemaValidationError):
+        LocalSchemaValidator(ROOT / "schemas").validate(
+            "workflow-epoch-event.schema.json",
+            payload,
+        )
+    with pytest.raises(SchedulerContractError):
+        parse_scheduler_artifact_bytes(
+            strict_bytes(payload),
+            expected_type=SchedulerArtifactType.WORKFLOW_EPOCH_EVENT,
+        )
 
 
 @pytest.mark.parametrize(
@@ -178,9 +272,13 @@ def test_named_validator_is_callable_and_passes() -> None:
 def test_current_ci_enforces_m6_coverage_and_named_validation() -> None:
     workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     normalized = " ".join(workflow.split())
-    assert "Check M6 critical coverage" in workflow
-    assert "src/sdaqf/domain/scheduler.py" in workflow
-    assert "src/sdaqf/application/scheduler_simulation.py" in workflow
-    assert "--fail-under=90" in normalized
+    gate_runner = (ROOT / "scripts" / "run_local_gate.py").read_text(encoding="utf-8")
+    assert "M1 through M8 critical branch coverage" in workflow
+    assert "src/sdaqf/domain/scheduler.py" in gate_runner
+    assert "src/sdaqf/application/scheduler_simulation.py" in gate_runner
+    assert "90," in gate_runner
     assert "Validate M6 scheduler safety" in workflow
-    assert "python scripts/validate_m6_scheduler.py" in normalized
+    assert (
+        "python scripts/run_local_gate.py script scripts/validate_m6_scheduler.py"
+        in normalized
+    )

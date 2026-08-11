@@ -1,0 +1,499 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/integrated-plan.schema.json",
+  "title": "M8 Integrated Plan",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "artifact_id",
+    "content"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "artifact_type": {
+      "const": "integrated-plan"
+    },
+    "artifact_id": {
+      "type": "string",
+      "pattern": "^M8-INTEGRATED-PLAN-[0-9A-F]{64}$"
+    },
+    "content": {
+      "type": "object",
+      "required": [
+        "intent",
+        "project_id",
+        "candidate",
+        "sensitivity",
+        "completion_profile",
+        "specification",
+        "requirement_baseline_id",
+        "requirement_baseline",
+        "context_graph",
+        "context_query",
+        "context_selection",
+        "context_snapshot",
+        "task_graph",
+        "solver_registry",
+        "solver_requests",
+        "tasks",
+        "protected_effects",
+        "decisions",
+        "budget",
+        "required_gate_ids",
+        "observation_slots",
+        "ui_required",
+        "predecessor_plan_id",
+        "predecessor_state_id",
+        "predecessor_outcome_id",
+        "predecessor_plan",
+        "predecessor_state",
+        "predecessor_outcome"
+      ],
+      "properties": {
+        "intent": {
+          "$ref": "development-intent.schema.json#/$defs/binding"
+        },
+        "project_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,63}$"
+        },
+        "candidate": {
+          "$ref": "development-intent.schema.json#/$defs/candidate"
+        },
+        "sensitivity": {
+          "$ref": "development-intent.schema.json#/$defs/sensitivity"
+        },
+        "completion_profile": {
+          "enum": [
+            "plan-only",
+            "implementation-verified",
+            "independent-review-accepted",
+            "release-candidate-ready"
+          ]
+        },
+        "specification": {
+          "$ref": "development-intent.schema.json#/$defs/reference"
+        },
+        "requirement_baseline_id": {
+          "type": "string",
+          "pattern": "^RB-[0-9A-F]{16}$"
+        },
+        "requirement_baseline": {
+          "$ref": "development-intent.schema.json#/$defs/reference"
+        },
+        "context_graph": {
+          "$ref": "development-intent.schema.json#/$defs/binding"
+        },
+        "context_query": {
+          "$ref": "development-intent.schema.json#/$defs/binding"
+        },
+        "context_selection": {
+          "$ref": "development-intent.schema.json#/$defs/binding"
+        },
+        "context_snapshot": {
+          "$ref": "development-intent.schema.json#/$defs/binding"
+        },
+        "task_graph": {
+          "$ref": "development-intent.schema.json#/$defs/binding"
+        },
+        "solver_registry": {
+          "$ref": "development-intent.schema.json#/$defs/nullable_binding"
+        },
+        "solver_requests": {
+          "type": "array",
+          "items": {
+            "$ref": "development-intent.schema.json#/$defs/binding"
+          },
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "task_id",
+              "phase",
+              "topological_rank",
+              "wave",
+              "task_kind",
+              "dependencies",
+              "role_id",
+              "context_snapshot_id",
+              "requirement_ids",
+              "acceptance_ids",
+              "context_node_ids",
+              "solver_request_ids",
+              "effect_kind",
+              "approval_stops",
+              "evidence_predicates",
+              "terminal_predicates"
+            ],
+            "properties": {
+              "task_id": {
+                "$ref": "development-intent.schema.json#/$defs/task_id"
+              },
+              "phase": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 64
+              },
+              "topological_rank": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4096
+              },
+              "wave": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4096
+              },
+              "task_kind": {
+                "$ref": "development-intent.schema.json#/$defs/code"
+              },
+              "dependencies": {
+                "type": "array",
+                "items": {
+                  "$ref": "development-intent.schema.json#/$defs/task_id"
+                },
+                "maxItems": 4096,
+                "uniqueItems": true
+              },
+              "role_id": {
+                "$ref": "development-intent.schema.json#/$defs/code"
+              },
+              "context_snapshot_id": {
+                "$ref": "development-intent.schema.json#/$defs/native_id"
+              },
+              "requirement_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "development-intent.schema.json#/$defs/requirement_id"
+                },
+                "maxItems": 4096,
+                "uniqueItems": true
+              },
+              "acceptance_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "development-intent.schema.json#/$defs/requirement_id"
+                },
+                "maxItems": 4096,
+                "uniqueItems": true
+              },
+              "context_node_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "development-intent.schema.json#/$defs/native_id"
+                },
+                "maxItems": 4096,
+                "uniqueItems": true
+              },
+              "solver_request_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "development-intent.schema.json#/$defs/native_id"
+                },
+                "maxItems": 4096,
+                "uniqueItems": true
+              },
+              "effect_kind": {
+                "enum": [
+                  "read_only",
+                  "local_write",
+                  "external",
+                  "destructive"
+                ]
+              },
+              "approval_stops": {
+                "type": "array",
+                "items": {
+                  "$ref": "development-intent.schema.json#/$defs/code"
+                },
+                "maxItems": 2,
+                "uniqueItems": true
+              },
+              "evidence_predicates": {
+                "type": "array",
+                "items": {
+                  "$ref": "development-intent.schema.json#/$defs/code"
+                },
+                "maxItems": 256,
+                "uniqueItems": true
+              },
+              "terminal_predicates": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "development-intent.schema.json#/$defs/code"
+                },
+                "maxItems": 256,
+                "uniqueItems": true
+              }
+            },
+            "additionalProperties": false
+          },
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "protected_effects": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "required": [
+              "effect_id",
+              "task_id",
+              "effect_kind",
+              "target_paths",
+              "network_destinations",
+              "reversible",
+              "ambiguous_on_failure",
+              "approval_types",
+              "idempotency_scope",
+              "effect_digest"
+            ],
+            "properties": {
+              "effect_id": {
+                "type": "string",
+                "pattern": "^M8-EFFECT-[0-9A-F]{64}$"
+              },
+              "task_id": {
+                "$ref": "development-intent.schema.json#/$defs/task_id"
+              },
+              "effect_kind": {
+                "enum": [
+                  "read_only",
+                  "local_write",
+                  "external",
+                  "destructive"
+                ]
+              },
+              "target_paths": {
+                "type": "array",
+                "items": {
+                  "$ref": "development-intent.schema.json#/$defs/path"
+                },
+                "maxItems": 4096,
+                "uniqueItems": true
+              },
+              "network_destinations": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "pattern": "^[^\\r\\n]+$"
+                },
+                "maxItems": 64,
+                "uniqueItems": true
+              },
+              "reversible": {
+                "type": "boolean"
+              },
+              "ambiguous_on_failure": {
+                "type": "boolean"
+              },
+              "approval_types": {
+                "type": "array",
+                "items": {
+                  "$ref": "development-intent.schema.json#/$defs/code"
+                },
+                "maxItems": 2,
+                "uniqueItems": true
+              },
+              "idempotency_scope": {
+                "$ref": "development-intent.schema.json#/$defs/code"
+              },
+              "effect_digest": {
+                "$ref": "development-intent.schema.json#/$defs/sha256"
+              }
+            },
+            "additionalProperties": false
+          },
+          "uniqueItems": true
+        },
+        "decisions": {
+          "type": "array",
+          "maxItems": 16384,
+          "items": {
+            "type": "object",
+            "required": [
+              "subject_kind",
+              "subject_id",
+              "kind",
+              "reason_code",
+              "references",
+              "blocking"
+            ],
+            "properties": {
+              "subject_kind": {
+                "$ref": "development-intent.schema.json#/$defs/code"
+              },
+              "subject_id": {
+                "$ref": "development-intent.schema.json#/$defs/native_id"
+              },
+              "kind": {
+                "enum": [
+                  "selected",
+                  "excluded",
+                  "uncertainty"
+                ]
+              },
+              "reason_code": {
+                "enum": [
+                  "required-by-intent",
+                  "required-by-requirement",
+                  "required-dependency",
+                  "required-context",
+                  "review-separation",
+                  "gate-prerequisite",
+                  "solver-justified",
+                  "handoff-required",
+                  "outside-allowed-scope",
+                  "inside-prohibited-scope",
+                  "unsupported-capability",
+                  "budget-exceeded",
+                  "approval-not-authority",
+                  "evidence-unavailable",
+                  "solver-not-justified",
+                  "ui-not-applicable",
+                  "optional-context-not-selected",
+                  "open-decision",
+                  "blocking-diagnostic",
+                  "unresolved-contradiction",
+                  "stale-context",
+                  "cost-not-available",
+                  "capability-not-observed",
+                  "external-effect-ambiguous"
+                ]
+              },
+              "references": {
+                "type": "array",
+                "items": {
+                  "$ref": "development-intent.schema.json#/$defs/native_id"
+                },
+                "maxItems": 4096,
+                "uniqueItems": true
+              },
+              "blocking": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          },
+          "uniqueItems": true
+        },
+        "budget": {
+          "$ref": "development-intent.schema.json#/$defs/budget"
+        },
+        "required_gate_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "enum": [
+              "G1",
+              "G2",
+              "G3",
+              "G4"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "observation_slots": {
+          "type": "array",
+          "items": {
+            "$ref": "development-intent.schema.json#/$defs/code"
+          },
+          "maxItems": 256,
+          "uniqueItems": true
+        },
+        "ui_required": {
+          "type": "boolean"
+        },
+        "predecessor_plan_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^M8-INTEGRATED-PLAN-[0-9A-F]{64}$"
+        },
+        "predecessor_state_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^M8-WORKFLOW-STATE-[0-9A-F]{64}$"
+        },
+        "predecessor_outcome_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^M8-WORKFLOW-OUTCOME-[0-9A-F]{64}$"
+        },
+        "predecessor_plan": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "development-intent.schema.json#/$defs/binding"}
+          ]
+        },
+        "predecessor_state": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "development-intent.schema.json#/$defs/binding"}
+          ]
+        },
+        "predecessor_outcome": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "development-intent.schema.json#/$defs/binding"}
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "predecessor_plan_id": {"type": "null"},
+            "predecessor_state_id": {"type": "null"},
+            "predecessor_outcome_id": {"type": "null"},
+            "predecessor_plan": {"type": "null"},
+            "predecessor_state": {"type": "null"},
+            "predecessor_outcome": {"type": "null"}
+          }
+        },
+        {
+          "properties": {
+            "predecessor_plan_id": {
+              "type": "string",
+              "pattern": "^M8-INTEGRATED-PLAN-[0-9A-F]{64}$"
+            },
+            "predecessor_state_id": {
+              "type": "string",
+              "pattern": "^M8-WORKFLOW-STATE-[0-9A-F]{64}$"
+            },
+            "predecessor_outcome_id": {
+              "type": "string",
+              "pattern": "^M8-WORKFLOW-OUTCOME-[0-9A-F]{64}$"
+            },
+            "predecessor_plan": {
+              "$ref": "development-intent.schema.json#/$defs/binding"
+            },
+            "predecessor_state": {
+              "$ref": "development-intent.schema.json#/$defs/binding"
+            },
+            "predecessor_outcome": {
+              "$ref": "development-intent.schema.json#/$defs/binding"
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

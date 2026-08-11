@@ -31,6 +31,12 @@ canonical content, and a full uppercase SHA-256 content identity:
   availability, and named blockers without an aggregate score.
 - Worktree Lease records only a host-observed worktree state. It grants no Git
   mutation authority.
+- Workflow Epoch Event records one immutable v2 epoch transition and its
+  canonical artifact/path receipt bindings.
+- Scheduler Store Migration Approval binds one exact v1 source, fresh v2
+  output, target version, root, validity window, and Owner authority.
+- Scheduler Store Migration Result records the preserved source and validated
+  fresh v2 output without granting workflow or publication authority.
 
 Unknown fields, duplicate keys, floats/non-finite values, unsafe paths,
 unsupported versions, invalid ordering, identity mismatch, and messages over
@@ -72,13 +78,15 @@ verification-success chain by rehashing events or projections.
 
 ## SQLite authority and recovery
 
-The canonical mutable store has SQLite application ID `0x53444151`,
-`user_version=1`, and metadata schema `1.0`. It uses foreign keys, rollback
+The canonical mutable store keeps SQLite application ID `0x53444151`. M6-only
+stores may remain `user_version=1` with metadata schema `1.0`; M8 requires a
+workflow-authority store at `user_version=2` with metadata schema `2.0`. Both
+use foreign keys, rollback
 journaling, synchronous FULL, trusted schema off, zero busy wait, and explicit
 `BEGIN IMMEDIATE`. Initialization and JSON export use exclusive fresh-name
 publication.
 
-The schema has exactly thirteen tables for metadata, graph/tasks/dependencies,
+The v1 schema has exactly thirteen tables for metadata, graph/tasks/dependencies,
 events/messages, current and historical leases, current and historical
 worktree leases, budgets, and single-use approval consumption. Opening a store
 validates database identity, integrity, exact schema shape, metadata, the
@@ -141,6 +149,35 @@ copying evidence. The rebuilt database must match the source evidence and
 validate completely before exclusive publication. The source is never
 modified. Damaged immutable evidence, an existing output, a publication race,
 or an evidence mismatch fails closed.
+Recovery holds a source `BEGIN IMMEDIATE` writer exclusion from semantic
+replay through exclusive output linking, so a stale source prefix cannot be
+published.
+
+The v2 schema adds exactly two tables: append-only `workflow_epoch_events` and
+the transactionally maintained `current_workflow_epoch_heads` projection.
+One Plan ID is one epoch ID. The closed epoch causes cover epoch opening,
+transition reservation, artifact publication reservation and confirmation,
+terminal reservation, and terminal confirmation. The chain binds the expected
+prior head, Plan, candidate, graph, scheduler event head, stable idempotency
+key, producer operation, canonical artifact IDs, normalized output paths, and
+one persisted UTC observation. The current projection must equal semantic
+replay on every open. `terminal-reserved` is the terminal linearization point;
+both reserved and confirmed phases reject any new workflow transition.
+
+Publication is at least once. An exact existing canonical artifact is
+idempotent success only when its artifact ID and reserved path agree with the
+current M6 head. A different artifact, path, case alias, or linked/reparse
+target fails closed without overwrite, deletion, alternate-path selection, or
+automatic reservation repair. The same pending terminal request may continue
+after a crash; no different Outcome or regenerated time may do so. M6 recovery
+copies and replays the complete epoch chain and publication receipts into a
+fresh database. Missing, added, reordered, or inconsistent epoch evidence
+publishes no recovered output.
+
+The v1-to-v2 migration approval and result bind `root_sha256`. Migration holds
+the source writer exclusion through its exclusive-link linearization point and
+claims the existing M4 migration approval consumption store once inside that
+lock. A claim remains consumed if any later step fails.
 
 ## Lease, mailbox, and budget safety
 
@@ -292,7 +329,8 @@ The additive commands are:
 
 ```text
 sdaqf agents schedule validate TASK_GRAPH --root ROOT --json
-sdaqf agents schedule init TASK_GRAPH --root ROOT --state STATE --json
+sdaqf agents schedule init TASK_GRAPH --root ROOT --state STATE [--workflow-authority] --json
+sdaqf agents schedule migrate STATE --root ROOT --output NEW_STATE --to-version 2 --approval APPROVAL --json
 sdaqf agents schedule tick STATE --root ROOT --host-id HOST [--message MESSAGE]... --json
 sdaqf agents schedule status STATE --root ROOT --json
 sdaqf agents schedule export STATE --root ROOT --kind KIND --output FILE [--after-sequence N] [--limit N] --json
@@ -303,6 +341,11 @@ sdaqf agents simulate TASK_GRAPH --root ROOT --scenario SCENARIO --json
 
 Inputs and outputs are explicit, root-confined, regular, bounded, and never
 overwritten. JSON failures are bounded and do not disclose absolute paths.
+Without `--workflow-authority`, initialization preserves exact v1 behavior.
+Migration is explicit copy-on-write: it preserves the validated v1 source,
+requires an exact current Owner approval, publishes a fresh v2 database with
+an empty epoch chain, and never upgrades in place. A v2 store with any epoch
+history cannot be downgraded.
 
 ## Simulation and validation
 
@@ -315,12 +358,13 @@ SQLite store with no host or network effect.
 Run the named Gate from the repository root:
 
 ```text
-python scripts/validate_m6_scheduler.py
+python scripts/run_local_gate.py script scripts/validate_m6_scheduler.py
 ```
 
 `PASS: M6-SCHEDULER-SAFETY` establishes positive and negative runtime/schema
 parity for structurally representable contracts, authoritative cross-field
-time validation, exact SQLite identity and schema, one-owner claiming,
+time validation, exact SQLite v1/v2 identity and schema, copy-on-write
+migration, epoch replay and receipt recovery, one-owner claiming,
 reconstruction after deliberate projection corruption, rejection and
 no-output recovery for deliberate rehashed result, scheduler-egress, and
 budget-history corruption, exact ten-scenario reproduction, and stable top-
@@ -337,7 +381,8 @@ production readiness.
 M6 does not implement a real subagent host, nested Codex execution, automatic
 Git worktree lifecycle, hosted or third-party solver execution, hosted workflow
 runtime, OpenAI API, Agents SDK, management UI, external publication,
-destructive cleanup, or in-place database migration. M7 adds only a bounded
+destructive cleanup, in-place database migration, downgrade after v2 epoch
+creation, or automatic publication-reservation repair. M7 adds only a bounded
 offline reference solver and typed scheduler evidence. macOS remains
 `NOT_VERIFIED`; Windows/Linux exact-candidate CI remains required before a
 platform claim.

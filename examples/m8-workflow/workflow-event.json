@@ -1,0 +1,42 @@
+{
+  "artifact_id": "M8-WORKFLOW-EVENT-B200B4C39310BDE44B7B5AC57FD6E13C852FC90C83E77BB8647F2C6631356AA0",
+  "artifact_type": "workflow-event",
+  "content": {
+    "actor": "M8 workflow runtime",
+    "after_status": "completed",
+    "approval_id": null,
+    "before_status": "planned",
+    "candidate": {
+      "git_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "repository_digest": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "source_spec_sha256": "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+    },
+    "cause": "runtime-started",
+    "effect_disposition": "not-applicable",
+    "effect_id": null,
+    "idempotency_key": "M8-IDEM-AC020BE8CAA7E43C08E065247CA887DFC36C02087CE08DAE717B1628E9A46297",
+    "native_input_ids": [
+      "M6-SCHEDULER-STATE-166F40A14DDDA9019355922952DFC4F39FEF3029658A15FCAC0C2756E61EB989",
+      "M8-INTEGRATED-PLAN-A6C0C7D763505EDA73A7864140C50B094E42ECA48CA26604FC9ADE9AF492A87D"
+    ],
+    "native_output_ids": [
+      "M6-MESSAGE-C0191A78D88695DEF2B7A2E1D19DAF2F113ABEA380B9346807A97B0A12CC218A",
+      "M6-SCHEDULER-STATE-4CAEFB3BD990A30DF7662EBCEBB80F227BB122150E5CA8185366376042A825E2"
+    ],
+    "plan_id": "M8-INTEGRATED-PLAN-A6C0C7D763505EDA73A7864140C50B094E42ECA48CA26604FC9ADE9AF492A87D",
+    "previous_event_id": null,
+    "prior_state": null,
+    "prior_state_id": null,
+    "reason_codes": [
+      "no-host-dispatch",
+      "runtime-started"
+    ],
+    "recorded_at": "2026-08-01T00:00:00Z",
+    "scheduler_event_head_after": "D8AC552CEAADC5556F64C05C8FB5D4A1394D63A8050E60B01E3560BDD22E5F78",
+    "scheduler_event_head_before": "385BC40D2A556A2E1A7D998EC26ED61F018F9DCA527BA9DDF2CBBE5D6A4830E8",
+    "sensitivity": "public",
+    "sequence": 1,
+    "task_id": "TSK-M6-DEMO"
+  },
+  "schema_version": "1.0"
+}

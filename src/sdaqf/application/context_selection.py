@@ -162,6 +162,9 @@ class ContextSelector:
                 reasons[node.node_id].add("lexical")
 
         candidate_ids = set(phases)
+        authoritative_distances = {
+            node_id: distances.get(node_id, 0) for node_id in nodes
+        }
         for node_id in sorted(eligible - candidate_ids):
             exclusions[node_id] = ExclusionDecision(
                 node_id=node_id,
@@ -187,7 +190,7 @@ class ContextSelector:
             key=lambda node_id: self._rank(
                 nodes[node_id],
                 phase=phases[node_id],
-                distance=distances.get(node_id, query.budget.max_traversal_depth),
+                distance=authoritative_distances[node_id],
                 lexical=lexical_scores[node_id],
             ),
         )
@@ -261,7 +264,7 @@ class ContextSelector:
                 nodes[node_id],
                 reasons=reasons[node_id],
                 phase=phases[node_id],
-                distance=distances.get(node_id, 0),
+                distance=authoritative_distances[node_id],
                 lexical=lexical_scores[node_id],
             )
             for node_id in sorted(selected_ids)
@@ -744,6 +747,9 @@ class ContextSnapshotService:
             repository_root=repository_root,
             owner_root=owner_root,
         )
+        snapshot = artifact.value
+        assert isinstance(snapshot, ContextSnapshot)
+        self._candidate_verifier.verify(repository_root, snapshot.candidate)
         self._publisher.publish(output, serialize_context_artifact(artifact))
         return artifact
 

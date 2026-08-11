@@ -87,9 +87,12 @@ M5 through M8 extend the framework additively:
 
 ## M5: Context Framework
 
-Status: implemented experimentally on `main`. Current Windows/Linux CI passes,
-but the active M5 execution plan records the final independent re-review as
-pending; the current candidate is therefore not independently verified.
+Status: implemented experimentally in the current local candidate. The
+historical 2026-08-10 final independent compatibility re-review remains recorded NO-GO.
+Its High Snapshot-publication CandidateIdentity and Medium Selection-rank
+provenance findings are remediated. The latest M5 disposition is GO for the
+current local candidate. No new validation count, review-evidence detail, or
+exact-SHA remote CI result is claimed for that GO.
 
 ### Objective
 
@@ -157,9 +160,12 @@ reproducible context snapshots with explicit selection and exclusion reasons.
 
 ## M6: Multi-Agent Control Framework
 
-Status: implemented experimentally on `main`. Current Windows/Linux CI passes,
-but the active M6 execution plan records a tenth independent review as pending;
-the current candidate does not have an independent GO disposition.
+Status: implemented experimentally in the current local candidate. The
+historical 2026-08-10 final independent compatibility review remains recorded NO-GO. Its
+Medium blocking Workflow Epoch Event schema/runtime parity finding is
+remediated. M6 status publication is pending and no M6 GO is claimed. Focused
+local tests and the named validator pass; exact-SHA remote CI for this
+uncommitted candidate is not verified.
 
 ### Objective
 
@@ -173,6 +179,11 @@ multi-agent execution control.
 - Content-addressed JSON artifacts plus standard-library SQLite as the
   canonical transactional task, event, lease, and budget store, with bounded
   deterministic JSON audit exports.
+- Optional fresh SQLite v2 workflow authority with an append-only workflow
+  epoch chain, replay-checked current head, and canonical publication receipts;
+  M6-only v1 behavior remains supported.
+- Explicit Owner-approved copy-on-write v1-to-v2 migration with the source
+  preserved; no in-place migration or downgrade after epoch creation.
 - At-least-once dispatch with stable idempotency keys, fenced leases, one
   current owner, and duplicate or late-result rejection. Exactly-once
   execution is not claimed.
@@ -216,6 +227,8 @@ multi-agent execution control.
 - Candidate, context, path ownership, role, approval, and reviewer identities
   are revalidated before every protected transition.
 - Deterministic simulation covers every terminal and recovery state.
+- V2 terminal reservation, exact at-least-once finalization, receipt replay,
+  copy-on-write migration, and recovery fail closed under collision or drift.
 - Named local validator `M6-SCHEDULER-SAFETY` passes.
 
 ### Stop conditions
@@ -297,7 +310,16 @@ where a solver is justified.
 
 ## M8: Integrated Vibe-Coding Framework
 
-Status: planned; depends on completed M5 through M7 contracts.
+Status: implemented experimentally in the local candidate. The latest
+independent successor lifecycle compatibility review returned GO with F1
+through F11 maintained and zero unresolved findings within its scope. It
+supersedes the earlier round-three overall NO-GO for the current local candidate
+only. M8 remains Experimental and unreleased; release GO, production readiness,
+commit, push, and exact-SHA remote CI remain separately gated. That M8 review
+did not decide M5 or M6. Their historical later final NO-GO reviews remain
+recorded; the latest M5 disposition is GO, and M6 compatibility remediation is
+complete with status publication pending and no M6 GO claimed. None of these
+statuses revises the M7 or M8 disposition.
 
 ### Objective
 
@@ -318,6 +340,10 @@ solver decisions, approvals, evidence, review, Gates, recovery, and handoff.
   validated.
 - Revalidation of policy and approval immediately before every protected
   effect.
+- One pinned Git-plus-M6 publication observation shared by Candidate, G3, and
+  G4, with only exact untracked non-ignored receipt-bound outputs excluded.
+- M6 v2 terminal reserve/confirm, crash-safe at-least-once finalization, and
+  complete deterministic predecessor Outcome re-derivation.
 - Named end-to-end measurements for requirements, context, scheduling, solver,
   evidence, handoff, recovery, and available cost without an aggregate score.
 
@@ -350,15 +376,19 @@ solver decisions, approvals, evidence, review, Gates, recovery, and handoff.
 
 ### Completion criteria
 
-- `workflow plan` is deterministic and side-effect-free; `workflow explain`
-  reports every selection, exclusion, uncertainty, budget, and approval
-  reason.
+- Integrated Plan derivation is deterministic and side-effect-free; the public
+  `workflow plan` command reserves, publishes, and confirms that Plan in M6 v2.
+  `workflow explain` reports every selection, exclusion, uncertainty, budget,
+  and approval reason.
 - Runtime advances only through validated transitions and blocks at every
   unapproved protected or external effect.
 - Stale context, candidate, lease, solver, approval, evidence, or review state
   rejects resume.
-- End-to-end offline non-UI, UI, and approval/security-sensitive projects pass
-  plan, simulate, run, recovery, review, Gate, and handoff validation.
+- All twelve scenarios derive their public disposition and blockers from the
+  actual Workflow Outcome and terminal State produced with one of the three
+  exact real fixture bundles and a fresh M6 v2 store.
+- The exact nine-group, 52-name measurement contract is independently
+  re-resolved from native evidence without producer-formula reuse.
 - Windows/Linux Python 3.12/3.13 exact-candidate evidence and independent
   review have no unresolved Critical, High, or Medium finding.
 - Named local validator `M8-WORKFLOW-INTEGRATION` passes.
@@ -382,6 +412,9 @@ validators.
 Every milestone requires its own living ExecPlan, exact implementation scope,
 negative tests, complete Release Contract regression, independent read-only
 review, candidate identity, and separate Git or external-action approvals.
+
+The current dispositions are independent: M5 GO, M6 status publication pending
+(not GO), M7 GO, and M8 successor lifecycle GO.
 Roadmap approval does not authorize implementation, dependencies, schema
 publication, staging, commit, push, release, deployment, hosted access, or
 repository settings.

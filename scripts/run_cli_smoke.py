@@ -1,4 +1,4 @@
-"""Run the exact offline M0 through M7 CLI smoke contract."""
+"""Run the exact offline M0 through M8 CLI smoke contract."""
 
 # ruff: noqa: E402
 
@@ -24,7 +24,12 @@ if str(_REPOSITORY_ROOT) not in sys.path:
 
 from tests.m7_solver_helpers import HOST_ID as M7_HOST_ID
 from tests.m7_solver_helpers import build_fixture, start_solver_lease
+from tests.m8_workflow_helpers import create_intent as create_m8_intent
+from tests.m8_workflow_helpers import create_planner as create_m8_planner
+from tests.m8_workflow_helpers import create_scheduler as create_m8_scheduler
+from tests.m8_workflow_helpers import create_workspace as create_m8_workspace
 
+import sdaqf.cli as cli_module
 from sdaqf.adapters.process import SubprocessRunner
 from sdaqf.application.context_contracts import (
     artifact_from_value,
@@ -160,14 +165,18 @@ def _prepare_smoke_state(root: Path) -> Path:
     return state
 
 
-def _create_m3_smoke_specification(root: Path) -> Path:
+def _create_m3_smoke_specification(owned_root: Path) -> Path:
     """Exclusively create one randomized, owned publication-candidate source."""
 
     try:
-        resolved_root = root.resolve(strict=True)
+        resolved_root = owned_root.resolve(strict=True)
     except OSError as exc:
         raise RuntimeError("M3 smoke specification root is invalid.") from exc
-    if root.is_symlink() or is_reparse_point(root) or not resolved_root.is_dir():
+    if (
+        owned_root.is_symlink()
+        or is_reparse_point(owned_root)
+        or not resolved_root.is_dir()
+    ):
         raise RuntimeError("M3 smoke specification root must be regular.")
     descriptor = -1
     path: Path | None = None
@@ -175,7 +184,7 @@ def _create_m3_smoke_specification(root: Path) -> Path:
         descriptor, raw_path = tempfile.mkstemp(
             prefix="m3-smoke-specification-",
             suffix=".md",
-            dir=root,
+            dir=owned_root,
         )
         path = Path(raw_path)
         with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
@@ -195,7 +204,7 @@ def _create_m3_smoke_specification(root: Path) -> Path:
     except (OSError, RuntimeError) as exc:
         if descriptor >= 0:
             os.close(descriptor)
-        if path is not None and path.parent == root and not path.is_dir():
+        if path is not None and path.parent == owned_root and not path.is_dir():
             path.unlink(missing_ok=True)
         if isinstance(exc, RuntimeError):
             raise
@@ -389,6 +398,49 @@ def _clean_materialization_outputs(
             shutil.rmtree(path)
 
 
+def _materialize_candidate_repository(source_root: Path, fixture_root: Path) -> Path:
+    """Create one clean Git repository from the current publication candidate."""
+
+    observation = GitInspector(
+        SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)
+    ).inspect(source_root)
+    candidate_root = fixture_root / "candidate"
+    candidate_root.mkdir()
+    for relative in observation.publication_paths:
+        parts = Path(relative).parts
+        if (
+            not parts
+            or Path(relative).is_absolute()
+            or any(part in {"", ".", ".."} for part in parts)
+        ):
+            raise RuntimeError("Git returned an unsafe candidate fixture path.")
+        source = source_root.joinpath(*parts)
+        current = source_root
+        for part in parts:
+            current = current / part
+            if current.is_symlink() or is_reparse_point(current):
+                raise RuntimeError("Candidate fixture source contains a link.")
+        if not source.is_file() or source.stat().st_size > 1_000_000:
+            raise RuntimeError("Candidate fixture source is missing or oversized.")
+        destination = candidate_root.joinpath(*parts)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, destination)
+    _git(candidate_root, "init", "-b", "main")
+    _git(candidate_root, "add", ".")
+    _git(
+        candidate_root,
+        "-c",
+        "user.name=Smoke",
+        "-c",
+        "user.email=sdaqf-smoke.invalid",
+        "commit",
+        "--quiet",
+        "-m",
+        "candidate fixture",
+    )
+    return candidate_root
+
+
 def _run_positive_g4_smoke(parent: Path) -> None:
     release_root = parent / "clean-release"
     release_root.mkdir()
@@ -456,6 +508,7 @@ def _run_positive_g4_smoke(parent: Path) -> None:
         "-c",
         "user.email=sdaqf-smoke.invalid",
         "commit",
+        "--quiet",
         "-m",
         "fixture",
     )
@@ -696,13 +749,15 @@ def _run_positive_g4_smoke(parent: Path) -> None:
 def main_smoke() -> int:
     """Execute every preserved and primary CLI path in one temporary directory."""
 
-    root = Path(__file__).resolve().parents[1]
-    examples = root / "examples"
-    m2 = examples / "m2-orchestration"
+    source_root = _REPOSITORY_ROOT
     previous = Path.cwd()
-    smoke_state = _prepare_smoke_state(root)
-    with tempfile.TemporaryDirectory(prefix="cli-smoke-", dir=smoke_state) as raw_temp:
-        temporary = Path(raw_temp)
+    with tempfile.TemporaryDirectory(prefix="cs-") as raw_fixture:
+        root = _materialize_candidate_repository(source_root, Path(raw_fixture))
+        examples = root / "examples"
+        m2 = examples / "m2-orchestration"
+        smoke_state = _prepare_smoke_state(root)
+        temporary = smoke_state / "cli-smoke"
+        temporary.mkdir()
         baseline = temporary / "baseline.json"
         m3_spec: Path | None = None
         os.chdir(root)
@@ -897,7 +952,9 @@ def main_smoke() -> int:
                 ],
                 json_output=True,
             )
-            m3_spec = _create_m3_smoke_specification(root)
+            m3_candidate = root / "m3-smoke-candidate"
+            m3_candidate.mkdir()
+            m3_spec = _create_m3_smoke_specification(m3_candidate)
             m3_baseline = temporary / "m3-baseline.json"
             _run(
                 "M3 baseline ingest",
@@ -1241,6 +1298,23 @@ def main_smoke() -> int:
                 expected_blockers={"G4-GIT"},
             )
             _run_positive_g4_smoke(temporary)
+            if (
+                m3_spec.parent != m3_candidate
+                or not m3_spec.is_file()
+                or m3_spec.is_symlink()
+                or is_reparse_point(m3_spec)
+            ):
+                raise RuntimeError("M3 smoke specification changed identity before cleanup.")
+            m3_spec.unlink()
+            m3_spec = None
+            m3_candidate.rmdir()
+            git = GitInspector(
+                SubprocessRunner(timeout_seconds=5, output_limit=1_048_576)
+            ).inspect(root)
+            if not git.clean or git.changed_paths:
+                raise RuntimeError("M3 smoke cleanup did not restore the clean candidate.")
+            head = git.head
+            repo_digest = git.repository_digest
             _run(
                 "M4 evaluation validation",
                 [
@@ -1588,8 +1662,8 @@ def main_smoke() -> int:
                 ],
                 json_output=True,
             )
-            m7_fixture = build_fixture(temporary / "m7-solver")
-            _, m7_dispatch = start_solver_lease(m7_fixture)
+            m7_fixture = build_fixture(temporary / "m7-solver", root=root)
+            _, m7_dispatch = start_solver_lease(m7_fixture, root=root)
             m7_dispatch_value = m7_dispatch.value
             if not isinstance(m7_dispatch_value, MailboxMessage):
                 raise RuntimeError("M7 CLI smoke dispatch is invalid.")
@@ -1676,6 +1750,167 @@ def main_smoke() -> int:
                 ],
                 json_output=True,
             )
+            m8_root = create_m8_workspace(temporary / "m8")
+            cli_module._workflow_planner_factory = create_m8_planner
+            _, m8_intent = create_m8_intent(m8_root)
+            m8_plan = m8_root / "workflow" / "smoke-plan.json"
+            m8_state = m8_root / "workflow" / "smoke-state.json"
+            m8_event = m8_root / "workflow" / "smoke-event.json"
+            m8_resumed_state = m8_root / "workflow" / "smoke-resumed-state.json"
+            m8_resumed_event = m8_root / "workflow" / "smoke-resumed-event.json"
+            m8_recovered_state = m8_root / "workflow" / "smoke-recovered-state.json"
+            m8_recovery_event = m8_root / "workflow" / "smoke-recovery-event.json"
+            m8_outcome = m8_root / "workflow" / "smoke-outcome.json"
+            m8_outcome_event = m8_root / "workflow" / "smoke-outcome-event.json"
+            m8_outcome_state = m8_root / "workflow" / "smoke-outcome-state.json"
+            m8_scheduler = create_m8_scheduler(m8_root)
+            _run(
+                "M8 Development Intent validation",
+                ["workflow", "validate", str(m8_intent), "--json"],
+                json_output=True,
+            )
+            _run(
+                "M8 deterministic planning",
+                [
+                    "workflow",
+                    "plan",
+                    str(m8_intent),
+                    "--root",
+                    str(m8_root),
+                    "--scheduler-state",
+                    str(m8_scheduler),
+                    "--output",
+                    str(m8_plan),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M8 exact explanation",
+                [
+                    "workflow",
+                    "explain",
+                    str(m8_plan),
+                    "--root",
+                    str(m8_root),
+                    "--scheduler-state",
+                    str(m8_scheduler),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M8 deterministic simulation",
+                [
+                    "workflow",
+                    "simulate",
+                    str(m8_plan),
+                    "--root",
+                    str(m8_root),
+                    "--scheduler-state",
+                    str(m8_scheduler),
+                    "--scenario",
+                    "ui-observation-unavailable",
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M8 resumable runtime",
+                [
+                    "workflow",
+                    "run",
+                    str(m8_plan),
+                    "--root",
+                    str(m8_root),
+                    "--scheduler-state",
+                    str(m8_scheduler),
+                    "--output-state",
+                    str(m8_state),
+                    "--output-event",
+                    str(m8_event),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M8 exact resume",
+                [
+                    "workflow",
+                    "resume",
+                    str(m8_state),
+                    "--plan",
+                    str(m8_plan),
+                    "--root",
+                    str(m8_root),
+                    "--scheduler-state",
+                    str(m8_scheduler),
+                    "--output-state",
+                    str(m8_resumed_state),
+                    "--output-event",
+                    str(m8_resumed_event),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M8 evidence-only recovery",
+                [
+                    "workflow",
+                    "recover",
+                    str(m8_resumed_state),
+                    "--plan",
+                    str(m8_plan),
+                    "--root",
+                    str(m8_root),
+                    "--scheduler-state",
+                    str(m8_scheduler),
+                    "--output-state",
+                    str(m8_recovered_state),
+                    "--output-event",
+                    str(m8_recovery_event),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M8 read-only status",
+                [
+                    "workflow",
+                    "status",
+                    str(m8_recovered_state),
+                    "--plan",
+                    str(m8_plan),
+                    "--root",
+                    str(m8_root),
+                    "--scheduler-state",
+                    str(m8_scheduler),
+                    "--json",
+                ],
+                json_output=True,
+            )
+            _run(
+                "M8 typed outcome",
+                [
+                    "workflow",
+                    "outcome",
+                    str(m8_recovered_state),
+                    "--plan",
+                    str(m8_plan),
+                    "--root",
+                    str(m8_root),
+                    "--scheduler-state",
+                    str(m8_scheduler),
+                    "--output",
+                    str(m8_outcome),
+                    "--output-event",
+                    str(m8_outcome_event),
+                    "--output-state",
+                    str(m8_outcome_state),
+                    "--json",
+                ],
+                json_output=True,
+            )
         finally:
             os.chdir(previous)
             if (
@@ -1685,7 +1920,7 @@ def main_smoke() -> int:
                 and not is_reparse_point(m3_spec)
             ):
                 m3_spec.unlink()
-    print("PASS: offline M0 through M7 CLI smoke checks succeeded.")
+    print("PASS: offline M0 through M8 CLI smoke checks succeeded.")
     return 0
 
 

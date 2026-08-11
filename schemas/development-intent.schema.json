@@ -1,0 +1,780 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sdaqf/development-intent.schema.json",
+  "title": "M8 Development Intent",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "artifact_id",
+    "content"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "artifact_type": {
+      "const": "development-intent"
+    },
+    "artifact_id": {
+      "type": "string",
+      "pattern": "^M8-DEVELOPMENT-INTENT-[0-9A-F]{64}$"
+    },
+    "content": {
+      "type": "object",
+      "required": [
+        "project_id",
+        "candidate",
+        "objective",
+        "completion_profile",
+        "specification",
+        "requirement_baseline_id",
+        "requirement_baseline",
+        "allowed_paths",
+        "prohibited_paths",
+        "required_requirement_ids",
+        "required_acceptance_ids",
+        "requested_effects",
+        "risk",
+        "clearance",
+        "sensitivity",
+        "budget",
+        "capabilities",
+        "context_graph",
+        "context_query",
+        "context_selection",
+        "context_snapshot",
+        "task_graph",
+        "solver_registry",
+        "solver_requests",
+        "task_links",
+        "required_gate_ids",
+        "observation_slots",
+        "ui_required",
+        "predecessor_plan_id",
+        "predecessor_state_id",
+        "predecessor_outcome_id",
+        "predecessor_plan",
+        "predecessor_state",
+        "predecessor_outcome"
+      ],
+      "properties": {
+        "project_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,63}$"
+        },
+        "candidate": {
+          "$ref": "#/$defs/candidate"
+        },
+        "objective": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "completion_profile": {
+          "enum": [
+            "plan-only",
+            "implementation-verified",
+            "independent-review-accepted",
+            "release-candidate-ready"
+          ]
+        },
+        "specification": {
+          "$ref": "#/$defs/reference"
+        },
+        "requirement_baseline_id": {
+          "type": "string",
+          "pattern": "^RB-[0-9A-F]{16}$"
+        },
+        "requirement_baseline": {
+          "$ref": "#/$defs/reference"
+        },
+        "allowed_paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/path"
+          },
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "prohibited_paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/path"
+          },
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "required_requirement_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/requirement_id"
+          },
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "required_acceptance_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/requirement_id"
+          },
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "requested_effects": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "read_only",
+              "local_write",
+              "external",
+              "destructive"
+            ]
+          },
+          "maxItems": 4,
+          "uniqueItems": true
+        },
+        "risk": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        "clearance": {
+          "$ref": "#/$defs/sensitivity"
+        },
+        "sensitivity": {
+          "$ref": "#/$defs/sensitivity"
+        },
+        "budget": {
+          "$ref": "#/$defs/budget"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/code"
+          },
+          "maxItems": 256,
+          "uniqueItems": true
+        },
+        "context_graph": {
+          "$ref": "#/$defs/binding"
+        },
+        "context_query": {
+          "$ref": "#/$defs/binding"
+        },
+        "context_selection": {
+          "$ref": "#/$defs/binding"
+        },
+        "context_snapshot": {
+          "$ref": "#/$defs/binding"
+        },
+        "task_graph": {
+          "$ref": "#/$defs/binding"
+        },
+        "solver_registry": {
+          "$ref": "#/$defs/nullable_binding"
+        },
+        "solver_requests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/binding"
+          },
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "task_links": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "type": "object",
+            "required": [
+              "task_id",
+              "requirement_ids",
+              "acceptance_ids",
+              "context_node_ids",
+              "solver_request_ids"
+            ],
+            "properties": {
+              "task_id": {
+                "$ref": "#/$defs/task_id"
+              },
+              "requirement_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/requirement_id"
+                },
+                "maxItems": 4096,
+                "uniqueItems": true
+              },
+              "acceptance_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/requirement_id"
+                },
+                "maxItems": 4096,
+                "uniqueItems": true
+              },
+              "context_node_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/native_id"
+                },
+                "maxItems": 4096,
+                "uniqueItems": true
+              },
+              "solver_request_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/native_id"
+                },
+                "maxItems": 4096,
+                "uniqueItems": true
+              }
+            },
+            "additionalProperties": false
+          },
+          "uniqueItems": true
+        },
+        "required_gate_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "enum": [
+              "G1",
+              "G2",
+              "G3",
+              "G4"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "observation_slots": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/code"
+          },
+          "maxItems": 256,
+          "uniqueItems": true
+        },
+        "ui_required": {
+          "type": "boolean"
+        },
+        "predecessor_plan_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^M8-INTEGRATED-PLAN-[0-9A-F]{64}$"
+        },
+        "predecessor_state_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^M8-WORKFLOW-STATE-[0-9A-F]{64}$"
+        },
+        "predecessor_outcome_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^M8-WORKFLOW-OUTCOME-[0-9A-F]{64}$"
+        },
+        "predecessor_plan": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/binding"}
+          ]
+        },
+        "predecessor_state": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/binding"}
+          ]
+        },
+        "predecessor_outcome": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/binding"}
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "predecessor_plan_id": {"type": "null"},
+            "predecessor_state_id": {"type": "null"},
+            "predecessor_outcome_id": {"type": "null"},
+            "predecessor_plan": {"type": "null"},
+            "predecessor_state": {"type": "null"},
+            "predecessor_outcome": {"type": "null"}
+          }
+        },
+        {
+          "properties": {
+            "predecessor_plan_id": {
+              "type": "string",
+              "pattern": "^M8-INTEGRATED-PLAN-[0-9A-F]{64}$"
+            },
+            "predecessor_state_id": {
+              "type": "string",
+              "pattern": "^M8-WORKFLOW-STATE-[0-9A-F]{64}$"
+            },
+            "predecessor_outcome_id": {
+              "type": "string",
+              "pattern": "^M8-WORKFLOW-OUTCOME-[0-9A-F]{64}$"
+            },
+            "predecessor_plan": {"$ref": "#/$defs/binding"},
+            "predecessor_state": {"$ref": "#/$defs/binding"},
+            "predecessor_outcome": {"$ref": "#/$defs/binding"}
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9A-F]{64}$"
+    },
+    "workflow_id": {
+      "type": "string",
+      "pattern": "^M8-[A-Z-]+-[0-9A-F]{64}$"
+    },
+    "native_id": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9._:@-]{1,191}$"
+    },
+    "code": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,95}$"
+    },
+    "task_id": {
+      "type": "string",
+      "pattern": "^TSK-[A-Z0-9][A-Z0-9-]{0,63}$"
+    },
+    "requirement_id": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9-]{0,127}$"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240,
+      "pattern": "^(?!/)(?!.*//)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*(?:^|/)(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$))(?!.*(?:^|/)[^/]*[. ](?:/|$))[A-Za-z0-9._/-]+$"
+    },
+    "reference": {
+      "type": "object",
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/path"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "additionalProperties": false
+    },
+    "candidate": {
+      "type": "object",
+      "required": [
+        "source_spec_sha256",
+        "git_head",
+        "repository_digest"
+      ],
+      "properties": {
+        "source_spec_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "git_head": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "repository_digest": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "additionalProperties": false
+    },
+    "sensitivity": {
+      "enum": [
+        "public",
+        "repository-private",
+        "owner-private",
+        "secret-or-prohibited"
+      ]
+    },
+    "binding": {
+      "type": "object",
+      "required": [
+        "artifact_type",
+        "artifact_id",
+        "reference",
+        "required"
+      ],
+      "properties": {
+        "artifact_type": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,63}$"
+        },
+        "artifact_id": {
+          "$ref": "#/$defs/native_id"
+        },
+        "reference": {
+          "$ref": "#/$defs/reference"
+        },
+        "required": {
+          "const": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "nullable_binding": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/binding"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "budget": {
+      "type": "object",
+      "required": [
+        "max_agents",
+        "max_concurrency",
+        "max_reasoning_effort",
+        "max_dispatches",
+        "max_retries",
+        "max_wall_time_seconds",
+        "max_tool_calls",
+        "max_context_bytes_per_dispatch",
+        "max_context_bytes_total",
+        "max_solver_calls",
+        "max_solver_steps",
+        "cost"
+      ],
+      "properties": {
+        "max_agents": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "max_concurrency": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "max_reasoning_effort": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "max_dispatches": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "max_retries": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1024
+        },
+        "max_wall_time_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 604800
+        },
+        "max_tool_calls": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "max_context_bytes_per_dispatch": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 8388608
+        },
+        "max_context_bytes_total": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 34359738368
+        },
+        "max_solver_calls": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1024
+        },
+        "max_solver_steps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "cost": {
+          "type": "object",
+          "required": [
+            "status",
+            "currency",
+            "max_microunits"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "available",
+                "not_available"
+              ]
+            },
+            "currency": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^[A-Z]{3}$"
+            },
+            "max_microunits": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1000000000000000
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "gate_observation": {
+      "type": "object",
+      "required": [
+        "gate_id",
+        "status",
+        "evidence_ids",
+        "blocker_codes"
+      ],
+      "properties": {
+        "gate_id": {
+          "enum": [
+            "G1",
+            "G2",
+            "G3",
+            "G4"
+          ]
+        },
+        "status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "NOT_VERIFIED"
+          ]
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/native_id"
+          },
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "blocker_codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/code"
+          },
+          "maxItems": 256,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "blocker": {
+      "type": "object",
+      "required": [
+        "code",
+        "references"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/native_id"
+          },
+          "maxItems": 4096,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "measurement": {
+      "type": "object",
+      "required": [
+        "name",
+        "status",
+        "value",
+        "unit",
+        "source_ids"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "enum": [
+            "approval.approval_revalidation_failure_count",
+            "approval.consumed_approval_count",
+            "approval.expired_approval_count",
+            "approval.pending_approval_count",
+            "approval.refused_approval_count",
+            "approval.required_approval_count",
+            "available_cost.budget_microunits",
+            "available_cost.currency",
+            "available_cost.remaining_microunits",
+            "available_cost.status",
+            "available_cost.used_microunits",
+            "context.context_budget_bytes",
+            "context.provenance_missing_count",
+            "context.required_reference_count",
+            "context.selected_context_bytes",
+            "context.selected_required_reference_count",
+            "context.sensitivity_violation_count",
+            "context.stale_required_count",
+            "context.unresolved_contradiction_count",
+            "evidence.claim_count",
+            "evidence.known_problem_count",
+            "evidence.missing_evidence_count",
+            "evidence.unverified_claim_count",
+            "evidence.verified_claim_count",
+            "handoff.handoff_created_count",
+            "handoff.handoff_resume_failure_count",
+            "handoff.incomplete_item_count",
+            "handoff.known_problem_count",
+            "handoff.open_decision_count",
+            "recovery.ambiguous_effect_count",
+            "recovery.recovery_attempt_count",
+            "recovery.resume_attempt_count",
+            "recovery.successful_recovery_count",
+            "recovery.successful_resume_count",
+            "requirements.blocking_diagnostic_count",
+            "requirements.covered_requirement_count",
+            "requirements.required_requirement_count",
+            "requirements.scope_addition_count",
+            "requirements.uncovered_requirement_ids",
+            "scheduling.blocked_task_count",
+            "scheduling.completed_task_count",
+            "scheduling.deadlock_count",
+            "scheduling.duplicate_rejection_count",
+            "scheduling.late_result_rejection_count",
+            "scheduling.retry_used_count",
+            "scheduling.task_count",
+            "solver.adoptable_result_count",
+            "solver.solver_calls_used",
+            "solver.solver_steps_used",
+            "solver.solver_task_count",
+            "solver.status_counts",
+            "solver.verified_result_count"
+          ]
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "not-available"
+          ]
+        },
+        "value": {
+          "type": [
+            "integer",
+            "string",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z][a-z0-9-]{0,95}$"
+        },
+        "source_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/native_id"
+          },
+          "maxItems": 4096,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "workflow_task": {
+      "type": "object",
+      "required": [
+        "task_id",
+        "state",
+        "outcome",
+        "attempt",
+        "fence",
+        "blocker_codes"
+      ],
+      "properties": {
+        "task_id": {
+          "$ref": "#/$defs/task_id"
+        },
+        "state": {
+          "enum": [
+            "planned",
+            "ready",
+            "running",
+            "blocked",
+            "verification",
+            "completed",
+            "rejected",
+            "superseded"
+          ]
+        },
+        "outcome": {
+          "enum": [
+            "none",
+            "succeeded",
+            "failed",
+            "cancelled",
+            "unknown"
+          ]
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1024
+        },
+        "fence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "blocker_codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/code"
+          },
+          "maxItems": 256,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

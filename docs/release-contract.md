@@ -3,8 +3,9 @@
 V1 local implementation and validation do not themselves authorize staging,
 commit, push, remote observation, a tag, a release, a visibility change, or a
 repository-setting change. Separately Owner-approved finalization may create
-an inspected immutable local candidate. Because current repository visibility
-is unobserved after A7, any future push must be treated as potentially public.
+an inspected immutable local candidate. The tracked publication record says
+the repository is public; this local validation does not re-observe remote
+state, and every future push must therefore be treated as public.
 Public release and every other external action remain separately Owner-gated.
 
 ## Required local gates
@@ -13,29 +14,39 @@ Run these commands from the repository root with the isolated development
 environment active:
 
 ```text
-python -m pytest
-python -m ruff check src tests scripts
-python -m mypy src tests scripts
-python -m coverage run -m pytest
-python -m coverage report --fail-under=80
-python -m coverage report --include="src/sdaqf/domain/models.py,src/sdaqf/domain/requirements.py,src/sdaqf/application/gates.py,src/sdaqf/application/approvals.py,src/sdaqf/application/baselines.py,src/sdaqf/application/comparison.py,src/sdaqf/application/planning.py,src/sdaqf/application/requirements.py,src/sdaqf/application/requirements_gate.py" --fail-under=90
-python -m coverage report --include="src/sdaqf/domain/orchestration.py,src/sdaqf/domain/tooling.py,src/sdaqf/adapters/process.py,src/sdaqf/application/orchestration.py,src/sdaqf/application/skills.py,src/sdaqf/application/tooling.py,src/sdaqf/application/checkpoints.py" --fail-under=90
-python -m coverage report --include="src/sdaqf/domain/quality.py,src/sdaqf/application/contracts.py,src/sdaqf/application/evidence.py,src/sdaqf/application/quality_gates.py,src/sdaqf/application/ui_validation.py,src/sdaqf/application/release_qa.py,src/sdaqf/application/handoffs.py" --fail-under=90
-python -m coverage report --include="src/sdaqf/domain/evaluation.py,src/sdaqf/domain/migrations.py,src/sdaqf/application/evaluation.py,src/sdaqf/application/migrations.py" --fail-under=90
-python -m coverage report --include="src/sdaqf/domain/context.py,src/sdaqf/ports/context.py,src/sdaqf/adapters/context.py,src/sdaqf/application/context_contracts.py,src/sdaqf/application/context_index.py,src/sdaqf/application/context_selection.py,src/sdaqf/application/context_compaction.py,src/sdaqf/application/context_quality.py" --fail-under=80
-python -m coverage report --include="src/sdaqf/domain/scheduler.py,src/sdaqf/ports/scheduler.py,src/sdaqf/adapters/scheduler.py,src/sdaqf/application/scheduler_contracts.py,src/sdaqf/application/scheduler.py,src/sdaqf/application/scheduler_recovery.py,src/sdaqf/application/scheduler_simulation.py" --fail-under=90
-python -m coverage report --include="src/sdaqf/domain/solver.py,src/sdaqf/ports/solver.py,src/sdaqf/adapters/solver.py,src/sdaqf/application/solver_contracts.py,src/sdaqf/application/solver.py,src/sdaqf/application/solver_verification.py" --fail-under=90
-python scripts/run_cli_smoke.py
-python scripts/validate_m5_context.py
-python scripts/validate_m6_scheduler.py
-python scripts/validate_m7_solver.py
-python -m sdaqf eval validate evals/comparison-suite.json --result evals/results/public-beta-comparison.json --json
-python scripts/check_workspace_boundary.py --repo . --expected-origin-url https://github.com/guriguri215-lang/spec-driven-agent-framework.git
-python scripts/audit_repository.py --root . --workspace-parent ..
-python scripts/audit_dependencies.py --root .
-python -m pip check
+python scripts/run_local_gate.py pytest
+python scripts/run_local_gate.py coverage
+python scripts/run_local_gate.py ruff
+python scripts/run_local_gate.py mypy
+python scripts/run_local_gate.py script scripts/validate_m5_context.py
+python scripts/run_local_gate.py script scripts/validate_m6_scheduler.py
+python scripts/run_local_gate.py script scripts/validate_m7_solver.py
+python scripts/run_local_gate.py script scripts/validate_m8_workflow.py
+python scripts/run_local_gate.py script scripts/run_cli_smoke.py
+python scripts/run_local_gate.py evaluation
+python scripts/run_local_gate.py workspace
+python scripts/run_local_gate.py publication
+python scripts/run_local_gate.py dependencies
+python scripts/run_local_gate.py pip-check
 git diff --check
 ```
+
+`scripts/run_local_gate.py` creates a fresh owned fixture below the operating
+system temp directory for each invocation. It routes pytest basetemp and cache,
+coverage data, mypy and Ruff caches, Python bytecode, pip cache, and nested
+validator/smoke temporary files below that fixture, then removes it. It also
+copies the current cached-plus-untracked Git publication set into a clean
+temporary Git repository, with Git safety configuration held inside the owned
+fixture. The temporary repository preserves the source branch and exact remote
+URL sets for the bounded workspace check. Every subcommand compares both the
+repository and its non-repository workspace-parent path names before and after
+execution, and fails if any path was added or removed. The coverage
+subcommand runs the full suite with project branch coverage at least 80 percent
+and preserves the existing M1/M2/M3/M4/M6/M7/M8 critical 90 percent thresholds
+and the M5 critical 80 percent threshold.
+The retained M4 selection includes `src/sdaqf/domain/evaluation.py` and
+`src/sdaqf/application/migrations.py` and continues to use `--fail-under=90`;
+the runner contains the complete exact M1-through-M8 file selections.
 
 The complete pytest run is the schema/sample validation Gate. It also preserves
 M0 and M1 CLI behavior, canonical specification ingestion, Requirements
@@ -57,13 +68,19 @@ migration remains approval-bound.
 It additionally runs M5 Context validation, indexing, selection, Snapshot
 re-observation, structural comparison, and extractive compaction against the
 synthetic public fixture.
-It also validates and initializes an M6 Task Graph, advances and inspects the
-SQLite state, exports events, inspects the mailbox, recovers to a fresh state,
+It also validates and initializes M6 v1 and v2 Task Graph stores, migrates one
+validated v1 store copy-on-write under an exact synthetic Owner approval,
+advances and inspects SQLite state, exports events, inspects the mailbox,
+authenticates workflow epoch receipts, recovers to a fresh same-version state,
 and runs a deterministic real-state-machine simulation without dispatching a
 host effect.
 It additionally validates the M7 Solver Registry and Request, executes the
 bounded reference adapter under an exact M6 Lease, and independently verifies
 the fresh Result without a process or network effect.
+It also validates and plans an M8 Development Intent through an explicit M6 v2
+authority, reproduces the exact explanation from the same pinned observation,
+performs one bounded runtime transition, reads status, and reserves, publishes,
+and confirms a typed terminal Outcome without dispatching a host effect.
 The positive G4 fixture performs an actual `python -I -m pip --isolated`,
 no-index, no-build-isolation, no-dependency target installation and executes
 the installed module from that fresh target. It materializes only Git
@@ -71,8 +88,9 @@ publication files into a fresh owned source tree and includes ignored failing
 `setup.py` and `pip.py` injections to prove that ignored worktree input is
 neither built nor allowed to shadow the installer. Host
 Git hooks, signing, attributes, excludes, file monitoring, and template input
-are disabled for the owned fixture. The smoke also performs the canonical
-ingest and Gate G1 offline in a temporary repository-local directory.
+are disabled for the owned fixture. The smoke materializes the current Git
+publication set as a clean temporary Git repository below system temp, then
+performs the canonical ingest and Gate G1 offline inside that owned fixture.
 
 The repository audit uses Git's complete cached-plus-untracked publication set.
 It checks secrets, email and personal paths in text and binary metadata,
@@ -90,13 +108,20 @@ known-limitations sections.
 ## Continuous integration parity
 
 Every Windows/Linux and Python 3.12/3.13 matrix job runs pytest, Ruff, strict
-mypy, total and M1/M2/M6/M7 critical branch coverage, both repository audits, the Git
-workspace boundary, installed dependency consistency, and the exact CLI smoke
-script. Full pytest and smoke therefore exercise M4 on every existing matrix
-job. The matrix also runs `M6-SCHEDULER-SAFETY` and
-`M7-SOLVER-EVIDENCE`. The M3, M4, and M5 critical thresholds are additional
-local Gates. CI uses only immutable pinned GitHub Action commits and installs no
-runtime dependency.
+mypy, total and M1-through-M8 critical branch coverage, evaluation
+reproduction, both repository audits, the Git workspace boundary, installed
+dependency consistency, and the exact CLI smoke script through the same
+system-temp candidate runner. Full pytest and smoke therefore exercise M4 on
+every existing matrix job. The matrix also runs `M5-CONTEXT-INTEGRITY`, `M6-SCHEDULER-SAFETY`,
+`M7-SOLVER-EVIDENCE`, and `M8-WORKFLOW-INTEGRATION`. CI uses only immutable
+pinned GitHub Action commits and installs no runtime dependency.
+
+The named branch checkout required by the workspace Gate is followed, before
+any installation or Gate command, by a fail-closed comparison of the checked-
+out `git rev-parse HEAD` with the triggering pull-request head SHA, or with
+`github.sha` for a push. A queued workflow therefore cannot silently validate
+a newer commit that reached the same mutable branch after the run was
+triggered.
 
 Platform claims must come from `docs/evidence/M4-platform-evidence.json` and
 bind to the exact M4 candidate. A prior M3 matrix does not verify M4. A remote
@@ -106,7 +131,27 @@ actually run.
 
 ## Local commit gate
 
-- `python scripts/validate_m7_solver.py` prints
+- `python scripts/run_local_gate.py script scripts/validate_m8_workflow.py` prints
+  `PASS: M8-WORKFLOW-INTEGRATION`; validates all five public artifacts and
+  schemas plus negative parity; re-runs M5-M7 validators; reproduces Plan,
+  explanation, runtime, status, supersession, recovery, terminal-reserved
+  Event/State/Outcome finalization, twelve real-Outcome simulations over three
+  exact fixture bundles, and nine independently re-resolved 52-name measurement
+  groups; and confirms unchanged stable exports and
+  runtime dependencies. M8 critical branch coverage is at least 90 percent.
+- M8 focused tests cover strict identities, duplicate keys, bounds,
+  sensitivity, reference drift, deterministic planning and explanation,
+  protected approval stops, semantic Event forgery rejection, one-tick
+  transition, resume, exact predecessor epochs, immutable recovery, ambiguity,
+  one pinned Git-plus-M6 Candidate/G3/G4 observation, M3 UI-backed G4,
+  receipt-bound runtime-private output identity, store-wide receipt-scope
+  retention, post-preflight pre-epoch Candidate revalidation, exact
+  confirmed-artifact retry, terminal timestamp identity, predecessor-aware
+  explain/simulate/run,
+  completion profiles, Gate/handoff composition, public schemas,
+  all scenarios, stable boundaries, and CLI collision behavior.
+
+- `python scripts/run_local_gate.py script scripts/validate_m7_solver.py` prints
   `PASS: M7-SOLVER-EVIDENCE` and validates all four positive runtime/schema
   artifact pairs, negative schema/runtime parity, exact M5/M6 and operational
   identities, independent optimal proof replay, current and historical Lease
@@ -131,11 +176,12 @@ actually run.
   zero solver use, and no validation command performs network access, version
   probing, fresh approval consumption, or dependency installation.
 
-- `python scripts/validate_m6_scheduler.py` prints
-  `PASS: M6-SCHEDULER-SAFETY` and validates all seven positive runtime/schema
+- `python scripts/run_local_gate.py script scripts/validate_m6_scheduler.py` prints
+  `PASS: M6-SCHEDULER-SAFETY` and validates all ten positive runtime/schema
   artifact pairs, positive and negative structural runtime/schema parity,
-  authoritative cross-field time safety, exact SQLite identity and schema
-  shape, one-owner concurrent claiming, deliberate mutable projection
+  authoritative cross-field time safety, exact SQLite v1/v2 identity and schema
+  shape, copy-on-write v1-to-v2 migration, epoch/receipt replay and recovery,
+  one-owner concurrent claiming, deliberate mutable projection
   corruption followed by immutable-evidence reconstruction, all ten durable-
   state-backed deterministic scenarios, recorded evaluation parity, and the
   unchanged stable top-level exports.
@@ -158,7 +204,7 @@ actually run.
   and late-result rejection; corruption recovery;
   CLI confinement/collision; and real-state-machine simulation. M6 critical
   branch coverage is at least 90 percent.
-- `python scripts/validate_m5_context.py` prints
+- `python scripts/run_local_gate.py script scripts/validate_m5_context.py` prints
   `PASS: M5-CONTEXT-INTEGRITY` and reproduces all eight public Context
   artifacts, seven named scenarios, the exact Snapshot, extractive Compaction,
   and named non-aggregate quality report. Each scenario is executed locally;
@@ -213,9 +259,10 @@ deployment, repository administration, secrets, and runner changes remain
 prohibited.
 
 After push, the observed workflow must have the exact local commit as its head
-SHA and every required matrix job must succeed. A failure is diagnosed from
-bounded logs before any retry. An in-scope fix receives focused tests, full
-related Gates, read-only re-review, a new English commit, and a normal push.
+SHA, its checkout assertion must confirm that same immutable triggering SHA,
+and every required matrix job must succeed. A failure is diagnosed from bounded
+logs before any retry. An in-scope fix receives focused tests, full related
+Gates, read-only re-review, a new English commit, and a normal push.
 
 ## Local publication-readiness gate
 

@@ -222,7 +222,7 @@ traversal truncation. It has no aggregate score.
 Run:
 
 ```text
-python scripts/validate_m5_context.py
+python scripts/run_local_gate.py script scripts/validate_m5_context.py
 ```
 
 Success starts with `PASS: M5-CONTEXT-INTEGRITY`. The validator checks all eight

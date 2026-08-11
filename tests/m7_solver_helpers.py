@@ -88,11 +88,11 @@ class M7Fixture:
     token: str
 
 
-def reference_registry() -> SolverRegistry:
+def reference_registry(*, root: Path = ROOT) -> SolverRegistry:
     """Return the mandatory offline standard-library adapter Registry."""
 
     provenance = tuple(
-        reference(path) for path in (Path("LICENSE"), Path("pyproject.toml"))
+        reference(path, root=root) for path in (Path("LICENSE"), Path("pyproject.toml"))
     )
     adapter = SolverAdapterDefinition(
         adapter_id=REFERENCE_ADAPTER_ID,
@@ -278,18 +278,19 @@ def build_fixture(
     max_result_bytes: int = 1_048_576,
     registry: SolverRegistry | None = None,
     adapter_id: str = REFERENCE_ADAPTER_ID,
+    root: Path = ROOT,
 ) -> M7Fixture:
     """Publish exact Registry, Request, and M6 graph fixtures under the repo root."""
 
     selected_problem = scheduling_problem() if problem is None else problem
     tmp_path.mkdir(parents=True, exist_ok=True)
-    selected_registry = reference_registry() if registry is None else registry
+    selected_registry = reference_registry(root=root) if registry is None else registry
     registry_artifact = artifact_from_value(SolverArtifactType.REGISTRY, selected_registry)
     registry_path = tmp_path / "solver-registry.json"
     registry_path.write_bytes(serialize_solver_artifact(registry_artifact))
-    registry_reference = reference(registry_path)
+    registry_reference = reference(registry_path, root=root)
 
-    base = graph_value()
+    base = graph_value(root)
     context = base.contexts[0]
     placeholder_graph = ArtifactReference("placeholder.json", "0" * 64)
     request_value = SolverRequest(
@@ -345,7 +346,7 @@ def build_fixture(
 
     request_value = replace(
         request_value,
-        task_graph=reference(graph_path),
+        task_graph=reference(graph_path, root=root),
         graph_id=graph_artifact.artifact_id,
     )
     assert request_value.contract_id == operational_contract_id(
@@ -369,14 +370,18 @@ def build_fixture(
     )
 
 
-def start_solver_lease(fixture: M7Fixture) -> tuple[SQLiteSchedulerStore, LoadedSchedulerArtifact]:
+def start_solver_lease(
+    fixture: M7Fixture,
+    *,
+    root: Path = ROOT,
+) -> tuple[SQLiteSchedulerStore, LoadedSchedulerArtifact]:
     """Initialize M6 state, advertise the exact token, dispatch, and acknowledge."""
 
     graph = fixture.graph.value
     assert isinstance(graph, TaskGraph)
     store = SQLiteSchedulerStore.initialize(
         fixture.state_path,
-        ROOT,
+        root,
         fixture.graph,
         FIXED_TIME,
     )
@@ -402,7 +407,7 @@ def start_solver_lease(fixture: M7Fixture) -> tuple[SQLiteSchedulerStore, Loaded
             payload={"capabilities": [fixture.token]},
         ),
     )
-    tick = store.tick(ROOT, HOST_ID, (observation,), FIXED_TIME)
+    tick = store.tick(root, HOST_ID, (observation,), FIXED_TIME)
     assert tick.accepted_message_ids == (observation.artifact_id,)
     assert len(tick.outgoing) == 1
     dispatch = tick.outgoing[0]
@@ -414,7 +419,7 @@ def start_solver_lease(fixture: M7Fixture) -> tuple[SQLiteSchedulerStore, Loaded
         sender=HOST_ID,
     )
     acknowledged = store.tick(
-        ROOT,
+        root,
         HOST_ID,
         (acknowledgement,),
         FIXED_TIME + timedelta(seconds=1),
@@ -468,12 +473,12 @@ def solver_task_result(
     )
 
 
-def reference(path: Path) -> ArtifactReference:
+def reference(path: Path, *, root: Path = ROOT) -> ArtifactReference:
     """Create a canonical repo-relative content reference."""
 
-    absolute = path if path.is_absolute() else ROOT / path
+    absolute = path if path.is_absolute() else root / path
     return ArtifactReference(
-        absolute.resolve(strict=True).relative_to(ROOT.resolve(strict=True)).as_posix(),
+        absolute.resolve(strict=True).relative_to(root.resolve(strict=True)).as_posix(),
         hashlib.sha256(absolute.read_bytes()).hexdigest().upper(),
     )
 

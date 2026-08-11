@@ -165,7 +165,7 @@ contract and do not disclose an absolute path.
 Run the named offline validator from the repository root:
 
 ```text
-python scripts/validate_m7_solver.py
+python scripts/run_local_gate.py script scripts/validate_m7_solver.py
 ```
 
 `PASS: M7-SOLVER-EVIDENCE` validates all four public artifacts against runtime
