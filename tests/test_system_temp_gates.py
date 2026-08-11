@@ -235,6 +235,48 @@ def test_gate_runner_materializes_a_clean_system_temp_git_candidate(tmp_path: Pa
         assert completed.stdout.strip() == f"## {_current_branch()}"
 
 
+def test_candidate_git_add_uses_a_platform_tolerant_bounded_timeout(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    owned = tmp_path / "owned"
+    owned.mkdir()
+    calls: list[tuple[tuple[str, ...], int]] = []
+
+    def record_git_command(
+        root: Path,
+        safety: Path,
+        *arguments: str,
+        timeout_seconds: int = gates._GIT_COMMAND_TIMEOUT_SECONDS,
+    ) -> subprocess.CompletedProcess[bytes]:
+        del root, safety
+        calls.append((arguments, timeout_seconds))
+        return subprocess.CompletedProcess(list(arguments), 0, b"", b"")
+
+    monkeypatch.setattr(
+        gates,
+        "_source_git_metadata",
+        lambda source_root, safety: ("agent/example", ()),
+    )
+    monkeypatch.setattr(gates, "_publication_paths", lambda source_root, safety: ())
+    monkeypatch.setattr(gates, "_git_command", record_git_command)
+
+    gates.materialize_candidate_repository(source, owned)
+
+    candidate_add = ("add", "--force", ".")
+    assert [call for call in calls if call[0] == candidate_add] == [
+        (candidate_add, gates._CANDIDATE_GIT_ADD_TIMEOUT_SECONDS)
+    ]
+    assert gates._CANDIDATE_GIT_ADD_TIMEOUT_SECONDS == 60
+    assert all(
+        timeout_seconds == gates._GIT_COMMAND_TIMEOUT_SECONDS
+        for arguments, timeout_seconds in calls
+        if arguments != candidate_add
+    )
+
+
 def test_coverage_gate_keeps_all_existing_m1_through_m8_thresholds() -> None:
     assert [threshold for threshold, _ in gates._COVERAGE_THRESHOLDS] == [
         90,

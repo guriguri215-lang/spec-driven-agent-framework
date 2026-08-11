@@ -18,6 +18,8 @@ _REPARSE_POINT = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
 _EXPECTED_ORIGIN_URL = (
     "https://github.com/guriguri215-lang/spec-driven-agent-framework.git"
 )
+_GIT_COMMAND_TIMEOUT_SECONDS = 10
+_CANDIDATE_GIT_ADD_TIMEOUT_SECONDS = 60
 _PYTHON_SCRIPTS = {
     "scripts/run_cli_smoke.py",
     "scripts/validate_m5_context.py",
@@ -183,6 +185,7 @@ def _git_command(
     root: Path,
     safety: Path,
     *arguments: str,
+    timeout_seconds: int = _GIT_COMMAND_TIMEOUT_SECONDS,
 ) -> subprocess.CompletedProcess[bytes]:
     executable = shutil.which("git")
     if executable is None:
@@ -212,7 +215,7 @@ def _git_command(
         check=False,
         shell=False,
         capture_output=True,
-        timeout=10,
+        timeout=timeout_seconds,
     )
     if completed.returncode != 0:
         raise RuntimeError(f"Temporary Git candidate command failed: {arguments[0]}")
@@ -324,7 +327,14 @@ def materialize_candidate_repository(source_root: Path, owned: Path) -> Path:
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(original, destination)
     _git_command(candidate, safety, "init", "-b", branch)
-    _git_command(candidate, safety, "add", "--force", ".")
+    _git_command(
+        candidate,
+        safety,
+        "add",
+        "--force",
+        ".",
+        timeout_seconds=_CANDIDATE_GIT_ADD_TIMEOUT_SECONDS,
+    )
     _git_command(
         candidate,
         safety,
