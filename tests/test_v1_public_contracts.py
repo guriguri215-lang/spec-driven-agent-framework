@@ -69,6 +69,7 @@ def test_v1_version_and_template_api_line_are_consistent() -> None:
     )
 
     assert project["project"]["version"] == "1.0.0rc1"
+    assert project["project"]["requires-python"] == ">=3.12,<3.14"
     assert sdaqf.__version__ == "1.0.0rc1"
     assert sdaqf.__all__ == ["GateCheck", "GateResult", "ToolCapability", "ToolStatus"]
     assert templates["templates"][0]["compatible_version"] == "1.0.0"

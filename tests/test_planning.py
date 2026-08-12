@@ -23,6 +23,7 @@ def test_roadmap_has_separate_milestone_contract_sections(tmp_path: Path) -> Non
         assert heading in roadmap
     assert "Release Contract" in roadmap
     assert "orchestration" in roadmap
+    assert "- Local Python 3.12 or 3.13; no network or paid API." in roadmap
 
 
 def test_exec_plan_is_living_and_has_complete_execution_contract(

@@ -3,8 +3,10 @@
 ## Runtime
 
 M0 through the V1 release candidate have no third-party runtime dependency.
-The application uses only Python 3.12-or-newer standard-library modules. V1
-adds no package to the development lock.
+The public support contract covers CPython 3.12 and 3.13 and uses only their
+standard-library modules. Supporting a later Python version requires an
+explicit support-contract update and addition to the primary validation
+matrix. V1 adds no package to the development lock.
 
 The SDAQF project is licensed under Apache-2.0 through the exact root
 `LICENSE` and `NOTICE` files. This project-license decision does not relicense

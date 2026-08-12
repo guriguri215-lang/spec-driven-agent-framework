@@ -17,9 +17,9 @@ def test_canonical_specification_produces_complete_passing_m1_baseline() -> None
     )
 
     assert baseline.source.sha256 == (
-        "89340E628F631CEE6A020C7F1008446ECDB9D0470E7CD56B856F91BB9B10D2D5"
+        "99C468EBC7175A5FCF4CBD036247072931AD642DFC07B8284E6B76EE968E9DEC"
     )
-    assert baseline.baseline_id == "RB-89340E628F631CEE"
+    assert baseline.baseline_id == "RB-99C468EBC7175A5F"
     assert len(baseline.requirements) == 228
     assert len(baseline.source_acceptance_criteria) == 23
     assert (

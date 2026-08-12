@@ -1,5 +1,5 @@
 {
-  "artifact_id": "M6-TASK-GRAPH-3A52FF50A36E0081055F51599157BF31EC70ED4E3240AC2A427AFD3A9079F6B1",
+  "artifact_id": "M6-TASK-GRAPH-5046A9F3F4A551D729A0777CD1FBEF5298A4E1AA26D93B1CF0F8041C5B8FFFB2",
   "artifact_type": "task-graph",
   "content": {
     "agent_registry": {
@@ -59,7 +59,7 @@
         "max_attempts": 2,
         "owned_paths": [],
         "required_capabilities": [
-          "m7-solver-v1@M7-SOLVER-CONTRACT-95ED2337A6DD7FC21CA4430E19A4430D0AFAC8F66C0BBF5521FF4681D9AFE740@16@16"
+          "m7-solver-v1@M7-SOLVER-CONTRACT-106ADC2FFF4FA2EE06ED2AAD50729B8AB5AC8051F585A63A1A1F646384D49DFE@16@16"
         ],
         "required_tools": [],
         "review_targets": [],

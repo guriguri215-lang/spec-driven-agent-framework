@@ -10,28 +10,19 @@ results for Codex-assisted software projects.
 > **Status: experimental reference implementation.** The
 > [`v1.0.0-rc.1`](https://github.com/guriguri215-lang/spec-driven-agent-framework/releases/tag/v1.0.0-rc.1)
 > prerelease contains the M0-M4 baseline. The current `main` branch adds the
-> unreleased M5-M8 context, scheduling, solver, and integrated workflow
-> frameworks. The earlier independent review of the third M8 remediation round
-> accepted F1 through F11 but retained an overall NO-GO because successor Plans
-> lost predecessor scheduler authority after their first run. The latest
-> independent successor lifecycle compatibility review returned GO for the
-> reviewed M8 state: F1 through F11 remain ACCEPT, predecessor scheduler state
-> propagates through successor resume, status, recovery, and Python terminal-
-> observation finalization, and zero findings remain unresolved within the
-> review scope. This supersedes the earlier M8 overall NO-GO for that state
-> only; the project is not production-ready, and the review did not establish
-> release GO. The historical 2026-08-10 final compatibility reviews remain
-> recorded as M5 NO-GO and M6 NO-GO. The latest M5 disposition is GO for the
-> reviewed repository state. The latest M6 disposition is GO for the reviewed
-> state merged by pull request #4, with zero unresolved Critical, High, or
-> Medium findings within the post-remediation compatibility scope. Exact pull-
-> request head [run 31558960113](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/runs/31558960113)
-> passed across Windows/Linux and Python 3.12/3.13. The resulting `main` merge
-> commit then passed the same exact-triggering-SHA matrix in
-> [run 31563987706](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/runs/31563987706).
-> The current dispositions are independent: M5 GO, M6 GO, M7 GO, and M8
-> successor lifecycle GO. Release GO and production readiness remain separately
-> gated, and macOS is not verified.
+> M5-M8 context, scheduling, solver, and integrated workflow frameworks; all
+> four remain Experimental and unreleased. The current dispositions are
+> independent: M5 GO, M6 GO, M7 GO, and M8 successor lifecycle GO. The latest
+> M8 successor lifecycle compatibility review maintained F1 through F11 and
+> left zero unresolved scope findings. The reviewed M6 state completed pull
+> request #4: exact-head
+> [run 31558960113](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/runs/31558960113)
+> and post-merge `main`
+> [run 31563987706](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/runs/31563987706)
+> passed on Windows/Linux and Python 3.12/3.13. Historical M5/M6 NO-GO records
+> remain preserved. These dispositions and CI results do not establish release GO
+> or production readiness; the project is not production-ready, and
+> macOS is not verified.
 
 ## Why SDAQF
 
@@ -247,11 +238,11 @@ input models.
 | Check | Current evidence |
 |---|---|
 | Automated tests | The latest M6 schema remediation passes 65 public-contract tests and 145 related M6 contract/public/migration tests. The prior M8 review passed 28 focused compatibility/CLI tests, 120 complete M8 tests, and 9 round-three regression tests; it did not rerun full pytest. The recorded 87-test M5, 102-test M6, 14-test integration, and 1,241-test full-run results remain historical evidence |
-| Current `main` CI | [Run 31563987706](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/runs/31563987706) passed the exact post-merge triggering SHA on Windows/Linux and Python 3.12/3.13 after pull request #4 exact-head run `31558960113` passed the same matrix |
-| Static checks | Current exact-SHA `main` CI passes Ruff and strict mypy |
-| Coverage | Current exact-SHA `main` CI passes the project and M1-through-M8 critical coverage thresholds |
-| Named validators | M5 context integrity, M6 scheduler safety, M7 solver evidence, and M8 workflow integration pass on current exact-SHA `main` |
-| CLI smoke | The offline M0-through-M8 smoke passes on current exact-SHA `main` without network access or persistent Git configuration changes |
+| Pull request #5 merged-state CI | [Run 31594557932](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/runs/31594557932) passed the exact pull request #5 merge-commit state on Windows/Linux and Python 3.12/3.13 after exact-head run `31586128196` passed the same matrix |
+| Static checks | That exact pull request #5 merged state passes Ruff and strict mypy |
+| Coverage | That exact pull request #5 merged state passes the project and M1-through-M8 critical coverage thresholds |
+| Named validators | M5 context integrity, M6 scheduler safety, M7 solver evidence, and M8 workflow integration pass for that exact pull request #5 merged state |
+| CLI smoke | The offline M0-through-M8 smoke passes for that exact pull request #5 merged state without network access or persistent Git configuration changes |
 | Independent review | The historical M5 and M6 final NO-GO reviews remain recorded. The latest M5 disposition is GO for the reviewed repository state; three fresh independent reviewers ACCEPTED the M6 remediation with no unresolved Critical, High, or Medium finding, and that state was merged by pull request #4; M7 and M8 retain their separate GO dispositions |
 | External validation | No independent production deployment, macOS run, hosted-agent evaluation, or third-party solver validation |
 

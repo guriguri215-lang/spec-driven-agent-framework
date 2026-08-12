@@ -7,7 +7,7 @@ name = "sdaqf"
 version = "1.0.0rc1"
 description = "Offline-first specification-driven development and quality assurance for Codex-assisted projects."
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.14"
 dependencies = []
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
