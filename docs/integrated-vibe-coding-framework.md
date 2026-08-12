@@ -294,18 +294,21 @@ F11 but retained overall NO-GO because successor resume, status, recovery, and
 Python terminal-observation finalization could not reproduce predecessor
 authority after the first run. The follow-up propagates that exact optional
 authority through each lifecycle path. The latest independent successor
-lifecycle compatibility review returned GO for the current local candidate,
-maintained every F1-through-F11 ACCEPT result, and left zero unresolved findings
-within its scope, superseding the earlier overall NO-GO for this candidate.
+lifecycle compatibility review returned GO for the reviewed M8 repository
+state, maintained every F1-through-F11 ACCEPT result, and left zero unresolved
+findings within its scope, superseding the earlier overall NO-GO for that state.
 
 That review records PASS for 28 focused compatibility/CLI tests, the 120-test
 complete M8 selection, the 9-test round-three regression selection,
 whole-project Ruff, strict mypy, all M5-through-M8 named validators, and
 M0-through-M8 CLI smoke. It did not rerun full pytest or coverage; the prior
 round-three full and coverage run remains supporting evidence only. M8 remains
-Experimental and unreleased. This compatibility GO does not constitute release
-GO, production readiness, commit, push, or exact-SHA remote CI. It did not
-decide M5 or M6. Their historical later final NO-GO reviews remain recorded;
-the latest M5 disposition is GO, and M6 compatibility remediation is complete
-with status publication pending and no M6 GO claimed. None of these statuses
-revises this M8 disposition or the existing M7 GO.
+Experimental and unreleased. This compatibility GO did not establish release
+GO or production readiness. The reviewed M8 state was later committed, pushed,
+and merged to `main`, whose exact-triggering-SHA Actions run `31497539609`
+passed the full matrix; that run does not verify the separate M6 status-
+publication change, whose exact PR CI is enforced independently. The M8 review
+did not decide M5 or M6. Their
+historical later final NO-GO reviews remain recorded; the latest M5 and M6
+dispositions are GO. None of these statuses revises this M8 disposition or the
+existing M7 GO.

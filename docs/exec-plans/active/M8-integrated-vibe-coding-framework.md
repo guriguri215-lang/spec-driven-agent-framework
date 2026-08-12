@@ -359,7 +359,10 @@ status, recovery, and Python terminal-observation finalization while retaining
 the accepted transaction and replay boundaries. The latest independent review
 confirmed that boundary and returned GO with every F1-through-F11 ACCEPT result
 maintained and zero unresolved findings within scope. It supersedes the earlier
-overall NO-GO for the current local candidate only. The candidate remains local,
-uncommitted, Experimental, and unreleased; release GO, production readiness,
-Git publication, and remote exact-SHA CI remain separate human decisions. No
-new hash list or candidate fingerprint is part of this remediation.
+overall NO-GO for the reviewed M8 state only. At review time, the candidate
+remained local, uncommitted, Experimental, and unreleased; release GO,
+production readiness, Git publication, and remote exact-SHA CI were separate
+human decisions. That state was later merged to `main`, whose exact-triggering-
+SHA Actions run `31497539609` passed the full matrix. This later M6 status-
+publication change and its exact PR CI remain separate. No new hash list or
+candidate fingerprint is part of the M8 remediation.

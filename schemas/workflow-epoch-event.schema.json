@@ -7,7 +7,7 @@
   "properties": {
     "schema_version": {"const": "1.0"},
     "artifact_type": {"const": "workflow-epoch-event"},
-    "artifact_id": {"pattern": "^M6-WORKFLOW-EPOCH-EVENT-[0-9A-F]{64}$"},
+    "artifact_id": {"type": "string", "pattern": "^M6-WORKFLOW-EPOCH-EVENT-[0-9A-F]{64}$"},
     "content": {
       "type": "object",
       "required": [
@@ -35,7 +35,7 @@
             "artifact-publication-confirmed", "terminal-reserved", "terminal-confirmed"
           ]
         },
-        "plan_id": {"pattern": "^M8-INTEGRATED-PLAN-[0-9A-F]{64}$"},
+        "plan_id": {"type": "string", "pattern": "^M8-INTEGRATED-PLAN-[0-9A-F]{64}$"},
         "predecessor_plan_id": {
           "type": ["string", "null"],
           "pattern": "^M8-INTEGRATED-PLAN-[0-9A-F]{64}$"
@@ -57,7 +57,7 @@
         "scheduler_state_id": {"$ref": "task-graph.schema.json#/$defs/scheduler_state_id"},
         "scheduler_event_sequence": {"type": "integer", "minimum": 1, "maximum": 2147483647},
         "scheduler_event_head_id": {"$ref": "task-graph.schema.json#/$defs/event_id"},
-        "idempotency_key": {"pattern": "^M8-IDEM-[0-9A-F]{64}$"},
+        "idempotency_key": {"type": "string", "pattern": "^M8-IDEM-[0-9A-F]{64}$"},
         "producer": {
           "enum": [
             "workflow-plan", "workflow-run", "workflow-resume", "workflow-recover",

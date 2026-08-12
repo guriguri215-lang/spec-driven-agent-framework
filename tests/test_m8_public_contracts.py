@@ -279,6 +279,12 @@ def test_documentation_claims_only_the_closed_verified_m8_boundaries() -> None:
 
     assert "NO-GO pending a fresh independent disposition" not in readme
     assert "needs fresh independent review" not in implementation_status
+    m8_summary = next(
+        line
+        for line in implementation_status.splitlines()
+        if line.startswith("| M8 Integrated Workflow |")
+    )
+    assert "release and exact-SHA remote CI remain unverified" not in m8_summary
     normalized_changelog = " ".join(changelog.split())
     assert "GO for the current local candidate" in normalized_changelog
     assert "No hash list or candidate fingerprint was created" in normalized_changelog
@@ -287,8 +293,8 @@ def test_documentation_claims_only_the_closed_verified_m8_boundaries() -> None:
 
 def test_public_status_keeps_milestone_dispositions_independent() -> None:
     disposition = (
-        "The current dispositions are independent: M5 GO, M6 status publication "
-        "pending (not GO), M7 GO, and M8 successor lifecycle GO."
+        "The current dispositions are independent: M5 GO, M6 GO, M7 GO, and M8 "
+        "successor lifecycle GO."
     )
     for relative in (
         "README.md",
@@ -307,8 +313,12 @@ def test_public_status_keeps_milestone_dispositions_independent() -> None:
     compatibility = " ".join(
         (ROOT / "docs/compatibility.md").read_text(encoding="utf-8").split()
     )
-    assert "latest M5 disposition is GO for the current local candidate" in compatibility
-    assert "M6 status publication is pending and no M6 GO is claimed" in compatibility
+    assert "latest M5 disposition is GO for the reviewed repository state" in compatibility
+    assert (
+        "latest M6 disposition is GO for the current status-publication candidate"
+        in compatibility
+    )
+    assert "later pre-publication stop remain recorded" in compatibility
 
     m5_plan = (
         ROOT / "docs/exec-plans/active/M5-context-framework.md"

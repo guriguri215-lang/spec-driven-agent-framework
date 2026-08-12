@@ -1325,6 +1325,61 @@ def _validate_negative_contract_parity(
     examples = root / "examples" / "m6-scheduler"
     cases: list[tuple[str, dict[str, object]]] = []
 
+    pattern_string_fields: tuple[tuple[str, str, str | None], ...] = (
+        (
+            "workflow-epoch-event.json",
+            "workflow-epoch-event.schema.json",
+            None,
+        ),
+        (
+            "workflow-epoch-event.json",
+            "workflow-epoch-event.schema.json",
+            "plan_id",
+        ),
+        (
+            "workflow-epoch-event.json",
+            "workflow-epoch-event.schema.json",
+            "idempotency_key",
+        ),
+        (
+            "scheduler-store-migration-approval.json",
+            "scheduler-store-migration-approval.schema.json",
+            None,
+        ),
+        (
+            "scheduler-store-migration-approval.json",
+            "scheduler-store-migration-approval.schema.json",
+            "root_sha256",
+        ),
+        (
+            "scheduler-store-migration-result.json",
+            "scheduler-store-migration-result.schema.json",
+            None,
+        ),
+        (
+            "scheduler-store-migration-result.json",
+            "scheduler-store-migration-result.schema.json",
+            "root_sha256",
+        ),
+        (
+            "scheduler-store-migration-result.json",
+            "scheduler-store-migration-result.schema.json",
+            "approval_id",
+        ),
+    )
+    invalid_pattern_values: tuple[object, ...] = (None, 1, [], {})
+    for example_name, schema_name, content_field in pattern_string_fields:
+        for invalid_value in invalid_pattern_values:
+            invalid = _load(examples / example_name)
+            if content_field is None:
+                invalid["artifact_id"] = invalid_value
+            else:
+                content = invalid["content"]
+                assert isinstance(content, dict)
+                content[content_field] = invalid_value
+                _refresh_identity(invalid)
+            cases.append((schema_name, invalid))
+
     unknown = _load(examples / "lease.json")
     unknown["unexpected"] = True
     cases.append(("lease.schema.json", unknown))

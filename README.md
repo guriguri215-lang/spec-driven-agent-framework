@@ -15,20 +15,22 @@ results for Codex-assisted software projects.
 > accepted F1 through F11 but retained an overall NO-GO because successor Plans
 > lost predecessor scheduler authority after their first run. The latest
 > independent successor lifecycle compatibility review returned GO for the
-> current local candidate: F1 through F11 remain ACCEPT, predecessor scheduler
-> state propagates through successor resume, status, recovery, and Python
-> terminal-observation finalization, and zero findings remain unresolved within
-> the review scope. This supersedes the earlier M8 overall NO-GO for this local
-> candidate only; the project is not production-ready, and this does not
-> constitute release GO, commit, push, or exact-SHA remote CI. The historical
-> 2026-08-10 final
-> compatibility reviews remain recorded as M5 NO-GO and M6 NO-GO. The latest
-> M5 disposition is GO for the current local candidate. M6 compatibility
-> remediation is complete, but its status publication is pending and no M6 GO
-> is claimed. The current dispositions are independent: M5 GO, M6 status
-> publication pending (not GO), M7 GO, and M8 successor lifecycle GO. Local
-> focused validation passes, but the current uncommitted candidate has no
-> exact-SHA remote CI result, and macOS is not verified.
+> reviewed M8 state: F1 through F11 remain ACCEPT, predecessor scheduler state
+> propagates through successor resume, status, recovery, and Python terminal-
+> observation finalization, and zero findings remain unresolved within the
+> review scope. This supersedes the earlier M8 overall NO-GO for that state
+> only; the project is not production-ready, and the review did not establish
+> release GO. The historical 2026-08-10 final compatibility reviews remain
+> recorded as M5 NO-GO and M6 NO-GO. The latest M5 disposition is GO for the
+> reviewed repository state. The latest M6 disposition is GO for the current
+> status-publication candidate, with zero unresolved Critical, High, or Medium
+> findings within the post-remediation compatibility scope. The current
+> dispositions are independent: M5 GO, M6 GO, M7 GO, and M8 successor lifecycle
+> GO. The base `main` state was committed and pushed, then passed
+> exact-SHA remote CI for its exact triggering SHA in
+> [run 31497539609](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/runs/31497539609)
+> across Windows/Linux and Python 3.12/3.13. Exact PR CI for this status-
+> publication change is enforced separately before Goal completion. macOS is not verified.
 
 ## Why SDAQF
 
@@ -243,13 +245,13 @@ input models.
 
 | Check | Current evidence |
 |---|---|
-| Automated tests | The prior M8 review passed 28 focused compatibility/CLI tests, 120 complete M8 tests, and 9 round-three regression tests; it did not rerun full pytest. This remediation passes 87 focused M5 tests, 102 focused M6 scheduler/public-contract tests, and 14 focused M5/M6-to-M8 integration tests; the prior 1,241-test full run remains supporting evidence |
-| Last remotely observed pre-M8 `main` CI | [Run 30824066485](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/runs/30824066485) passed on Windows/Linux and Python 3.12/3.13; it does not verify the uncommitted local M8 candidate |
-| Static checks | Ruff passes `src`, `tests`, and `scripts`; strict mypy passes 178 source files for the local remediation |
-| Coverage | The latest independent review did not rerun coverage; the prior threshold-passing full run remains supporting evidence only |
-| Named validators | M5 context integrity, M6 scheduler safety, M7 solver evidence, and M8 workflow integration pass locally |
-| CLI smoke | The offline M0-through-M8 smoke passes locally without network access or persistent Git configuration changes |
-| Independent review | The historical M5 and M6 final NO-GO reviews remain recorded; the latest M5 disposition is GO for the current local candidate, while M6 compatibility remediation is complete with status publication pending and no M6 GO claimed; M7 retains its independent GO and the latest M8 successor lifecycle review retains its separate GO with zero unresolved scope findings |
+| Automated tests | The latest M6 schema remediation passes 65 public-contract tests and 145 related M6 contract/public/migration tests. The prior M8 review passed 28 focused compatibility/CLI tests, 120 complete M8 tests, and 9 round-three regression tests; it did not rerun full pytest. The recorded 87-test M5, 102-test M6, 14-test integration, and 1,241-test full-run results remain historical evidence |
+| Current base `main` CI | [Run 31497539609](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/runs/31497539609) passed the exact triggering SHA on Windows/Linux and Python 3.12/3.13; exact PR CI for this status-publication change is enforced separately |
+| Static checks | Current base `main` CI passes Ruff and strict mypy; the status-publication candidate is subject to the same complete checks before Git finalization |
+| Coverage | Current base `main` CI passes the project and M1-through-M8 critical coverage thresholds; the same thresholds apply to the status-publication candidate |
+| Named validators | M5 context integrity, M6 scheduler safety, M7 solver evidence, and M8 workflow integration pass on base `main`; the remediated M6 validator also passes locally |
+| CLI smoke | The offline M0-through-M8 smoke passes on base `main` without network access or persistent Git configuration changes |
+| Independent review | The historical M5 and M6 final NO-GO reviews remain recorded. The latest M5 disposition is GO for the reviewed repository state; three fresh independent reviewers ACCEPT the M6 remediation with no unresolved Critical, High, or Medium finding and support M6 GO for the current status-publication candidate; M7 and M8 retain their separate GO dispositions |
 | External validation | No independent production deployment, macOS run, hosted-agent evaluation, or third-party solver validation |
 
 The exact local gate commands are in the
@@ -306,13 +308,12 @@ M0-M4 form the published release-candidate baseline. M5-M8 are implemented on
 `main` with the validation qualifications above. M8 composes the existing
 contracts without bypassing their validators and remains experimental and
 unreleased. Its latest successor lifecycle compatibility review is GO for the
-current local candidate. The historical M5 and M6 NO-GO reviews remain recorded
-and do not revise the M7 or M8 dispositions. The latest M5 disposition is GO;
-M6 compatibility remediation is complete, but its status publication is
-pending and no M6 GO is claimed. Release GO,
-production readiness, commit, push, and exact-SHA remote CI remain separate. See the
-[Roadmap](docs/roadmap.md) for scope, exclusions, risks, and completion
-criteria.
+reviewed M8 state. The historical M5 and M6 NO-GO reviews remain recorded and
+do not revise the M7 or M8 dispositions. The latest M5 and M6 dispositions are
+GO. The current dispositions are independent: M5 GO, M6 GO, M7 GO, and M8
+successor lifecycle GO. Release GO, production readiness, exact PR CI, version,
+tag, release, and deployment remain separately gated. See the
+[Roadmap](docs/roadmap.md) for scope, exclusions, risks, and completion criteria.
 
 ## Contributing, security, and support
 

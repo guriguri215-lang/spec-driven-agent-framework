@@ -87,12 +87,13 @@ M5 through M8 extend the framework additively:
 
 ## M5: Context Framework
 
-Status: implemented experimentally in the current local candidate. The
+Status: implemented experimentally on `main`. The
 historical 2026-08-10 final independent compatibility re-review remains recorded NO-GO.
 Its High Snapshot-publication CandidateIdentity and Medium Selection-rank
 provenance findings are remediated. The latest M5 disposition is GO for the
-current local candidate. No new validation count, review-evidence detail, or
-exact-SHA remote CI result is claimed for that GO.
+reviewed repository state. That review added no new validation count or review-
+evidence detail. The reviewed state was later merged to `main`, whose exact-
+triggering-SHA Actions run `31497539609` passed the full matrix.
 
 ### Objective
 
@@ -160,12 +161,17 @@ reproducible context snapshots with explicit selection and exclusion reasons.
 
 ## M6: Multi-Agent Control Framework
 
-Status: implemented experimentally in the current local candidate. The
-historical 2026-08-10 final independent compatibility review remains recorded NO-GO. Its
-Medium blocking Workflow Epoch Event schema/runtime parity finding is
-remediated. M6 status publication is pending and no M6 GO is claimed. Focused
-local tests and the named validator pass; exact-SHA remote CI for this
-uncommitted candidate is not verified.
+Status: implemented experimentally. The historical 2026-08-10 final independent
+compatibility review remains recorded NO-GO with one Medium blocking Workflow
+Epoch Event schema/runtime parity finding. A later pre-publication review
+stopped with one separate Medium pattern-field type-parity finding. Both are
+remediated without changing runtime semantics or schema versions. The 65-test
+public-contract selection, 145-test related M6 selection, and named validator
+pass. Three fresh independent reviewers ACCEPT with zero unresolved Critical,
+High, or Medium finding; the latest M6 disposition is GO for the current status-
+publication candidate. Base `main` exact-triggering-SHA CI passed as Actions run
+`31497539609`; this is its exact-SHA remote CI evidence, while exact PR CI for
+this change is separately enforced.
 
 ### Objective
 
@@ -310,16 +316,14 @@ where a solver is justified.
 
 ## M8: Integrated Vibe-Coding Framework
 
-Status: implemented experimentally in the local candidate. The latest
+Status: implemented experimentally on `main`. The latest
 independent successor lifecycle compatibility review returned GO with F1
 through F11 maintained and zero unresolved findings within its scope. It
-supersedes the earlier round-three overall NO-GO for the current local candidate
-only. M8 remains Experimental and unreleased; release GO, production readiness,
-commit, push, and exact-SHA remote CI remain separately gated. That M8 review
-did not decide M5 or M6. Their historical later final NO-GO reviews remain
-recorded; the latest M5 disposition is GO, and M6 compatibility remediation is
-complete with status publication pending and no M6 GO claimed. None of these
-statuses revises the M7 or M8 disposition.
+supersedes the earlier round-three overall NO-GO for the reviewed M8 state only.
+M8 remains Experimental and unreleased; release GO and production readiness
+remain separately gated. That M8 review did not decide M5 or M6. Their
+historical later final NO-GO reviews remain recorded; the latest M5 and M6
+dispositions are GO. None of these statuses revises the M7 or M8 disposition.
 
 ### Objective
 
@@ -413,8 +417,8 @@ Every milestone requires its own living ExecPlan, exact implementation scope,
 negative tests, complete Release Contract regression, independent read-only
 review, candidate identity, and separate Git or external-action approvals.
 
-The current dispositions are independent: M5 GO, M6 status publication pending
-(not GO), M7 GO, and M8 successor lifecycle GO.
+The current dispositions are independent: M5 GO, M6 GO, M7 GO, and M8
+successor lifecycle GO.
 Roadmap approval does not authorize implementation, dependencies, schema
 publication, staging, commit, push, release, deployment, hosted access, or
 repository settings.

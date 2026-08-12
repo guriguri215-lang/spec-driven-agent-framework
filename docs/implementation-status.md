@@ -23,10 +23,10 @@ working behavior.
 | M2 Agent, Skill, and Tool Orchestration | Implemented | Yes | Plans roles and tool calls; does not dispatch agents |
 | M3 Evidence, UI, and Release QA | Implemented | Yes | Validates host observations; does not launch a browser or publish |
 | M4 Public Beta Hardening | Implemented | Yes | Authored evaluation is nonempirical and noncausal |
-| M5 Context Framework | Experimental | No | Latest disposition is GO for the current local candidate; historical NO-GO remains recorded; release and exact-SHA remote CI remain unverified |
-| M6 Multi-Agent Control Framework | Experimental | No | Compatibility remediation complete; status publication pending; no M6 GO claimed; historical NO-GO remains recorded |
+| M5 Context Framework | Experimental | No | Latest disposition is GO for the reviewed repository state; historical NO-GO remains recorded; release remains separately gated |
+| M6 Multi-Agent Control Framework | Experimental | No | Latest disposition is GO for the current status-publication candidate; historical NO-GO and later pre-publication stop remain recorded; exact PR CI remains separately gated |
 | M7 Mathematical Solver Framework | Experimental | No | Bounded local reference adapter; independent milestone GO and current CI |
-| M8 Integrated Workflow | Experimental | No | Latest successor lifecycle compatibility review is GO with F1-F11 maintained and zero unresolved scope findings; release and exact-SHA remote CI remain unverified |
+| M8 Integrated Workflow | Experimental | No | Latest successor lifecycle compatibility review is GO with F1-F11 maintained and zero unresolved scope findings; the reviewed M8 state was merged to `main`, whose exact-triggering-SHA Actions run `31497539609` passed; release remains separately gated |
 
 ## M0: bootstrap and repository safety
 
@@ -123,10 +123,11 @@ Limits:
   published rank share one authoritative graph distance without changing
   ordering, budget, or replay.
 - The two findings are remediated. The latest M5 disposition is GO for the
-  current local candidate. The earlier 87 focused M5 tests and
+  reviewed repository state. The earlier 87 focused M5 tests and
   `M5-CONTEXT-INTEGRITY` pass remain separate supporting evidence; no validation
-  count, review-evidence detail, or exact-SHA remote CI result is added for the
-  latest GO.
+  count or review-evidence detail is added for the latest GO. The reviewed state
+  was later merged to `main`, whose exact-triggering-SHA Actions run
+  `31497539609` passed the full matrix.
 
 See [Context Framework](context-framework.md).
 
@@ -148,9 +149,18 @@ Limits:
   NO-GO. Workflow Epoch Event Schema now enforces receipt type/ID-prefix and
   artifact-head ID/path-pair correlations already enforced by runtime parsing;
   SQLite live, replay, migration, and recovery meanings are unchanged.
-- The finding is remediated; M6 status publication is pending and no M6 GO is
-  claimed. The 102 focused scheduler contract/public-contract tests and
-  `M6-SCHEDULER-SAFETY` pass, but no exact-SHA remote CI result is established.
+- A later pre-publication review stopped with one separate Medium finding: eight
+  pattern-constrained identifier and digest fields accepted non-string values
+  in public Schema while runtime parsing rejected them. The five-file
+  remediation makes every field explicitly string-only and adds matching
+  32-case public-test and named-validator parity matrices. Runtime semantics,
+  schema versions, samples, and evaluation fixtures remain unchanged.
+- The 65-test public-contract selection, 145-test related M6 selection, and
+  `M6-SCHEDULER-SAFETY` pass. Three fresh independent reviewers ACCEPT the
+  remediated state with zero unresolved Critical, High, or Medium finding. The
+  latest M6 disposition is GO for the current status-publication candidate.
+  Base `main` exact-triggering-SHA CI passed as Actions run `31497539609`; exact
+  PR CI for this change is enforced separately before Goal completion.
 
 See [Multi-Agent Control Framework](multi-agent-control-framework.md).
 
@@ -216,11 +226,10 @@ Limits:
   only. M8 remains Experimental and unreleased; release GO, production
   readiness, commit, push, and exact-SHA remote CI are not claimed. That M8
   review did not decide M5 or M6. Their historical later final NO-GO reviews
-  remain recorded; the latest M5 disposition is now GO, while M6 compatibility
-  remediation is complete with status publication pending and no M6 GO claimed.
+  remain recorded; the latest M5 and M6 dispositions are now GO.
   None of these dispositions revises the M7 or M8 disposition.
 
-The current dispositions are independent: M5 GO, M6 status publication pending
-(not GO), M7 GO, and M8 successor lifecycle GO.
+The current dispositions are independent: M5 GO, M6 GO, M7 GO, and M8
+successor lifecycle GO.
 
 See [Integrated Vibe-Coding Framework](integrated-vibe-coding-framework.md).

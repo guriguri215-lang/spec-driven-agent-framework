@@ -276,11 +276,29 @@ The observable result is:
   contract/public-contract tests, 14 focused M5/M6-to-M8 integration tests,
   Ruff, strict mypy on the changed Python, and `M6-SCHEDULER-SAFETY` for SQLite
   schemas 1 and 2.
-- [ ] Publish the post-remediation M6 status. Compatibility remediation is
-  complete, but status publication is pending and no M6 GO is claimed. The
-  historical NO-GO review record remains intact.
-- [ ] Present a separate exact stage/commit proposal. Push and exact-SHA CI
-  observation remain later separate approval boundaries.
+- [x] (2026-08-12) Stopped the first status-publication review before editing
+  after one independent reviewer found a separate Medium schema/runtime parity
+  gap: eight pattern-constrained identifiers and digests in three additive M6
+  schemas accepted non-string values that runtime parsing rejected. The other
+  two reviewers accepted their assigned documentation/history and test/release
+  scopes; no status wording or Git publication occurred at that stop.
+- [x] (2026-08-12) Applied the Owner-approved five-file remediation. All eight
+  fields now explicitly require strings, and both the public-contract test and
+  named validator exercise null, number, array, and object values for every
+  field while preserving valid content identity around content-field cases.
+  Runtime semantics, schema versions, examples, and evaluation fixtures are
+  unchanged.
+- [x] (2026-08-12) The 65-test public-contract selection, 145-test related M6
+  contract/public/migration selection, `M6-SCHEDULER-SAFETY`, and whitespace
+  check pass. Three fresh independent read-only reviewers returned ACCEPT with
+  zero unresolved Critical, High, or Medium finding and support M6 GO for the
+  current status-publication candidate.
+- [x] (2026-08-12) Updated current public-status wording to record M6 GO while
+  preserving the historical 2026-08-10 NO-GO, the later pre-publication stop,
+  and every historical severity, count, and validation result.
+- [ ] Complete the full local Gate matrix, final three-reviewer diff check,
+  explicit staging, English commit, normal push, draft PR, and exact PR CI.
+  Merge, version, tag, release, and deployment remain out of scope.
 
 ## Surprises & Discoveries
 
@@ -696,13 +714,34 @@ samples, and evaluation fixtures are unchanged. The reproduced cases now fail
 both public Schema and runtime parsing. The 102 focused scheduler contract and
 public-contract tests, 14 focused M5/M6-to-M8 integration tests, Ruff, strict
 mypy on the changed Python, and `M6-SCHEDULER-SAFETY` pass. Compatibility
-remediation is complete, but M6 status publication is pending and no M6 GO is
-claimed. The historical tenth-review NO-GO record remains intact.
+remediation was complete at that checkpoint, but M6 status publication remained
+pending and no M6 GO was claimed. The historical tenth-review NO-GO record
+remains intact.
 
 The later M8 authority extension is separately Owner-approved and locally
 validated, but the extension itself did not constitute the tenth M6 review or
 an M8 acceptance review. The later successor lifecycle review separately gave
 M8 GO; that disposition does not alter the historical M6 NO-GO or decide the
-pending M6 status publication. The v2 additions preserve
+then-pending M6 status publication. The v2 additions preserve
 M6-only v1 as the default and require explicit initialization or copy-on-write
 migration.
+
+A later M6 status-publication review then stopped with one separate Medium
+schema/runtime parity finding: eight pattern-constrained identifiers and
+digests across the Workflow Epoch Event and scheduler-store migration schemas
+accepted non-string JSON values that runtime parsing rejected. The stop made no
+status edit or Git publication and remains part of the review history. After
+explicit Owner approval, the exact five-file remediation made all eight fields
+string-only and added identical 32-case rejection matrices to the public-
+contract test and `M6-SCHEDULER-SAFETY`. The 65-test public-contract selection,
+145-test related M6 selection, named validator, and whitespace check pass.
+Three fresh independent read-only reviewers returned ACCEPT with zero
+unresolved Critical, High, or Medium finding. The latest M6 disposition is GO
+for the current status-publication candidate. The historical tenth-review
+NO-GO, the later review stop, and all prior severities, counts, fingerprints,
+and Gate results remain unchanged. No new candidate fingerprint or hash list
+was created. M6 remains Experimental and unreleased; compatibility GO is not
+release GO or production readiness and does not authorize merge, version, tag,
+release, or deployment. Base `main` exact-triggering-SHA CI passed as Actions
+run `31497539609`; exact PR CI for this status-publication change is a separate
+required Gate.
