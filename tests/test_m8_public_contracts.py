@@ -259,10 +259,15 @@ def test_documentation_claims_only_the_closed_verified_m8_boundaries() -> None:
         assert "F1" in normalized and "F11" in normalized
         assert "release GO" in normalized
         assert "production readiness" in normalized
-        assert "exact-SHA remote CI" in normalized
         assert "experimental" in normalized_lower
         assert "unreleased" in normalized_lower
         assert "commit" in normalized_lower and "push" in normalized_lower
+
+    for document in current_status_documents:
+        normalized = " ".join(document.split())
+        assert "pull request #4" in normalized
+        assert "31558960113" in normalized
+        assert "31563987706" in normalized
 
     review_evidence_documents = (
         readme,
@@ -315,7 +320,7 @@ def test_public_status_keeps_milestone_dispositions_independent() -> None:
     )
     assert "latest M5 disposition is GO for the reviewed repository state" in compatibility
     assert (
-        "latest M6 disposition is GO for the current status-publication candidate"
+        "latest M6 disposition is GO for the reviewed state merged by pull request #4"
         in compatibility
     )
     assert "later pre-publication stop remain recorded" in compatibility
@@ -332,6 +337,10 @@ def test_public_status_keeps_milestone_dispositions_independent() -> None:
     assert "final independent compatibility review returned NO-GO" in " ".join(
         m6_plan.split()
     )
+    normalized_m6_plan = " ".join(m6_plan.split())
+    assert "- [ ] Complete the full local Gate matrix" not in normalized_m6_plan
+    assert "31558960113" in normalized_m6_plan
+    assert "31563987706" in normalized_m6_plan
 
     changelog = " ".join((ROOT / "CHANGELOG.md").read_text(encoding="utf-8").split())
     historical_disposition = (

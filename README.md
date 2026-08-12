@@ -22,15 +22,16 @@ results for Codex-assisted software projects.
 > only; the project is not production-ready, and the review did not establish
 > release GO. The historical 2026-08-10 final compatibility reviews remain
 > recorded as M5 NO-GO and M6 NO-GO. The latest M5 disposition is GO for the
-> reviewed repository state. The latest M6 disposition is GO for the current
-> status-publication candidate, with zero unresolved Critical, High, or Medium
-> findings within the post-remediation compatibility scope. The current
-> dispositions are independent: M5 GO, M6 GO, M7 GO, and M8 successor lifecycle
-> GO. The base `main` state was committed and pushed, then passed
-> exact-SHA remote CI for its exact triggering SHA in
-> [run 31497539609](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/runs/31497539609)
-> across Windows/Linux and Python 3.12/3.13. Exact PR CI for this status-
-> publication change is enforced separately before Goal completion. macOS is not verified.
+> reviewed repository state. The latest M6 disposition is GO for the reviewed
+> state merged by pull request #4, with zero unresolved Critical, High, or
+> Medium findings within the post-remediation compatibility scope. Exact pull-
+> request head [run 31558960113](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/runs/31558960113)
+> passed across Windows/Linux and Python 3.12/3.13. The resulting `main` merge
+> commit then passed the same exact-triggering-SHA matrix in
+> [run 31563987706](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/runs/31563987706).
+> The current dispositions are independent: M5 GO, M6 GO, M7 GO, and M8
+> successor lifecycle GO. Release GO and production readiness remain separately
+> gated, and macOS is not verified.
 
 ## Why SDAQF
 
@@ -246,12 +247,12 @@ input models.
 | Check | Current evidence |
 |---|---|
 | Automated tests | The latest M6 schema remediation passes 65 public-contract tests and 145 related M6 contract/public/migration tests. The prior M8 review passed 28 focused compatibility/CLI tests, 120 complete M8 tests, and 9 round-three regression tests; it did not rerun full pytest. The recorded 87-test M5, 102-test M6, 14-test integration, and 1,241-test full-run results remain historical evidence |
-| Current base `main` CI | [Run 31497539609](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/runs/31497539609) passed the exact triggering SHA on Windows/Linux and Python 3.12/3.13; exact PR CI for this status-publication change is enforced separately |
-| Static checks | Current base `main` CI passes Ruff and strict mypy; the status-publication candidate is subject to the same complete checks before Git finalization |
-| Coverage | Current base `main` CI passes the project and M1-through-M8 critical coverage thresholds; the same thresholds apply to the status-publication candidate |
-| Named validators | M5 context integrity, M6 scheduler safety, M7 solver evidence, and M8 workflow integration pass on base `main`; the remediated M6 validator also passes locally |
-| CLI smoke | The offline M0-through-M8 smoke passes on base `main` without network access or persistent Git configuration changes |
-| Independent review | The historical M5 and M6 final NO-GO reviews remain recorded. The latest M5 disposition is GO for the reviewed repository state; three fresh independent reviewers ACCEPT the M6 remediation with no unresolved Critical, High, or Medium finding and support M6 GO for the current status-publication candidate; M7 and M8 retain their separate GO dispositions |
+| Current `main` CI | [Run 31563987706](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/runs/31563987706) passed the exact post-merge triggering SHA on Windows/Linux and Python 3.12/3.13 after pull request #4 exact-head run `31558960113` passed the same matrix |
+| Static checks | Current exact-SHA `main` CI passes Ruff and strict mypy |
+| Coverage | Current exact-SHA `main` CI passes the project and M1-through-M8 critical coverage thresholds |
+| Named validators | M5 context integrity, M6 scheduler safety, M7 solver evidence, and M8 workflow integration pass on current exact-SHA `main` |
+| CLI smoke | The offline M0-through-M8 smoke passes on current exact-SHA `main` without network access or persistent Git configuration changes |
+| Independent review | The historical M5 and M6 final NO-GO reviews remain recorded. The latest M5 disposition is GO for the reviewed repository state; three fresh independent reviewers ACCEPTED the M6 remediation with no unresolved Critical, High, or Medium finding, and that state was merged by pull request #4; M7 and M8 retain their separate GO dispositions |
 | External validation | No independent production deployment, macOS run, hosted-agent evaluation, or third-party solver validation |
 
 The exact local gate commands are in the
@@ -311,8 +312,8 @@ unreleased. Its latest successor lifecycle compatibility review is GO for the
 reviewed M8 state. The historical M5 and M6 NO-GO reviews remain recorded and
 do not revise the M7 or M8 dispositions. The latest M5 and M6 dispositions are
 GO. The current dispositions are independent: M5 GO, M6 GO, M7 GO, and M8
-successor lifecycle GO. Release GO, production readiness, exact PR CI, version,
-tag, release, and deployment remain separately gated. See the
+successor lifecycle GO. Release GO, production readiness, version, tag, release,
+and deployment remain separately gated. See the
 [Roadmap](docs/roadmap.md) for scope, exclusions, risks, and completion criteria.
 
 ## Contributing, security, and support

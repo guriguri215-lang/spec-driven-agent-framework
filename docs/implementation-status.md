@@ -24,7 +24,7 @@ working behavior.
 | M3 Evidence, UI, and Release QA | Implemented | Yes | Validates host observations; does not launch a browser or publish |
 | M4 Public Beta Hardening | Implemented | Yes | Authored evaluation is nonempirical and noncausal |
 | M5 Context Framework | Experimental | No | Latest disposition is GO for the reviewed repository state; historical NO-GO remains recorded; release remains separately gated |
-| M6 Multi-Agent Control Framework | Experimental | No | Latest disposition is GO for the current status-publication candidate; historical NO-GO and later pre-publication stop remain recorded; exact PR CI remains separately gated |
+| M6 Multi-Agent Control Framework | Experimental | No | Latest disposition is GO for the reviewed state merged by pull request #4; historical NO-GO and later pre-publication stop remain recorded; exact pull-request and post-merge `main` CI passed |
 | M7 Mathematical Solver Framework | Experimental | No | Bounded local reference adapter; independent milestone GO and current CI |
 | M8 Integrated Workflow | Experimental | No | Latest successor lifecycle compatibility review is GO with F1-F11 maintained and zero unresolved scope findings; the reviewed M8 state was merged to `main`, whose exact-triggering-SHA Actions run `31497539609` passed; release remains separately gated |
 
@@ -158,9 +158,10 @@ Limits:
 - The 65-test public-contract selection, 145-test related M6 selection, and
   `M6-SCHEDULER-SAFETY` pass. Three fresh independent reviewers ACCEPT the
   remediated state with zero unresolved Critical, High, or Medium finding. The
-  latest M6 disposition is GO for the current status-publication candidate.
-  Base `main` exact-triggering-SHA CI passed as Actions run `31497539609`; exact
-  PR CI for this change is enforced separately before Goal completion.
+  latest M6 disposition is GO for the reviewed state merged by pull request #4.
+  Exact pull-request head Actions run `31558960113` passed before merge, and the
+  resulting `main` exact-triggering-SHA run `31563987706` passed the same
+  Windows/Linux and Python 3.12/3.13 matrix.
 
 See [Multi-Agent Control Framework](multi-agent-control-framework.md).
 
@@ -216,18 +217,21 @@ Limits:
 - The follow-up remediation propagates that exact optional authority without
   changing schema, artifact identity, or transaction boundaries. The latest
   independent successor lifecycle compatibility review returned GO for the
-  current local candidate, maintained every F1-through-F11 ACCEPT result, and
-  left zero unresolved findings within its scope.
+  reviewed M8 state, maintained every F1-through-F11 ACCEPT result, and left
+  zero unresolved findings within its scope.
 - That review records PASS for the 28-test compatibility selection, 120-test
   complete M8 selection, round-three 9-test selection, Ruff, strict mypy,
   M5-through-M8 validators, and M0-through-M8 CLI smoke. It did not rerun full
   pytest or coverage.
-- The latest GO supersedes the earlier M8 overall NO-GO for this local candidate
-  only. M8 remains Experimental and unreleased; release GO, production
-  readiness, commit, push, and exact-SHA remote CI are not claimed. That M8
-  review did not decide M5 or M6. Their historical later final NO-GO reviews
-  remain recorded; the latest M5 and M6 dispositions are now GO.
-  None of these dispositions revises the M7 or M8 disposition.
+- The latest GO supersedes the earlier M8 overall NO-GO for the reviewed M8
+  state only. At review time, M8 remained local, Experimental, and unreleased;
+  release GO, production readiness, commit, push, and exact-SHA remote CI were
+  not claimed. That state was later merged to `main`, whose exact-triggering-
+  SHA Actions run `31497539609` passed the full matrix. The M8 review did not
+  decide M5 or M6. Their historical later final NO-GO reviews remain recorded;
+  the latest M5 and M6 dispositions are now GO, and the reviewed M6 state later
+  merged through pull request #4 with exact pull-request and post-merge `main`
+  CI passing. None of these dispositions revises the M7 or M8 disposition.
 
 The current dispositions are independent: M5 GO, M6 GO, M7 GO, and M8
 successor lifecycle GO.
