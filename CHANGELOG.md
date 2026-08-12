@@ -189,6 +189,23 @@ The GitHub release body was reconciled with the tracked publication record on
 
 ### Changed
 
+- Recorded the fresh M6 status-publication review stop, remediation, and
+  disposition without rewriting prior evidence. The first three-reviewer pass
+  stopped with one Medium schema/runtime parity finding because eight pattern-
+  constrained identifiers and digests in three additive M6 schemas did not
+  explicitly require strings. The Owner-approved five-file remediation adds
+  those type constraints and 32-case public-test and named-validator parity
+  matrices covering null, number, array, and object values. The 65-test public-
+  contract selection, 145-test related M6 selection, `M6-SCHEDULER-SAFETY`, and
+  whitespace check pass. A fresh three-reviewer re-review returned ACCEPT with
+  zero unresolved Critical, High, or Medium findings and supports M6 GO for the
+  current status-publication candidate. The historical 2026-08-10 M6 NO-GO and
+  this later pre-publication stop both remain recorded; their severities,
+  counts, and prior validation results are unchanged. The current dispositions
+  are independent: M5 GO, M6 GO, M7 GO, and M8 successor lifecycle GO. M6
+  remains Experimental and unreleased; this compatibility GO is not release GO
+  or production readiness and does not authorize a version, tag, release, or
+  deployment. No candidate fingerprint or hash list was created.
 - Updated only the current milestone-status summary for the latest M5
   disposition: GO for the current local candidate. The historical M5 and M6
   NO-GO review records remain unchanged. M6 compatibility remediation is

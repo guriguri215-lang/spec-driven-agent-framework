@@ -208,29 +208,37 @@ NO-GO for the current local candidate only. The M8 surface remains Experimental
 and unreleased; this compatibility disposition does not establish release GO,
 production readiness, commit, push, or exact-SHA remote CI.
 
-## Current local compatibility dispositions
+## Current compatibility dispositions
 
 The historical 2026-08-10 final independent M5 compatibility re-review remains
 recorded NO-GO. Snapshot publication now revalidates the CandidateIdentity from the
 validated Snapshot being serialized after all estimator work, and Selection
 ranking shares one authoritative graph distance with its published rank. The
 High blocking and Medium non-blocking findings are remediated. The latest M5
-disposition is GO for the current local candidate; this updates current status
-without deleting or rewriting the historical NO-GO record.
+disposition is GO for the reviewed repository state; this updates current
+status without deleting or rewriting the historical NO-GO record.
 
 The historical, separate 2026-08-10 final independent M6 compatibility review
 remains recorded NO-GO. The public Workflow Epoch Event schema now rejects receipt
 type/ID-prefix mismatches and one-sided artifact-head ID/path pairs exactly as
-runtime parsing does. The Medium blocking finding is remediated; M6 status
-publication is pending and no M6 GO is claimed. Runtime parsing and SQLite
-replay meanings are unchanged.
+runtime parsing does. That Medium blocking finding is remediated. A later pre-
+publication review stopped with one separate Medium finding because eight
+pattern-constrained identifiers and digests in three additive M6 schemas did not
+explicitly require strings. The five-file remediation makes those fields
+string-only and adds 32-case public-test and named-validator parity matrices.
+Runtime parsing, SQLite replay meanings, schema versions, samples, and
+evaluation fixtures are unchanged. Three fresh independent reviewers ACCEPT
+with zero unresolved Critical, High, or Medium finding. The latest M6
+disposition is GO for the current status-publication candidate; both the
+historical NO-GO and the later pre-publication stop remain recorded.
 
-The current dispositions are independent: M5 GO, M6 status publication pending
-(not GO), M7 GO, and M8 successor lifecycle GO. The M5 and M6 findings do not
-reopen or supersede the recorded M7
-or M8 reviews. All four milestones remain Experimental and unreleased. These
-local dispositions do not establish release GO, production readiness, Git
-finalization, or exact-SHA remote CI.
+The current dispositions are independent: M5 GO, M6 GO, M7 GO, and M8
+successor lifecycle GO. The M5 and M6 findings do not reopen or supersede the
+recorded M7 or M8 reviews. All four milestones remain Experimental and
+unreleased. These compatibility dispositions do not establish release GO or
+production readiness. Base `main` exact-triggering-SHA CI passed as Actions run
+`31497539609`; exact PR CI for this status-publication change remains a separate
+Gate, and version, tag, release, and deployment require separate authorization.
 
 ## Deprecation
 

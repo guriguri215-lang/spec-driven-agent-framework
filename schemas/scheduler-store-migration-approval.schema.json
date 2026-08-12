@@ -7,7 +7,7 @@
   "properties": {
     "schema_version": {"const": "1.0"},
     "artifact_type": {"const": "scheduler-store-migration-approval"},
-    "artifact_id": {"pattern": "^M6-SCHEDULER-STORE-MIGRATION-APPROVAL-[0-9A-F]{64}$"},
+    "artifact_id": {"type": "string", "pattern": "^M6-SCHEDULER-STORE-MIGRATION-APPROVAL-[0-9A-F]{64}$"},
     "content": {
       "type": "object",
       "required": [
@@ -21,7 +21,7 @@
         "output_path": {"$ref": "task-graph.schema.json#/$defs/safe_path"},
         "source_graph_id": {"$ref": "task-graph.schema.json#/$defs/task_graph_id"},
         "source_current_event_head_id": {"$ref": "task-graph.schema.json#/$defs/event_id"},
-        "root_sha256": {"pattern": "^[0-9A-F]{64}$"},
+        "root_sha256": {"type": "string", "pattern": "^[0-9A-F]{64}$"},
         "to_version": {"const": 2},
         "approved_by": {"const": "Owner"},
         "issued_at": {"$ref": "task-graph.schema.json#/$defs/timestamp"},

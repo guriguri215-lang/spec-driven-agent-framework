@@ -43,6 +43,79 @@ def test_all_ten_public_examples_validate_against_local_schemas() -> None:
         LocalSchemaValidator(ROOT / "schemas").validate(schema_name, instance)
 
 
+@pytest.mark.parametrize("invalid_value", [None, 1, [], {}])
+@pytest.mark.parametrize(
+    ("example_name", "content_field", "expected_type"),
+    [
+        (
+            "workflow-epoch-event.json",
+            None,
+            SchedulerArtifactType.WORKFLOW_EPOCH_EVENT,
+        ),
+        (
+            "workflow-epoch-event.json",
+            "plan_id",
+            SchedulerArtifactType.WORKFLOW_EPOCH_EVENT,
+        ),
+        (
+            "workflow-epoch-event.json",
+            "idempotency_key",
+            SchedulerArtifactType.WORKFLOW_EPOCH_EVENT,
+        ),
+        (
+            "scheduler-store-migration-approval.json",
+            None,
+            SchedulerArtifactType.SCHEDULER_STORE_MIGRATION_APPROVAL,
+        ),
+        (
+            "scheduler-store-migration-approval.json",
+            "root_sha256",
+            SchedulerArtifactType.SCHEDULER_STORE_MIGRATION_APPROVAL,
+        ),
+        (
+            "scheduler-store-migration-result.json",
+            None,
+            SchedulerArtifactType.SCHEDULER_STORE_MIGRATION_RESULT,
+        ),
+        (
+            "scheduler-store-migration-result.json",
+            "root_sha256",
+            SchedulerArtifactType.SCHEDULER_STORE_MIGRATION_RESULT,
+        ),
+        (
+            "scheduler-store-migration-result.json",
+            "approval_id",
+            SchedulerArtifactType.SCHEDULER_STORE_MIGRATION_RESULT,
+        ),
+    ],
+)
+def test_additive_m6_pattern_fields_reject_non_strings_in_schema_and_runtime(
+    example_name: str,
+    content_field: str | None,
+    expected_type: SchedulerArtifactType,
+    invalid_value: object,
+) -> None:
+    payload = example_payload(example_name)
+    if content_field is None:
+        payload["artifact_id"] = invalid_value
+    else:
+        content = payload["content"]
+        assert isinstance(content, dict)
+        content[content_field] = invalid_value
+        refresh_identity(payload)
+
+    with pytest.raises(SchemaValidationError):
+        LocalSchemaValidator(ROOT / "schemas").validate(
+            EXAMPLE_TO_SCHEMA[example_name],
+            payload,
+        )
+    with pytest.raises(SchedulerContractError):
+        parse_scheduler_artifact_bytes(
+            strict_bytes(payload),
+            expected_type=expected_type,
+        )
+
+
 @pytest.mark.parametrize(
     ("artifact_type", "artifact_id"),
     [
