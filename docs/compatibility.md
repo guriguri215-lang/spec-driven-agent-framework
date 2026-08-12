@@ -204,9 +204,11 @@ these are semantic tightening rules within schema `1.0`, not artifact migration.
 The latest independent successor lifecycle compatibility review returned GO for
 this exact boundary, maintained every F1-through-F11 ACCEPT result, and left zero
 unresolved findings within its scope. It supersedes the earlier M8 overall
-NO-GO for the current local candidate only. The M8 surface remains Experimental
-and unreleased; this compatibility disposition does not establish release GO,
-production readiness, commit, push, or exact-SHA remote CI.
+NO-GO for the reviewed M8 state only. At review time, the M8 surface remained
+local, Experimental, and unreleased, and the compatibility disposition did not
+establish release GO, production readiness, commit, push, or exact-SHA remote
+CI. That reviewed state was later merged to `main`, whose exact-triggering-SHA
+Actions run `31497539609` passed the required matrix.
 
 ## Current compatibility dispositions
 
@@ -229,16 +231,17 @@ string-only and adds 32-case public-test and named-validator parity matrices.
 Runtime parsing, SQLite replay meanings, schema versions, samples, and
 evaluation fixtures are unchanged. Three fresh independent reviewers ACCEPT
 with zero unresolved Critical, High, or Medium finding. The latest M6
-disposition is GO for the current status-publication candidate; both the
+disposition is GO for the reviewed state merged by pull request #4; both the
 historical NO-GO and the later pre-publication stop remain recorded.
 
 The current dispositions are independent: M5 GO, M6 GO, M7 GO, and M8
 successor lifecycle GO. The M5 and M6 findings do not reopen or supersede the
 recorded M7 or M8 reviews. All four milestones remain Experimental and
 unreleased. These compatibility dispositions do not establish release GO or
-production readiness. Base `main` exact-triggering-SHA CI passed as Actions run
-`31497539609`; exact PR CI for this status-publication change remains a separate
-Gate, and version, tag, release, and deployment require separate authorization.
+production readiness. Pull request #4 exact-head Actions run `31558960113`
+passed before merge, and the resulting `main` exact-triggering-SHA run
+`31563987706` passed the same Windows/Linux and Python 3.12/3.13 matrix.
+Version, tag, release, and deployment require separate authorization.
 
 ## Deprecation
 

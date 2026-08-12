@@ -199,13 +199,16 @@ The GitHub release body was reconciled with the tracked publication record on
   contract selection, 145-test related M6 selection, `M6-SCHEDULER-SAFETY`, and
   whitespace check pass. A fresh three-reviewer re-review returned ACCEPT with
   zero unresolved Critical, High, or Medium findings and supports M6 GO for the
-  current status-publication candidate. The historical 2026-08-10 M6 NO-GO and
-  this later pre-publication stop both remain recorded; their severities,
-  counts, and prior validation results are unchanged. The current dispositions
-  are independent: M5 GO, M6 GO, M7 GO, and M8 successor lifecycle GO. M6
-  remains Experimental and unreleased; this compatibility GO is not release GO
-  or production readiness and does not authorize a version, tag, release, or
-  deployment. No candidate fingerprint or hash list was created.
+  reviewed state. That state passed exact pull-request head Actions run
+  `31558960113`, was merged by pull request #4, and the resulting `main` merge
+  commit passed exact-triggering-SHA run `31563987706`, each across Windows/
+  Linux and Python 3.12/3.13. The historical 2026-08-10 M6 NO-GO and this later
+  pre-publication stop both remain recorded; their severities, counts, and prior
+  validation results are unchanged. The current dispositions are independent:
+  M5 GO, M6 GO, M7 GO, and M8 successor lifecycle GO. M6 remains Experimental
+  and unreleased; this compatibility GO is not release GO or production
+  readiness and does not authorize a version, tag, release, or deployment. No
+  candidate fingerprint or hash list was created.
 - Updated only the current milestone-status summary for the latest M5
   disposition: GO for the current local candidate. The historical M5 and M6
   NO-GO review records remain unchanged. M6 compatibility remediation is

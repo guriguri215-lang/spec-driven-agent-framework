@@ -306,8 +306,9 @@ round-three full and coverage run remains supporting evidence only. M8 remains
 Experimental and unreleased. This compatibility GO did not establish release
 GO or production readiness. The reviewed M8 state was later committed, pushed,
 and merged to `main`, whose exact-triggering-SHA Actions run `31497539609`
-passed the full matrix; that run does not verify the separate M6 status-
-publication change, whose exact PR CI is enforced independently. The M8 review
+passed the full matrix. The separate M6 status-publication state later passed
+exact pull-request head run `31558960113`, merged through pull request #4, and
+passed post-merge `main` exact-triggering-SHA run `31563987706`. The M8 review
 did not decide M5 or M6. Their
 historical later final NO-GO reviews remain recorded; the latest M5 and M6
 dispositions are GO. None of these statuses revises this M8 disposition or the

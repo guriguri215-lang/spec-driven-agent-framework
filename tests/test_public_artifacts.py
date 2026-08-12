@@ -33,6 +33,7 @@ def test_required_public_documents_exist_and_are_nonempty() -> None:
         "docs/exec-plans/active/M3-evidence-ui-release-qa.md",
         "docs/exec-plans/active/M4-public-beta-hardening.md",
         "docs/exec-plans/active/V1-release-readiness.md",
+        "docs/exec-plans/active/V1-next-prerelease-readiness.md",
         "docs/compatibility.md",
         "docs/implementation-status.md",
         "docs/releases/v1.0.0-rc.1.md",
@@ -56,6 +57,31 @@ def test_required_public_documents_exist_and_are_nonempty() -> None:
     assert "docs/implementation-status.md" in readme
     assert (root / "LICENSE").exists()
     assert (root / "NOTICE").exists()
+
+
+def test_next_prerelease_plan_keeps_release_metadata_owner_gated() -> None:
+    plan = (
+        repository_root()
+        / "docs"
+        / "exec-plans"
+        / "active"
+        / "V1-next-prerelease-readiness.md"
+    ).read_text(encoding="utf-8")
+
+    for decision in range(1, 11):
+        assert f"`NP-D{decision}`" in plan
+    for required in (
+        "OWNER_DECISION_REQUIRED",
+        "do not assume `1.0.0rc2`",
+        "`prerelease: true`, `latest: false`",
+        "GitHub source archives only, no attached assets",
+        "do not edit the rc1 notes",
+        "do not mutate the rc1-literal schema or loader behavior",
+        "- create a candidate fingerprint or hash list",
+        "must not",
+        "merge a pull request, select or change a version, create a tag or release",
+    ):
+        assert required in plan
 
 
 def test_git_checkout_preserves_canonical_lf_bytes() -> None:

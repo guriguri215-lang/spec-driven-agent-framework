@@ -363,6 +363,8 @@ overall NO-GO for the reviewed M8 state only. At review time, the candidate
 remained local, uncommitted, Experimental, and unreleased; release GO,
 production readiness, Git publication, and remote exact-SHA CI were separate
 human decisions. That state was later merged to `main`, whose exact-triggering-
-SHA Actions run `31497539609` passed the full matrix. This later M6 status-
-publication change and its exact PR CI remain separate. No new hash list or
-candidate fingerprint is part of the M8 remediation.
+SHA Actions run `31497539609` passed the full matrix. The later M6 status-
+publication state then passed exact pull-request head Actions run `31558960113`,
+merged through pull request #4, and passed post-merge `main` exact-triggering-
+SHA run `31563987706`. No new hash list or candidate fingerprint is part of the
+M8 remediation.

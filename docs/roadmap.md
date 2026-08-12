@@ -168,10 +168,10 @@ stopped with one separate Medium pattern-field type-parity finding. Both are
 remediated without changing runtime semantics or schema versions. The 65-test
 public-contract selection, 145-test related M6 selection, and named validator
 pass. Three fresh independent reviewers ACCEPT with zero unresolved Critical,
-High, or Medium finding; the latest M6 disposition is GO for the current status-
-publication candidate. Base `main` exact-triggering-SHA CI passed as Actions run
-`31497539609`; this is its exact-SHA remote CI evidence, while exact PR CI for
-this change is separately enforced.
+High, or Medium finding; the latest M6 disposition is GO for the reviewed state
+merged by pull request #4. Exact pull-request head Actions run `31558960113`
+passed before merge, and the resulting `main` exact-triggering-SHA run
+`31563987706` passed the same Windows/Linux and Python 3.12/3.13 matrix.
 
 ### Objective
 
@@ -419,6 +419,10 @@ review, candidate identity, and separate Git or external-action approvals.
 
 The current dispositions are independent: M5 GO, M6 GO, M7 GO, and M8
 successor lifecycle GO.
+The [next-prerelease readiness plan](exec-plans/active/V1-next-prerelease-readiness.md)
+recommends releasing M5 through M8 together in another prerelease, subject to
+explicit Owner decisions for scope and every release-metadata field. It does not
+select a version or authorize a tag or release.
 Roadmap approval does not authorize implementation, dependencies, schema
 publication, staging, commit, push, release, deployment, hosted access, or
 repository settings.

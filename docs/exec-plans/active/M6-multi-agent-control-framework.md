@@ -296,9 +296,20 @@ The observable result is:
 - [x] (2026-08-12) Updated current public-status wording to record M6 GO while
   preserving the historical 2026-08-10 NO-GO, the later pre-publication stop,
   and every historical severity, count, and validation result.
-- [ ] Complete the full local Gate matrix, final three-reviewer diff check,
-  explicit staging, English commit, normal push, draft PR, and exact PR CI.
-  Merge, version, tag, release, and deployment remain out of scope.
+- [x] (2026-08-12) Completed the full local Gate matrix: 1,316 tests passed
+  with four explicit platform-capability skips, total and M1-through-M8
+  coverage thresholds passed, Ruff and strict mypy over 180 source files
+  passed, all M5-through-M8 named validators and offline CLI smoke passed, and
+  evaluation, workspace, publication, dependency, installed-dependency, and
+  whitespace checks passed. Three independent final read-only reviewers
+  ACCEPTED with zero unresolved Critical, High, or Medium finding.
+- [x] (2026-08-12) Explicitly staged the reviewed paths, created English commit
+  `755b5f04bf2c33a5513aa835b9adfd76b210d42f`, normally pushed the branch, and
+  opened pull request #4. Exact pull-request head Actions run `31558960113`
+  passed every Windows/Linux Python 3.12/3.13 job. Pull request #4 was then
+  merged as `a6195e1aafcbcdd288b465cc9d8572df6d4e33ee`, whose exact-triggering-SHA
+  `main` run `31563987706` passed the same matrix. Version, tag, release, and
+  deployment remain out of scope.
 
 ## Surprises & Discoveries
 
@@ -745,3 +756,12 @@ release GO or production readiness and does not authorize merge, version, tag,
 release, or deployment. Base `main` exact-triggering-SHA CI passed as Actions
 run `31497539609`; exact PR CI for this status-publication change is a separate
 required Gate.
+
+That paragraph preserves the pre-merge status-publication checkpoint. The
+separate Gate later completed: exact pull-request head run `31558960113` passed,
+pull request #4 merged the reviewed state as
+`a6195e1aafcbcdd288b465cc9d8572df6d4e33ee`, and post-merge `main` exact-
+triggering-SHA run `31563987706` passed the required Windows/Linux Python
+3.12/3.13 matrix. These later Git and CI facts do not change any historical
+review disposition, severity, finding count, candidate record, or Gate result,
+and they do not authorize a version, tag, release, or deployment.
