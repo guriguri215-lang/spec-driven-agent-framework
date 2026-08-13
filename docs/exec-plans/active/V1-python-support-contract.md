@@ -2,7 +2,7 @@
 
 ## Status
 
-`LOCAL_GATES_COMPLETE_FINAL_REVIEW_PENDING`
+`BOUNDED_CI_REMEDIATION_IMPLEMENTED_EXACT_PR_CI_AUTHORITATIVE`
 
 This living ExecPlan follows `PLANS.md`. It is a separately approved
 prerelease prerequisite and cross-references the
@@ -51,6 +51,7 @@ The intended path allowlist is:
 - `docs/exec-plans/active/M8-integrated-vibe-coding-framework.md`;
 - `docs/exec-plans/active/V1-next-prerelease-readiness.md`;
 - `docs/exec-plans/active/V1-python-support-contract.md`;
+- `scripts/run_cli_smoke.py`;
 - `examples/m7-solver/solver-registry.json`;
 - `examples/m7-solver/solver-request.json`;
 - `examples/m7-solver/solver-result.json`;
@@ -59,8 +60,14 @@ The intended path allowlist is:
 - `evals/results/m7-solver-evaluation.json`;
 - `src/sdaqf/application/planning.py`;
 - `tests/test_canonical_m1.py`;
-- `tests/test_planning.py`; and
+- `tests/test_planning.py`;
+- `tests/test_system_temp_gates.py`; and
 - `tests/test_v1_public_contracts.py`.
+
+The initial support-contract implementation used 19 paths. The separately
+approved CI-remediation delta is exactly this plan, `scripts/run_cli_smoke.py`,
+and `tests/test_system_temp_gates.py`; the cumulative pull-request allowlist is
+21 paths.
 
 This work must not:
 
@@ -98,6 +105,10 @@ unchanged because the post-merge audit found no new live-state drift there.
   it with `--expected-branch agent/fix-python-support-contract`.
 - Wheel building may leave setuptools output if run in the repository. Build
   and inspect only a disposable copied candidate under owned system temp.
+- CLI smoke materializes the full publication set in a temporary Git
+  repository. Keep ordinary temporary Git commands bounded at 10 seconds, but
+  allow that candidate's single `git add .` up to 60 seconds. This mirrors the
+  local Gate runner, adds no retry, and does not change smoke semantics.
 - macOS remains unverified.
 
 ## Checkpoints and validation commands
@@ -131,7 +142,7 @@ unchanged because the post-merge audit found no new live-state drift there.
 - [x] Preserve the version, rc1 publication records, dependencies, runtime
   behavior, historical findings, and Owner decisions.
 
-### Checkpoint 3 - complete local Gate
+### Checkpoint 3 - original implementation local Gate
 
 - [x] Run all commands below successfully.
 - [x] Classify every requested search hit as live state or historical evidence.
@@ -139,6 +150,12 @@ unchanged because the post-merge audit found no new live-state drift there.
   `1.0.0rc1` and a semantically equivalent Python specifier to
   `>=3.12,<3.14`.
 - [x] Confirm the repository and parent path sets are unchanged by validation.
+
+These checked items record the original 19-path candidate. The cumulative
+candidate containing the approved bounded remediation must rerun every command
+below, the disposable wheel read-back, and three independent final-diff reviews
+before the follow-up commit. Those results are execution evidence and do not
+require a post-review tracked status edit.
 
 Run from the repository root with existing tooling only:
 
@@ -168,20 +185,47 @@ Before staging, also inspect untracked paths and run a no-index whitespace check
 for this plan. After explicit staging, run `git diff --cached --name-only` and
 `git diff --cached --check`.
 
-### Checkpoint 4 - independent final review and exact PR CI
+### Checkpoint 4 - original review, publication, and failed exact CI
 
-- [ ] Obtain three independent read-only final-diff reviews.
-- [ ] Require all three reviewers to ACCEPT with zero unresolved Critical,
+- [x] Obtain three independent read-only final-diff reviews.
+- [x] Require all three reviewers to ACCEPT with zero unresolved Critical,
   High, or Medium finding.
-- [ ] Explicitly stage only the reviewed allowlisted paths, create an English
-  commit, normally push, and open an English draft pull request.
+- [x] Explicitly stage the original 19 reviewed paths, create the English
+  support-contract commit, normally push it, and open draft pull request #6.
+- [x] Preserve exact-head run `31614647021`, attempts 1 and 2, as failed Gate
+  observations that do not satisfy this plan's terminal CI condition.
 
-The pull request exact head must remain unchanged, be mergeable, have no
-unresolved review, and pass all four Windows/Linux and Python 3.12/3.13 jobs.
-That exact-head result is the plan's terminal external Gate. Ready-for-review,
-normal merge, and exact post-merge `main` CI are separately authorized execution
-steps and are recorded in GitHub and the final task report, not as a future
-tracked checkbox that would change the tested head.
+In attempt 1, the other three Windows/Linux and Python 3.12/3.13 matrix jobs
+passed. The Windows/Python 3.12 job passed pytest, coverage, Ruff, mypy, and all
+four named validators, then its CLI-smoke temporary candidate `git add .`
+exceeded the helper's fixed 10-second timeout. The separately approved
+failed-job rerun became attempt 2 for the same exact head and reproduced the
+same timeout after again passing every preceding step. The two attempts remain
+separate failed observations; no result is recharacterized as a full-matrix
+PASS.
+
+### Checkpoint 5 - bounded CI remediation and terminal exact PR CI
+
+The separately approved remediation changes only the full-publication
+CLI-smoke candidate's Git-add timeout from the ordinary 10-second bound to a
+dedicated 60-second bound, adds a direct regression for that exception, and
+reconciles this living plan. Candidate init and commit, the smaller G4 fixture
+Git commands, Git safety settings, output limits, runtime behavior, package
+metadata, and workflow configuration remain unchanged.
+
+Before follow-up publication, the cumulative candidate must pass the complete
+Checkpoint 3 Gate, disposable wheel metadata read-back, and three fresh
+independent final-diff reviews with no Critical, High, or Medium finding. The
+main agent may then explicitly stage only the three remediation paths, create a
+new English follow-up commit without rewriting history, and normally push the
+same branch to update draft pull request #6.
+
+The resulting new pull-request exact head must remain unchanged, be mergeable,
+have no unresolved review, and pass all four Windows/Linux and Python
+3.12/3.13 jobs. That exact-head result is the plan's terminal external Gate.
+Ready-for-review, normal merge, and exact post-merge `main` CI are separately
+authorized execution steps and are recorded in GitHub and the final task
+report, not as a future tracked checkbox that would change the tested head.
 
 ## Stop conditions
 
@@ -206,12 +250,13 @@ scope.
 
 ## Owner approval gates
 
-The Owner has approved this branch, explicit staging of the reviewed allowlist,
-an English commit, normal push, English draft pull request, Ready transition,
-and normal merge only after the stated Gates pass. The Owner has not approved a
-version change, tag, GitHub Release, artifact upload, package publication,
-deployment, repository-setting change, history rewrite, force push, credential
-inspection, or action outside this repository.
+The Owner has approved this branch, the original support-contract publication,
+the failed-job rerun, the exact three-path bounded remediation, its conditional
+English follow-up commit and normal push, Ready transition, and normal merge
+only after the stated Gates pass. The Owner has not approved a version change,
+tag, GitHub Release, artifact upload, package publication, deployment,
+repository-setting change, history rewrite, force push, credential inspection,
+or action outside this repository.
 
 ## Language and publication boundary
 
@@ -234,6 +279,11 @@ approved writes.
 - 2026-08-12: Expanded the path allowlist only after the focused Gate proved
   that the live M7 public-artifact chain references `pyproject.toml` by content
   hash. Historical evidence and synthetic fixture hashes remain unchanged.
+- 2026-08-13: Exact-head run `31614647021` and its separately approved
+  failed-job rerun reproduced the same Windows/Python 3.12 temporary candidate
+  Git-add timeout. Selected the existing local-Gate pattern: keep the ordinary
+  10-second Git bound and give only the full candidate `git add .` a bounded
+  60 seconds, with no retry or workflow change.
 
 ## Progress log
 
@@ -251,4 +301,16 @@ approved writes.
   and whitespace checks. Disposable offline wheel read-back reported version
   `1.0.0rc1` and semantically equivalent Requires-Python
   `<3.14,>=3.12`. Search hits were classified as historical M6/M0 records or
-  current contract evidence. Final independent review remains pending.
+  current contract evidence. Three independent final reviewers then ACCEPTED
+  the original 19-path diff with no finding; it was committed, normally pushed,
+  and opened as draft pull request #6.
+- 2026-08-13: Pull request #6 exact-head run `31614647021` attempt 1 failed only
+  because Windows/Python 3.12 CLI smoke exceeded the fixed 10-second temporary
+  candidate Git-add timeout; the other three jobs passed. The approved
+  failed-job rerun, attempt 2 for the same head, reproduced that failure after
+  all preceding steps passed. Neither attempt satisfies exact-head CI.
+- 2026-08-13: The Owner approved a bounded three-path remediation. Implemented
+  the candidate-add-only 60-second bound, its direct regression, and this plan
+  reconciliation without changing package, runtime, solver, workflow, release,
+  or support behavior. Gate and review evidence for the cumulative diff is
+  recorded by the task execution and pull request, not a post-review edit.
