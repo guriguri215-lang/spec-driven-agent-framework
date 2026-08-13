@@ -31,3 +31,12 @@ Python 3.12 on Windows and Linux.
 M0 validation is intentionally smaller than a full JSON Schema implementation.
 A production schema library may be proposed in M1, but adding a runtime
 dependency requires a separate Owner decision.
+
+## Current support contract
+
+The current public package contract is `requires-python = ">=3.12,<3.14"`,
+which matches the required CPython 3.12/3.13 validation matrix. The upper bound
+does not assert a technical incompatibility with Python 3.14. Python 3.14 and
+later remain unsupported until separately validated and approved through an
+explicit support-contract update and addition to the primary validation
+matrix.

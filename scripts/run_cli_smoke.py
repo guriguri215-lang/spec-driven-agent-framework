@@ -18,6 +18,8 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
+_GIT_COMMAND_TIMEOUT_SECONDS = 10
+_CANDIDATE_GIT_ADD_TIMEOUT_SECONDS = 60
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPOSITORY_ROOT))
@@ -105,13 +107,20 @@ def _artifact(path: str, content: bytes) -> dict[str, str]:
     }
 
 
-def _git(root: Path, *arguments: str) -> None:
+def _git(
+    root: Path,
+    *arguments: str,
+    timeout_seconds: int = _GIT_COMMAND_TIMEOUT_SECONDS,
+) -> None:
     executable = shutil.which("git")
     if executable is None:
         raise RuntimeError("Git is unavailable for the temporary fixture.")
     safety = root / ".sdaqf" / "git-safety"
     safety.mkdir(parents=True, exist_ok=True)
-    result = SubprocessRunner(timeout_seconds=10, output_limit=16 * 1024).run(
+    result = SubprocessRunner(
+        timeout_seconds=timeout_seconds,
+        output_limit=16 * 1024,
+    ).run(
         [
             str(Path(executable).resolve()),
             "-c",
@@ -426,7 +435,12 @@ def _materialize_candidate_repository(source_root: Path, fixture_root: Path) -> 
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, destination)
     _git(candidate_root, "init", "-b", "main")
-    _git(candidate_root, "add", ".")
+    _git(
+        candidate_root,
+        "add",
+        ".",
+        timeout_seconds=_CANDIDATE_GIT_ADD_TIMEOUT_SECONDS,
+    )
     _git(
         candidate_root,
         "-c",

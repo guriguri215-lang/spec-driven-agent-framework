@@ -10,6 +10,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
+import scripts.run_cli_smoke as smoke
 import scripts.run_local_gate as gates
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -350,6 +351,54 @@ def test_candidate_git_add_uses_a_platform_tolerant_bounded_timeout(
     assert gates._CANDIDATE_GIT_ADD_TIMEOUT_SECONDS == 60
     assert all(
         timeout_seconds == gates._GIT_COMMAND_TIMEOUT_SECONDS
+        for arguments, timeout_seconds in calls
+        if arguments != candidate_add
+    )
+
+
+def test_cli_smoke_candidate_git_add_uses_a_platform_tolerant_bounded_timeout(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    calls: list[tuple[tuple[str, ...], int]] = []
+
+    class EmptyObservation:
+        publication_paths: tuple[str, ...] = ()
+
+    class EmptyInspector:
+        def __init__(self, runner: object) -> None:
+            del runner
+
+        def inspect(self, root: Path) -> EmptyObservation:
+            del root
+            return EmptyObservation()
+
+    def record_git_command(
+        root: Path,
+        *arguments: str,
+        timeout_seconds: int = smoke._GIT_COMMAND_TIMEOUT_SECONDS,
+    ) -> None:
+        del root
+        calls.append((arguments, timeout_seconds))
+
+    monkeypatch.setattr(smoke, "GitInspector", EmptyInspector)
+    monkeypatch.setattr(smoke, "_git", record_git_command)
+
+    candidate = smoke._materialize_candidate_repository(source, fixture)
+
+    candidate_add = ("add", ".")
+    assert candidate == fixture / "candidate"
+    assert [call for call in calls if call[0] == candidate_add] == [
+        (candidate_add, smoke._CANDIDATE_GIT_ADD_TIMEOUT_SECONDS)
+    ]
+    assert smoke._GIT_COMMAND_TIMEOUT_SECONDS == 10
+    assert smoke._CANDIDATE_GIT_ADD_TIMEOUT_SECONDS == 60
+    assert all(
+        timeout_seconds == smoke._GIT_COMMAND_TIMEOUT_SECONDS
         for arguments, timeout_seconds in calls
         if arguments != candidate_add
     )

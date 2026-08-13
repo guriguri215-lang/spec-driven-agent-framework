@@ -419,6 +419,10 @@ review, candidate identity, and separate Git or external-action approvals.
 
 The current dispositions are independent: M5 GO, M6 GO, M7 GO, and M8
 successor lifecycle GO.
+M5 through M8 are implemented on `main` but remain Experimental and unreleased.
+Pull request #4 and its exact-head and post-merge `main` CI completed for the
+reviewed M6 state. Those facts authorize no version, tag, GitHub Release, or
+deployment and do not establish release GO or production readiness.
 The [next-prerelease readiness plan](exec-plans/active/V1-next-prerelease-readiness.md)
 recommends releasing M5 through M8 together in another prerelease, subject to
 explicit Owner decisions for scope and every release-metadata field. It does not

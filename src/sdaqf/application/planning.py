@@ -95,7 +95,7 @@ class PlanningService:
             "## Dependencies",
             "",
             "- Approved source specification and validated requirement-baseline contract.",
-            "- Local Python 3.12 or newer; no network or paid API.",
+            "- Local Python 3.12 or 3.13; no network or paid API.",
             "",
             "## Risks",
             "",

@@ -2,7 +2,7 @@
 
 ## Status
 
-`PLANNING_DIFF_ACCEPTED_GIT_PUBLICATION_PENDING_OWNER_RELEASE_METADATA_PENDING`
+`PLANNING_PR_MERGED_EXACT_CI_COMPLETE_OWNER_RELEASE_METADATA_PENDING`
 
 This is a living ExecPlan under `PLANS.md`. It plans a possible next SDAQF
 prerelease after pull request #4; it does not authorize or perform a version
@@ -182,10 +182,12 @@ git diff --check
 - [x] Obtain three fresh independent read-only final-diff reviews.
 - [x] Require all three reviewers to ACCEPT with zero unresolved Critical,
   High, or Medium finding.
-- [ ] Explicitly stage only the reviewed planning paths, create an English
-  commit, normally push the branch, and open an English draft pull request.
-- [ ] Confirm the draft pull request's exact head SHA passes every required CI
-  job.
+- [x] Explicitly stage only the reviewed planning paths, create an English
+  commit, normally push the branch, and open English draft pull request #5.
+- [x] Confirm exact-head run `31586128196` passed all four Windows/Linux and
+  Python 3.12/3.13 jobs, mark pull request #5 ready, and merge it normally.
+- [x] Confirm post-merge `main` run `31594557932` passed the same four jobs for
+  the exact pull request #5 merge-commit state.
 
 ### Checkpoint 4 - Owner-approved candidate design
 
@@ -289,3 +291,8 @@ its Gates; it cannot publish a SDAQF release.
 - 2026-08-12: Three independent read-only final-diff reviewers each returned
   ACCEPT. No reviewer reported a finding, and unresolved Critical, High, and
   Medium findings are zero.
+- 2026-08-12: Published the reviewed planning commit through draft pull request
+  #5. Exact-head run `31586128196` passed all four required jobs, pull request
+  #5 was marked ready and merged normally, and post-merge `main` run
+  `31594557932` passed the same exact-state matrix. No version, tag, Release,
+  artifact publication, or deployment was performed or authorized.

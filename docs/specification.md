@@ -75,8 +75,8 @@ unsafe automation, and loss of state between Codex sessions.
 
 - `C-001`: Windows 11 is the primary environment; Linux and macOS compatibility
   is `SHOULD`.
-- `C-002`: Support Python 3.12 or newer and include Python 3.13 in primary
-  development validation.
+- `C-002`: Support CPython 3.12 and 3.13. Later versions require separate
+  validation and approval before they enter the support contract.
 - `C-003`: The basic workflow must work with a Codex subscription alone.
 - `C-004`: Never store API keys, GitHub tokens, or secrets in the repository.
 - `C-005`: Specification analysis, state management, prompt generation, and

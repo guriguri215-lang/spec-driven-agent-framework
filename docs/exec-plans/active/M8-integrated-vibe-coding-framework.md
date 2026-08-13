@@ -257,6 +257,12 @@ results remain historical or supporting evidence for their exact candidates.
 - [ ] Obtain separate approvals before staging, commit, push, PR, merge, tag,
   release, exact-SHA remote observation, or any other external action.
 
+This unchecked omnibus item is the historical pre-publication approval
+checkpoint. Later separate approvals covered the recorded staging, commit,
+push, pull requests, merges, and exact-SHA CI observations only. It remains
+unchecked because tag, Release, deployment, and other external publication
+actions were not authorized.
+
 ## Exact additive public interfaces
 
 The CLI commands are `workflow validate`, `plan`, `explain`, `simulate`, `run`,
