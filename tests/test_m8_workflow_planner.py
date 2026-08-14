@@ -68,6 +68,7 @@ from sdaqf.domain.workflow import (
 )
 from tests.m7_solver_helpers import build_fixture
 from tests.m8_workflow_helpers import (
+    REQUIREMENT_ID,
     FixedClock,
     create_explainer,
     create_intent,
@@ -153,7 +154,7 @@ def test_planner_is_deterministic_and_references_native_authorities(
     assert isinstance(plan, IntegratedPlan)
     assert plan.intent.artifact_id == first.artifact_id
     assert plan.task_graph.artifact_type == "task-graph"
-    assert plan.tasks[0].requirement_ids == ("FR-M8-DEMO",)
+    assert plan.tasks[0].requirement_ids == (REQUIREMENT_ID,)
     assert not plan.protected_effects
 
 

@@ -118,6 +118,12 @@ class SpecificationIngestor:
         requirements, source_criteria, diagnostics = _normalize_candidates(
             candidates, document=path.name
         )
+        diagnostics = tuple(
+            sorted(
+                (*diagnostics, *_unrecognized_normative_diagnostics(text, candidates)),
+                key=lambda item: item.diagnostic_id,
+            )
+        )
         if not requirements:
             raise SpecificationError(
                 "Specification contains no recognized requirement records."
@@ -207,6 +213,97 @@ def _extract_candidates(text: str) -> tuple[_Candidate, ...]:
         if index == start:
             index += 1
     return tuple(candidates)
+
+
+_EXPLANATORY_INTRODUCTION = re.compile(
+    r"^(?:this|the)\s+(?:section|subsection|paragraph|note)\s+"
+    r"(?:contains|describes|documents|explains|introduces|provides|summarizes)\b",
+    re.IGNORECASE,
+)
+_STABLE_ID_PREFIX = re.compile(r"^`?[A-Z][A-Z0-9-]+`?\s*:")
+
+
+def _unrecognized_normative_diagnostics(
+    text: str,
+    candidates: tuple[_Candidate, ...],
+) -> tuple[Diagnostic, ...]:
+    """Surface normative source lines that normalization would otherwise discard."""
+
+    covered = {
+        line_number
+        for candidate in candidates
+        for line_number in range(candidate.line_start, candidate.line_end + 1)
+    }
+    diagnostics: list[Diagnostic] = []
+    for candidate in candidates:
+        if candidate.identifier is None and _STABLE_ID_PREFIX.match(candidate.statement):
+            diagnostics.append(
+                _diagnostic(
+                    DiagnosticKind.UNVERIFIABLE,
+                    DiagnosticSeverity.BLOCKER,
+                    (),
+                    "A stable identifier was not recognized as an explicit requirement.",
+                    candidate,
+                )
+            )
+    in_fence = False
+    headings: list[tuple[int, str]] = []
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        stripped = line.strip()
+        if stripped.startswith(("```", "~~~")):
+            in_fence = not in_fence
+            continue
+        heading = _HEADING.match(line)
+        if heading:
+            level = len(heading.group("level"))
+            headings = [item for item in headings if item[0] < level]
+            headings.append((level, _clean_text(heading.group("title"))))
+            continue
+        section = " > ".join(title for _, title in headings) or "Document"
+        if (
+            in_fence
+            or line_number in covered
+            or not stripped
+            or not _section_may_contain_requirements(section)
+            or line.startswith(("    ", "\t"))
+            or _EXPLANATORY_INTRODUCTION.match(stripped) is not None
+        ):
+            continue
+        candidate = _Candidate(
+            identifier=None,
+            statement=_clean_text(stripped),
+            section="Unrecognized normative source",
+            line_start=line_number,
+            line_end=line_number,
+            excerpt=line,
+        )
+        diagnostics.append(
+            _diagnostic(
+                DiagnosticKind.UNVERIFIABLE,
+                DiagnosticSeverity.BLOCKER,
+                (),
+                "A normative statement was not recognized as a requirement.",
+                candidate,
+            )
+        )
+    return tuple(diagnostics)
+
+
+def _section_may_contain_requirements(section: str) -> bool:
+    lowered = section.casefold()
+    return any(
+        label in lowered
+        for label in (
+            "requirement",
+            "constraint",
+            "non-goal",
+            "non goal",
+            "assumption",
+            "open decision",
+            "acceptance criterion",
+            "acceptance criteria",
+        )
+    )
 
 
 def _section_accepts_unlabelled(section: str) -> bool:

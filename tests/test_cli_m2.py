@@ -88,6 +88,10 @@ def test_skill_tool_and_checkpoint_cli(capsys: object) -> None:
             "--json",
         ]
     ) == 0
+    skill_output = json.loads(capsys.readouterr().out)  # type: ignore[attr-defined]
+    selected = next(item for item in skill_output["skills"] if item["state"] == "selected")
+    assert selected["capability"] == f"m2-skill-v1-{selected['digest'].lower()}"
+    assert selected["state"] == "selected"
     assert main(
         [
             "tools",
@@ -122,7 +126,7 @@ def test_skill_tool_and_checkpoint_cli(capsys: object) -> None:
     ) == 0
 
     output = capsys.readouterr().out  # type: ignore[attr-defined]
-    assert '"state": "selected"' in output
+    assert '"state": "planned"' in output
     assert '"tools": [' in output
     assert '"checkpoint_id": "CHK-0123456789ABCDEF"' in output
 

@@ -1,4 +1,4 @@
-"""Command-line interface for the offline M0 through M7 framework."""
+"""Command-line interface for the offline M0 through M8 framework."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import sys
 import tempfile
 from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import Any
 
 from sdaqf.adapters.context import (
     CanonicalUTF8ByteEstimator,
@@ -18,7 +19,7 @@ from sdaqf.adapters.context import (
     LocalContextSourceReader,
 )
 from sdaqf.adapters.process import SubprocessRunner
-from sdaqf.adapters.scheduler import SchedulerAdapterError
+from sdaqf.adapters.scheduler import FilesystemAgentHost, SchedulerAdapterError
 from sdaqf.adapters.solver import SolverAdapterError
 from sdaqf.adapters.workflow import (
     RuntimePrivateCandidateVerifier,
@@ -97,6 +98,7 @@ from sdaqf.application.skills import (
     SkillContractError,
     evaluate_templates,
     load_template_registry,
+    skill_capability_token,
     validate_skills,
 )
 from sdaqf.application.solver import SolverService
@@ -120,7 +122,10 @@ from sdaqf.application.workflow_contracts import (
     WorkflowContractError,
     load_workflow_artifact,
 )
-from sdaqf.application.workflow_explanation import WorkflowExplainer
+from sdaqf.application.workflow_explanation import (
+    WorkflowExplainer,
+    WorkflowFinalReportService,
+)
 from sdaqf.application.workflow_outcome import WorkflowOutcomeService
 from sdaqf.application.workflow_planning import (
     IntegratedPlanner,
@@ -792,6 +797,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     workflow_run.add_argument("--output-state", type=Path, required=True)
     workflow_run.add_argument("--output-event", type=Path, required=True)
+    workflow_run.add_argument(
+        "--message",
+        action="append",
+        default=[],
+        type=Path,
+        help="Ingest one exact host-to-scheduler Mailbox Message before the tick.",
+    )
+    workflow_run.add_argument(
+        "--host-outbox",
+        type=Path,
+        help="Offer resulting dispatch/cancel messages to this existing directory under root.",
+    )
     workflow_run.add_argument("--json", action="store_true")
     workflow_resume = workflow_commands.add_parser(
         "resume", help="Resume an exact State/Event chain by one scheduler tick."
@@ -807,6 +824,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     workflow_resume.add_argument("--output-state", type=Path, required=True)
     workflow_resume.add_argument("--output-event", type=Path, required=True)
+    workflow_resume.add_argument(
+        "--message",
+        action="append",
+        default=[],
+        type=Path,
+        help="Ingest one exact host-to-scheduler Mailbox Message before the tick.",
+    )
+    workflow_resume.add_argument(
+        "--host-outbox",
+        type=Path,
+        help="Offer resulting dispatch/cancel messages to this existing directory under root.",
+    )
     workflow_resume.add_argument("--json", action="store_true")
     workflow_status = workflow_commands.add_parser(
         "status", help="Revalidate workflow and native scheduler state read-only."
@@ -861,6 +890,16 @@ def build_parser() -> argparse.ArgumentParser:
     workflow_outcome.add_argument("--output-event", type=Path, required=True)
     workflow_outcome.add_argument("--output-state", type=Path, required=True)
     workflow_outcome.add_argument("--json", action="store_true")
+    workflow_report = workflow_commands.add_parser(
+        "report",
+        help="Render a read-only claim report from one confirmed terminal Outcome.",
+    )
+    workflow_report.add_argument("outcome", type=Path)
+    workflow_report.add_argument("--state", type=Path, required=True)
+    workflow_report.add_argument("--plan", type=Path, required=True)
+    workflow_report.add_argument("--root", type=Path, required=True)
+    workflow_report.add_argument("--scheduler-state", type=Path, required=True)
+    workflow_report.add_argument("--json", action="store_true")
 
     schema = subparsers.add_parser(
         "schema",
@@ -1526,7 +1565,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 2
         _emit(
             {
-                "skills": [item.to_dict() for item in skill_records],
+                "skills": [
+                    {**item.to_dict(), "capability": skill_capability_token(item)}
+                    for item in skill_records
+                ],
                 "templates": [item.to_dict() for item in template_records],
             },
             as_json=args.json,
@@ -2025,6 +2067,14 @@ def _run_m8_workflow(args: argparse.Namespace) -> int:
             _emit(result.to_dict(), as_json=args.json)
             return 0
         if operation == "run":
+            run_host_arguments: dict[str, Any] = {}
+            if args.message:
+                run_host_arguments["messages"] = tuple(args.message)
+            if args.host_outbox is not None:
+                run_host_arguments["agent_host"] = FilesystemAgentHost(
+                    args.root,
+                    args.host_outbox,
+                )
             transition = WorkflowRuntimeService(planner=planner).run(
                 plan,
                 args.root,
@@ -2032,6 +2082,7 @@ def _run_m8_workflow(args: argparse.Namespace) -> int:
                 args.output_state,
                 args.output_event,
                 predecessor_scheduler_state=args.predecessor_scheduler_state,
+                **run_host_arguments,
             )
             _emit(transition.to_dict(), as_json=args.json)
             return 0
@@ -2039,7 +2090,29 @@ def _run_m8_workflow(args: argparse.Namespace) -> int:
             args.state,
             expected_type=WorkflowArtifactType.WORKFLOW_STATE,
         )
+        if operation == "report":
+            outcome = load_workflow_artifact(
+                args.outcome,
+                expected_type=WorkflowArtifactType.WORKFLOW_OUTCOME,
+            )
+            report = WorkflowFinalReportService(planner).report(
+                outcome,
+                state,
+                plan,
+                args.root,
+                args.scheduler_state,
+            )
+            _emit(report.to_dict(), as_json=args.json)
+            return 0
         if operation == "resume":
+            resume_host_arguments: dict[str, Any] = {}
+            if args.message:
+                resume_host_arguments["messages"] = tuple(args.message)
+            if args.host_outbox is not None:
+                resume_host_arguments["agent_host"] = FilesystemAgentHost(
+                    args.root,
+                    args.host_outbox,
+                )
             transition = WorkflowRuntimeService(planner=planner).resume(
                 state,
                 NativeArtifactBinding(
@@ -2054,6 +2127,7 @@ def _run_m8_workflow(args: argparse.Namespace) -> int:
                 args.output_state,
                 args.output_event,
                 predecessor_scheduler_state=args.predecessor_scheduler_state,
+                **resume_host_arguments,
             )
             _emit(transition.to_dict(), as_json=args.json)
             return 0

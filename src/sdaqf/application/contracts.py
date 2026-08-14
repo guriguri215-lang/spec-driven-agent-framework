@@ -82,6 +82,20 @@ def parse_json_object_bytes(
 ) -> dict[str, object]:
     """Parse one immutable bounded UTF-8 JSON snapshot with strict keys."""
 
+    return object_value(
+        parse_json_bytes(content, label, maximum_bytes=maximum_bytes),
+        label,
+    )
+
+
+def parse_json_bytes(
+    content: bytes,
+    label: str,
+    *,
+    maximum_bytes: int = 256 * 1024,
+) -> object:
+    """Parse one immutable bounded UTF-8 JSON value with strict keys."""
+
     if len(content) > maximum_bytes:
         raise ContractError(f"{label} exceeds the size limit.")
 
@@ -107,7 +121,7 @@ def parse_json_object_bytes(
     except (UnicodeError, ValueError, RecursionError) as exc:
         raise ContractError(f"{label} could not be read.") from exc
     _validate_json_structure(decoded, label)
-    return object_value(decoded, label)
+    return decoded
 
 
 def _validate_json_structure(value: object, label: str) -> None:

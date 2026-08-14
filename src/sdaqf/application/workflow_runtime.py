@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import hashlib
 import os
-import sqlite3
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 
-from sdaqf.adapters.scheduler import SchedulerAdapterError, SchedulerTick, SQLiteSchedulerStore
+from sdaqf.adapters.scheduler import (
+    MAX_EXPORT,
+    SchedulerAdapterError,
+    SchedulerTick,
+    SQLiteSchedulerStore,
+)
 from sdaqf.adapters.workflow import (
     ExclusiveWorkflowArtifactStore,
     SystemWorkflowClock,
@@ -33,9 +37,16 @@ from sdaqf.application.release_qa import ReleaseCandidateGateService, load_relea
 from sdaqf.application.scheduler import SchedulerService
 from sdaqf.application.scheduler_contracts import (
     LoadedSchedulerArtifact,
+    bind_review_task_result_evidence,
     event_digest,
+    load_task_agent_result,
     parse_scheduler_artifact_bytes,
+    validate_reviewed_agent_identities,
 )
+from sdaqf.application.scheduler_contracts import (
+    artifact_from_value as scheduler_artifact_from_value,
+)
+from sdaqf.application.skills import SkillContractError, resolve_skill_capabilities
 from sdaqf.application.solver_contracts import load_solver_artifact
 from sdaqf.application.ui_validation import (
     UiValidationService,
@@ -59,12 +70,15 @@ from sdaqf.domain.context import (
     ContextSelection,
     ContextSnapshot,
 )
+from sdaqf.domain.orchestration import AgentResult
 from sdaqf.domain.quality import ArtifactReference, EvidenceLedger, HandoffStatus, IndependentReview
 from sdaqf.domain.scheduler import (
     BudgetLedger,
+    DispatchPhase,
     Lease,
     LeaseStatus,
     MailboxMessage,
+    MessageDirection,
     MessageType,
     SchedulerArtifactType,
     SchedulerEvent,
@@ -98,6 +112,7 @@ from sdaqf.domain.workflow import (
     WorkflowTerminalObservation,
     WorkflowTerminalObservationCause,
 )
+from sdaqf.ports.scheduler import AgentHostPort
 from sdaqf.ports.workflow import WorkflowArtifactStorePort, WorkflowClock
 
 
@@ -184,8 +199,10 @@ class WorkflowRuntimeService:
         output_event: Path,
         *,
         predecessor_scheduler_state: Path | None = None,
+        messages: tuple[Path, ...] = (),
+        agent_host: AgentHostPort | None = None,
     ) -> WorkflowTransition:
-        """Start one Plan without executing any returned host intent."""
+        """Start one Plan and optionally offer exact intents to an explicit host."""
 
         return self._transition(
             None,
@@ -196,6 +213,8 @@ class WorkflowRuntimeService:
             output_state,
             output_event,
             predecessor_scheduler_state=predecessor_scheduler_state,
+            messages=messages,
+            agent_host=agent_host,
         )
 
     def resume(
@@ -209,6 +228,8 @@ class WorkflowRuntimeService:
         output_event: Path,
         *,
         predecessor_scheduler_state: Path | None = None,
+        messages: tuple[Path, ...] = (),
+        agent_host: AgentHostPort | None = None,
     ) -> WorkflowTransition:
         """Resume from an exact State/Event chain and at most one M6 tick."""
 
@@ -221,6 +242,8 @@ class WorkflowRuntimeService:
             output_state,
             output_event,
             predecessor_scheduler_state=predecessor_scheduler_state,
+            messages=messages,
+            agent_host=agent_host,
         )
 
     def finalize_observation(
@@ -538,11 +561,14 @@ class WorkflowRuntimeService:
             plan.task_graph.artifact_id,
             native_artifact.artifact_id,
             store.current_event_head_id,
-            *(item.artifact_id for item in store.export("leases")),
-            *(item.artifact_id for item in store.export("messages")),
-            *(item.artifact_id for item in store.export("events")),
-            *(item.artifact_id for item in store.export("budget")),
-            *(item.artifact_id for item in store.export("worktrees")),
+            *(
+                item.artifact_id
+                for kind in ("leases", "messages", "events", "budget", "worktrees")
+                for item in store.evidence_history(
+                    kind,
+                    through_event_sequence=native.event_sequence,
+                )
+            ),
             plan.intent.artifact_id,
             plan.context_graph.artifact_id,
             plan.context_query.artifact_id,
@@ -556,7 +582,10 @@ class WorkflowRuntimeService:
             blocker.code for task in native.tasks for blocker in task.blockers
         }
         source_ids = set(observation.source_artifact_ids)
-        messages = tuple(store.export("messages"))
+        messages = store.evidence_history(
+            "messages",
+            through_event_sequence=native.event_sequence,
+        )
         rejected_approvals = {
             artifact.artifact_id
             for artifact in messages
@@ -575,7 +604,10 @@ class WorkflowRuntimeService:
             <= max(
                 (
                     _parse_utc(event.recorded_at)
-                    for artifact_event in store.export("events")
+                    for artifact_event in store.evidence_history(
+                        "events",
+                        through_event_sequence=native.event_sequence,
+                    )
                     if isinstance((event := artifact_event.value), SchedulerEvent)
                 ),
                 default=_parse_utc(str(message.payload["expires_at"])),
@@ -583,7 +615,10 @@ class WorkflowRuntimeService:
         }
         lease_loss_events = {
             artifact.artifact_id
-            for artifact in store.export("events")
+            for artifact in store.evidence_history(
+                "events",
+                through_event_sequence=native.event_sequence,
+            )
             if isinstance(artifact.value, SchedulerEvent)
             and artifact.value.cause == "lease-expired"
         }
@@ -708,8 +743,12 @@ class WorkflowRuntimeService:
             sorted(
                 {
                     event.approval_id
-                    for artifact in store.export("events")
+                    for artifact in store.evidence_history(
+                        "events",
+                        through_event_sequence=native.event_sequence,
+                    )
                     if isinstance((event := artifact.value), SchedulerEvent)
+                    and event.sequence <= native.event_sequence
                     and event.cause == "approval-consumed"
                     and event.approval_id is not None
                 }
@@ -727,6 +766,7 @@ class WorkflowRuntimeService:
         )
         observations = _derive_native_observations(
             plan,
+            native,
             store,
             root,
             publication_observation,
@@ -1231,6 +1271,8 @@ class WorkflowRuntimeService:
         output_event: Path,
         *,
         predecessor_scheduler_state: Path | None = None,
+        messages: tuple[Path, ...] = (),
+        agent_host: AgentHostPort | None = None,
     ) -> WorkflowTransition:
         _require_runtime_private_path(root, scheduler_state, existing=True)
         state_lexical = _require_runtime_private_path(root, output_state, existing=False)
@@ -1303,6 +1345,10 @@ class WorkflowRuntimeService:
         scheduler_advanced = (
             prior is not None and before_artifact.artifact_id != prior.scheduler_state_id
         )
+        if scheduler_advanced and messages:
+            raise WorkflowRuntimeError(
+                "Host messages cannot be ingested after the scheduler advanced externally."
+            )
         if prior is not None and not scheduler_advanced:
             assert prior_state_artifact is not None
             self._require_exact_state(
@@ -1329,6 +1375,7 @@ class WorkflowRuntimeService:
                     scheduler_state,
                     root,
                     "HST-M8-RUNTIME",
+                    messages,
                 )
             except (SchedulerAdapterError, OSError, ValueError) as exc:
                 raise WorkflowRuntimeError("M6 scheduler tick failed closed.") from exc
@@ -1383,6 +1430,7 @@ class WorkflowRuntimeService:
         projected_tasks = _task_projections(after)
         transition_observations = _derive_native_observations(
             plan,
+            after,
             store,
             root,
             publication_observation,
@@ -1550,13 +1598,81 @@ class WorkflowRuntimeService:
             artifact_type=WorkflowArtifactType.WORKFLOW_STATE.value,
             producer=producer,
         )
+        host_dispatch_performed = self._offer_agent_intents(store, after, agent_host)
         return WorkflowTransition(
             event=event_artifact,
             state=state_artifact,
             outgoing_intent_ids=outgoing_ids,
             protected_effect_ids=protected,
             approval_ids=approvals,
+            host_dispatch_performed=host_dispatch_performed,
         )
+
+    @staticmethod
+    def _offer_agent_intents(
+        store: SQLiteSchedulerStore,
+        native: SchedulerState,
+        agent_host: AgentHostPort | None,
+    ) -> bool:
+        """Offer exact pending M6 intents after M8 publication, retrying idempotently."""
+
+        if agent_host is None:
+            return False
+        try:
+            intents = WorkflowRuntimeService._pending_agent_intents(store, native)
+            if intents is None or not intents:
+                return False
+            for artifact in intents:
+                message = artifact.value
+                assert isinstance(message, MailboxMessage)
+                if message.message_type is MessageType.DISPATCH_INTENT:
+                    agent_host.dispatch(message)
+                else:
+                    assert message.message_type is MessageType.CANCEL_REQUEST
+                    agent_host.cancel(message)
+        except Exception:
+            # M6/M8 publication is already durable. An open host port may raise an
+            # implementation-specific error, so reporting the committed transition as
+            # failed would make its exact State head unusable for a later retry.
+            return False
+        return True
+
+    @staticmethod
+    def _pending_agent_intents(
+        store: SQLiteSchedulerStore,
+        native: SchedulerState,
+    ) -> tuple[LoadedSchedulerArtifact, ...] | None:
+        """Recover one exact durable host intent for each pending task projection."""
+
+        expected_by_phase = {
+            DispatchPhase.INTENT_PENDING: MessageType.DISPATCH_INTENT,
+            DispatchPhase.CANCELLATION_REQUESTED: MessageType.CANCEL_REQUEST,
+        }
+        pending: list[LoadedSchedulerArtifact] = []
+        for task in native.tasks:
+            expected = expected_by_phase.get(task.dispatch_phase)
+            if expected is None:
+                continue
+            matches = tuple(
+                artifact
+                for artifact in store.inspect_mailbox(
+                    task_id=task.task_id,
+                    direction=MessageDirection.SCHEDULER_TO_HOST.value,
+                    limit=MAX_EXPORT,
+                )
+                if isinstance((message := artifact.value), MailboxMessage)
+                and message.message_type is expected
+                and message.direction is MessageDirection.SCHEDULER_TO_HOST
+                and message.graph_id == native.graph_id
+                and message.candidate == native.candidate
+                and message.task_id == task.task_id
+                and message.attempt == task.attempt
+                and message.fence == task.fence
+            )
+            if len(matches) != 1:
+                return None
+            pending.append(matches[0])
+        return tuple(pending)
 
     def _validate_inputs(
         self,
@@ -1875,9 +1991,21 @@ class WorkflowRuntimeService:
                     is WorkflowTerminalObservationCause.EXTERNAL_EFFECT_AMBIGUOUS
                     else ()
                 )
+                observation_store = SQLiteSchedulerStore(scheduler_state, root)
+                observation_native_artifact = _replay_scheduler_state(
+                    observation_store,
+                    after.scheduler_event_sequence,
+                )
+                observation_native = observation_native_artifact.value
+                assert isinstance(observation_native, SchedulerState)
+                if observation_native_artifact.artifact_id != after.scheduler_state_id:
+                    raise WorkflowRuntimeError(
+                        "Workflow observation State does not match M6 event replay."
+                    )
                 expected_observations = _derive_native_observations(
                     plan,
-                    SQLiteSchedulerStore(scheduler_state, root),
+                    observation_native,
+                    observation_store,
                     root,
                     publication_observation,
                 )
@@ -2129,12 +2257,18 @@ class WorkflowRuntimeService:
         store = SQLiteSchedulerStore(scheduler_state, root)
         leases = tuple(
             (artifact.artifact_id, artifact.value)
-            for artifact in store.export("leases")
+            for artifact in store.evidence_history(
+                "leases",
+                through_event_sequence=state.event_sequence,
+            )
             if isinstance(artifact.value, Lease)
         )
         events = tuple(
             artifact.value
-            for artifact in store.export("events")
+            for artifact in store.evidence_history(
+                "events",
+                through_event_sequence=state.event_sequence,
+            )
             if isinstance(artifact.value, SchedulerEvent)
         )
         protected: set[str] = set()
@@ -2229,9 +2363,16 @@ class WorkflowRuntimeService:
             for blocker in task.blockers:
                 if "ambiguous" in blocker.code or "unknown" in blocker.code:
                     result.add("external-effect-ambiguous")
-        for artifact in store.export("worktrees"):
+        for artifact in store.evidence_history(
+            "worktrees",
+            through_event_sequence=state.event_sequence,
+        ):
             value = artifact.value
-            if isinstance(value, WorktreeLease) and value.ambiguous:
+            if (
+                artifact.artifact_id in state.worktree_lease_ids
+                and isinstance(value, WorktreeLease)
+                and value.ambiguous
+            ):
                 result.add("external-effect-ambiguous")
         return tuple(sorted(result))
 
@@ -2277,8 +2418,12 @@ class WorkflowRuntimeService:
             sorted(
                 {
                     event.approval_id
-                    for artifact in store.export("events")
+                    for artifact in store.evidence_history(
+                        "events",
+                        through_event_sequence=native.event_sequence,
+                    )
                     if isinstance((event := artifact.value), SchedulerEvent)
+                    and event.sequence <= native.event_sequence
                     and event.cause == "approval-consumed"
                     and event.approval_id is not None
                 }
@@ -2287,6 +2432,7 @@ class WorkflowRuntimeService:
         ambiguities = self._ambiguities(store, native)
         observations = _derive_native_observations(
             plan,
+            native,
             store,
             root,
             publication_observation,
@@ -2353,10 +2499,11 @@ class WorkflowRuntimeService:
         root: Path,
         publication_observation: WorkflowPublicationObservation,
     ) -> None:
-        bound_artifact = (
-            store.status()
-            if state.scheduler_event_sequence == native.event_sequence
-            else _replay_scheduler_state(store, state.scheduler_event_sequence)
+        if state.scheduler_event_sequence > native.event_sequence:
+            raise WorkflowRuntimeError("Workflow State extends beyond its M6 event prefix.")
+        bound_artifact = _replay_scheduler_state(
+            store,
+            state.scheduler_event_sequence,
         )
         bound_native = bound_artifact.value
         assert isinstance(bound_native, SchedulerState)
@@ -2393,7 +2540,10 @@ class WorkflowRuntimeService:
             raise WorkflowRuntimeError(
                 "Workflow Event native Scheduler input/output does not resolve."
             )
-        scheduler_events = store.export("events")
+        scheduler_events = store.evidence_history(
+            "events",
+            through_event_sequence=bound_native.event_sequence,
+        )
         known_native_ids = {
             plan_id,
             state.latest_event.artifact_id,
@@ -2402,12 +2552,23 @@ class WorkflowRuntimeService:
             *(item.artifact_id for item in state.event_chain),
             *(item.effect_id for item in plan.protected_effects),
             *(item.artifact_id for item in state.observation_artifacts),
-            store.current_event_head_id,
-            *(item.artifact_id for item in store.export("leases")),
-            *(item.artifact_id for item in store.export("messages")),
+            *(item.artifact_id for item in store.evidence_history(
+                "leases",
+                through_event_sequence=bound_native.event_sequence,
+            )),
+            *(item.artifact_id for item in store.evidence_history(
+                "messages",
+                through_event_sequence=bound_native.event_sequence,
+            )),
             *(item.artifact_id for item in scheduler_events),
-            *(item.artifact_id for item in store.export("budget")),
-            *(item.artifact_id for item in store.export("worktrees")),
+            *(item.artifact_id for item in store.evidence_history(
+                "budget",
+                through_event_sequence=bound_native.event_sequence,
+            )),
+            *(item.artifact_id for item in store.evidence_history(
+                "worktrees",
+                through_event_sequence=bound_native.event_sequence,
+            )),
             plan.intent.artifact_id,
             plan.context_graph.artifact_id,
             plan.context_query.artifact_id,
@@ -2503,7 +2664,7 @@ class WorkflowRuntimeService:
             observation = WorkflowTerminalObservation(
                 cause,
                 bound_artifact.artifact_id,
-                store.current_event_head_id,
+                scheduler_events[-1].artifact_id,
                 source_ids,
             )
             if latest.idempotency_key != _observation_idempotency(plan_id, observation):
@@ -2574,6 +2735,7 @@ class WorkflowRuntimeService:
         tasks = _task_projections(native)
         observations = _derive_native_observations(
             plan,
+            native,
             store,
             root,
             publication_observation,
@@ -2605,70 +2767,12 @@ def _replay_scheduler_state(
     store: SQLiteSchedulerStore,
     event_sequence: int,
 ) -> LoadedSchedulerArtifact:
-    """Rebuild an exact historical M6 projection in memory from immutable evidence."""
+    """Load an exact historical M6 projection from the adapter authority."""
 
-    from sdaqf.adapters.scheduler import (
-        _SCHEMA,
-        APPLICATION_ID,
-        USER_VERSION,
-        _configure,
-        _rebuild_from_evidence,
-    )
-
-    source = store._connect(read_only=True)
-    filtered = sqlite3.connect(":memory:", isolation_level=None)
-    filtered.row_factory = sqlite3.Row
-    target = sqlite3.connect(":memory:", isolation_level=None)
-    target.row_factory = sqlite3.Row
     try:
-        graph_artifact = store._graph(source)
-        source.backup(filtered)
-        retained_message_ids: set[str] = set()
-        for row in filtered.execute(
-            "SELECT artifact_json FROM events WHERE sequence <= ? ORDER BY sequence",
-            (event_sequence,),
-        ).fetchall():
-            event_artifact = parse_scheduler_artifact_bytes(
-                str(row["artifact_json"]).encode("ascii"),
-                expected_type=SchedulerArtifactType.SCHEDULER_EVENT,
-            )
-            event = event_artifact.value
-            assert isinstance(event, SchedulerEvent)
-            if event.message_id is not None:
-                retained_message_ids.add(event.message_id)
-        filtered.execute("PRAGMA foreign_keys = OFF")
-        for table in ("lease_history", "budget_entries", "worktree_lease_history"):
-            filtered.execute(
-                f"DELETE FROM {table} WHERE event_sequence > ?",
-                (event_sequence,),
-            )
-        filtered.execute("DELETE FROM events WHERE sequence > ?", (event_sequence,))
-        if retained_message_ids:
-            placeholders = ",".join("?" for _ in retained_message_ids)
-            filtered.execute(
-                f"DELETE FROM messages WHERE artifact_id NOT IN ({placeholders})",
-                tuple(sorted(retained_message_ids)),
-            )
-        else:
-            filtered.execute("DELETE FROM messages")
-        _configure(target)
-        target.execute(f"PRAGMA application_id = {APPLICATION_ID}")
-        target.execute(f"PRAGMA user_version = {USER_VERSION}")
-        target.executescript(_SCHEMA)
-        target.execute("BEGIN IMMEDIATE")
-        try:
-            _rebuild_from_evidence(filtered, target, graph_artifact)
-            target.commit()
-        except BaseException:
-            target.rollback()
-            raise
-        return store._status(target)
-    except (ContractError, SchedulerAdapterError, sqlite3.Error) as exc:
+        return store.historical_status(event_sequence)
+    except SchedulerAdapterError as exc:
         raise WorkflowRuntimeError("Historical native Scheduler replay failed closed.") from exc
-    finally:
-        target.close()
-        filtered.close()
-        source.close()
 
 
 def _task_projections(native: SchedulerState) -> tuple[WorkflowTaskProjection, ...]:
@@ -2687,6 +2791,7 @@ def _task_projections(native: SchedulerState) -> tuple[WorkflowTaskProjection, .
 
 def _derive_native_observations(
     plan: IntegratedPlan,
+    native: SchedulerState,
     store: SQLiteSchedulerStore,
     root: Path,
     publication_observation: WorkflowPublicationObservation,
@@ -2709,19 +2814,15 @@ def _derive_native_observations(
     baseline = load_baseline(baseline_path)
     if plan.completion_profile is CompletionProfile.PLAN_ONLY:
         return NativeWorkflowObservations((), (), (), (), None, None, False, False)
-    completed_result_ids = {
-        event.result_id
-        for artifact in store.export("events")
-        if isinstance((event := artifact.value), SchedulerEvent)
-        and event.cause == "verification-completed"
-        and event.result_id is not None
+    completed_task_ids = {
+        task.task_id for task in native.tasks if task.state is TaskState.COMPLETED
     }
     messages = {
         artifact.artifact_id: artifact.value
-        for artifact in store.export("messages")
-        if artifact.artifact_id in completed_result_ids
-        and isinstance(artifact.value, MailboxMessage)
+        for artifact in store.completed_task_result_messages()
+        if isinstance(artifact.value, MailboxMessage)
         and artifact.value.message_type is MessageType.TASK_RESULT
+        and artifact.value.task_id in completed_task_ids
     }
     task_by_id = {item.task_id: item for item in graph.tasks}
     bindings: dict[str, NativeArtifactBinding] = {}
@@ -2750,45 +2851,121 @@ def _derive_native_observations(
     handoff_known_problem_count = 0
     covered_requirement_ids: set[str] = set()
     requirement_coverage_available = False
+    agent_results_by_task: dict[str, AgentResult] = {}
+    agent_result_references_by_task: dict[str, ArtifactReference] = {}
+    agent_result_digests: set[str] = set()
+    for message_id in sorted(messages):
+        message = messages[message_id]
+        if message.task_id is None or message.task_id not in task_by_id:
+            raise WorkflowRuntimeError("Accepted result does not map to the Task Graph.")
+        try:
+            result, reference = load_task_agent_result(root, graph, message)
+            artifact_store.load(reference, 16 * 1024 * 1024)
+        except (ContractError, OSError, ValueError) as exc:
+            raise WorkflowRuntimeError("Accepted Agent Result failed validation.") from exc
+        if reference.sha256 in agent_result_digests:
+            raise WorkflowRuntimeError("Accepted Agent Result reference is duplicated.")
+        agent_result_digests.add(reference.sha256)
+        agent_results_by_task[message.task_id] = result
+        agent_result_references_by_task[message.task_id] = reference
+        identifier = f"M2-AGENT-RESULT-{reference.sha256}"
+        bindings[identifier] = NativeArtifactBinding(
+            "agent-result",
+            identifier,
+            reference,
+            True,
+        )
+        try:
+            resolved_skills = resolve_skill_capabilities(
+                root,
+                task_by_id[message.task_id].required_capabilities,
+            )
+        except SkillContractError as exc:
+            raise WorkflowRuntimeError("Accepted Skill provenance is invalid.") from exc
+        for skill in resolved_skills:
+            skill_identifier = f"M2-SKILL-{skill.digest}"
+            bindings[skill_identifier] = NativeArtifactBinding(
+                "skill",
+                skill_identifier,
+                skill.reference,
+                True,
+            )
     for message_id in sorted(messages):
         message = messages[message_id]
         if message.task_id is None or message.task_id not in task_by_id:
             raise WorkflowRuntimeError("Accepted result does not map to the Task Graph.")
         task = task_by_id[message.task_id]
+        agent_result = agent_results_by_task[task.task_id]
         payload = message.to_dict()["payload"]
         assert isinstance(payload, dict)
         raw_references = payload.get("evidence_refs")
         if not isinstance(raw_references, list):
             raise WorkflowRuntimeError("Accepted result evidence references are invalid.")
+        review_reference = None
+        if task.kind is TaskKind.REVIEW:
+            try:
+                review_reference = bind_review_task_result_evidence(
+                    graph,
+                    message,
+                    agent_result_references_by_task,
+                )
+            except ContractError as exc:
+                raise WorkflowRuntimeError(
+                    "Independent Review lacks exact target Agent Result lineage."
+                ) from exc
+        solver_types: set[SolverArtifactType] = set()
         for index, raw in enumerate(raw_references):
             try:
                 reference = parse_artifact_reference(raw, f"evidence_refs[{index}]")
                 artifact_store.load(reference, 16 * 1024 * 1024)
                 path = root / reference.path
                 if task.kind is TaskKind.SOLVER:
-                    loaded = load_solver_artifact(
-                        path,
-                        expected_type=SolverArtifactType.VERIFICATION,
-                    )
-                    verification = loaded.value
-                    assert isinstance(verification, SolverVerification)
-                    if (
-                        not verification.adoption_allowed
-                        or verification.candidate != plan.candidate
-                        or verification.graph_id != plan.task_graph.artifact_id
-                        or verification.task_id != task.task_id
-                    ):
-                        raise WorkflowRuntimeError("M7 verification is stale or not adoptable.")
+                    loaded = load_solver_artifact(path)
+                    solver_types.add(loaded.artifact_type)
                     identifier = loaded.artifact_id
-                    artifact_type = SolverArtifactType.VERIFICATION.value
-                    solver_ids.add(identifier)
-                    solver_status_counts[verification.outcome.value] = (
-                        solver_status_counts.get(verification.outcome.value, 0) + 1
-                    )
+                    artifact_type = loaded.artifact_type.value
+                    if loaded.artifact_type is SolverArtifactType.VERIFICATION:
+                        verification = loaded.value
+                        assert isinstance(verification, SolverVerification)
+                        if (
+                            not verification.adoption_allowed
+                            or verification.candidate != plan.candidate
+                            or verification.graph_id != plan.task_graph.artifact_id
+                            or verification.task_id != task.task_id
+                        ):
+                            raise WorkflowRuntimeError(
+                                "M7 verification is stale or not adoptable."
+                            )
+                        solver_ids.add(identifier)
+                        solver_status_counts[verification.outcome.value] = (
+                            solver_status_counts.get(verification.outcome.value, 0) + 1
+                        )
+                    elif loaded.artifact_type is not SolverArtifactType.RESULT:
+                        raise WorkflowRuntimeError("Solver evidence type is unsupported.")
                 elif task.kind is TaskKind.REVIEW:
+                    if reference != review_reference:
+                        continue
                     candidate_review = load_independent_review(path)
                     if candidate_review.candidate != plan.candidate:
                         raise WorkflowRuntimeError("Independent Review candidate is stale.")
+                    if any(
+                        target not in agent_results_by_task
+                        for target in task.review_targets
+                    ):
+                        raise WorkflowRuntimeError(
+                            "Independent Review target result is unavailable."
+                        )
+                    try:
+                        validate_reviewed_agent_identities(
+                            task,
+                            agent_result,
+                            candidate_review,
+                            agent_results_by_task,
+                        )
+                    except ContractError as exc:
+                        raise WorkflowRuntimeError(
+                            "Independent Review does not match completed target agents."
+                        ) from exc
                     reviews.append(candidate_review)
                     identifier = candidate_review.review_id
                     artifact_type = "independent-review"
@@ -2916,6 +3093,13 @@ def _derive_native_observations(
                 identifier,
                 reference,
                 True,
+            )
+        if task.kind is TaskKind.SOLVER and solver_types != {
+            SolverArtifactType.RESULT,
+            SolverArtifactType.VERIFICATION,
+        }:
+            raise WorkflowRuntimeError(
+                "Solver Task Result must bind one Result and one Verification."
             )
     g2_results = tuple(
         ImplementationEvidenceGateService()
@@ -3168,15 +3352,30 @@ def _derive_measurements(
     if store is not None:
         scheduler_events = tuple(
             artifact.value
-            for artifact in store.export("events")
+            for artifact in store.evidence_history(
+                "events",
+                through_event_sequence=native.event_sequence,
+            )
             if isinstance(artifact.value, SchedulerEvent)
         )
         budgets = tuple(
             artifact.value
-            for artifact in store.export("budget")
+            for artifact in store.evidence_history(
+                "budget",
+                through_event_sequence=native.event_sequence,
+            )
             if isinstance(artifact.value, BudgetLedger)
         )
-        budget = None if not budgets else budgets[-1]
+        if not budgets:
+            raise WorkflowRuntimeError(
+                "Native Scheduler budget evidence is unavailable."
+            )
+        budget = replace(budgets[-1], event_sequence=native.event_sequence)
+        if scheduler_artifact_from_value(
+            SchedulerArtifactType.BUDGET_LEDGER,
+            budget,
+        ).artifact_id != native.budget_ledger_id:
+            raise WorkflowRuntimeError("Native Scheduler budget evidence does not reproduce.")
     if root is not None:
         graph_artifact = load_context_artifact(
             root / plan.context_graph.reference.path,

@@ -28,7 +28,6 @@ from tests.m8_workflow_helpers import (
     create_workspace,
     workflow_binding,
 )
-from tests.schema_validation import LocalSchemaValidator, SchemaValidationError
 
 import sdaqf
 from scripts.validate_m5_context import main as validate_m5
@@ -46,7 +45,12 @@ from sdaqf.application.release_qa import load_release_candidate
 from sdaqf.application.scheduler_contracts import (
     artifact_from_value as scheduler_artifact_from_value,
 )
-from sdaqf.application.scheduler_contracts import load_scheduler_artifact
+from sdaqf.application.scheduler_contracts import (
+    load_scheduler_artifact,
+    load_task_agent_result,
+)
+from sdaqf.application.schema_validation import LocalSchemaValidator, SchemaValidationError
+from sdaqf.application.skills import resolve_skill_capabilities
 from sdaqf.application.solver_contracts import load_solver_artifact
 from sdaqf.application.ui_validation import load_manifest_ui, load_ui_validation
 from sdaqf.application.workflow_contracts import (
@@ -178,12 +182,15 @@ _MEASUREMENT_CONTRACT = {
 }
 _MEASUREMENT_GROUPS = set(_MEASUREMENT_CONTRACT)
 _MEASUREMENT_OBSERVATION_TYPES = {
+    SolverArtifactType.RESULT.value,
     SolverArtifactType.VERIFICATION.value,
+    "agent-result",
     "automated-handoff",
     "evidence-ledger",
     "independent-review",
     "project-manifest",
     "release-candidate",
+    "skill",
     "ui-validation",
 }
 
@@ -1184,6 +1191,28 @@ def _expected_observation_bindings(
         task = task_by_id.get(message.task_id or "")
         if task is None:
             raise WorkflowSimulationError("Accepted result lacks a Task Graph task.")
+        _agent_result, agent_reference = load_task_agent_result(root, graph, message)
+        agent_identifier = f"M2-AGENT-RESULT-{agent_reference.sha256}"
+        if agent_identifier in bindings:
+            raise WorkflowSimulationError("Accepted Agent Result is duplicated.")
+        bindings[agent_identifier] = NativeArtifactBinding(
+            "agent-result",
+            agent_identifier,
+            agent_reference,
+            True,
+        )
+        for skill in resolve_skill_capabilities(root, task.required_capabilities):
+            skill_identifier = f"M2-SKILL-{skill.digest}"
+            expected_skill = NativeArtifactBinding(
+                "skill",
+                skill_identifier,
+                skill.reference,
+                True,
+            )
+            existing_skill = bindings.get(skill_identifier)
+            if existing_skill is not None and existing_skill != expected_skill:
+                raise WorkflowSimulationError("Accepted Skill binding is inconsistent.")
+            bindings[skill_identifier] = expected_skill
         payload = message.to_dict()["payload"]
         if not isinstance(payload, dict) or not isinstance(payload.get("evidence_refs"), list):
             raise WorkflowSimulationError("Accepted result evidence references are invalid.")
@@ -1194,12 +1223,14 @@ def _expected_observation_bindings(
             if hashlib.sha256(content).hexdigest().upper() != reference.sha256:
                 raise WorkflowSimulationError("Accepted result evidence digest drifted.")
             if task.kind is TaskKind.SOLVER:
-                loaded = load_solver_artifact(
-                    path,
-                    expected_type=SolverArtifactType.VERIFICATION,
-                )
+                loaded = load_solver_artifact(path)
+                if loaded.artifact_type not in {
+                    SolverArtifactType.RESULT,
+                    SolverArtifactType.VERIFICATION,
+                }:
+                    raise WorkflowSimulationError("Accepted solver evidence type is invalid.")
                 identifier = loaded.artifact_id
-                artifact_type = SolverArtifactType.VERIFICATION.value
+                artifact_type = loaded.artifact_type.value
             elif task.kind is TaskKind.REVIEW:
                 review = load_independent_review(path)
                 identifier = review.review_id

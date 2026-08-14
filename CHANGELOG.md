@@ -16,6 +16,18 @@ The GitHub release body was reconciled with the tracked publication record on
 
 ### Added
 
+- Framework closeout adds strict runtime validation against all eight published
+  sample-project schemas, fail-closed Markdown requirement diagnostics, and
+  isolated-wheel schema packaging without creating another schema authority.
+- An optional idempotent filesystem host bridge carries exact durable M6/M8
+  dispatch and cancellation messages while accepted results reauthenticate
+  Context and digest-bound Skill provenance. The bridge does not launch an
+  agent, LLM, network call, or worktree operation and does not execute its
+  transported intent.
+- A transient receipt-authenticated workflow report keeps program, agent,
+  Skill, review, and user sources distinct; classifies claims as `FACT`,
+  `INFERENCE`, `ASSUMPTION`, or `UNKNOWN`; preserves disagreement; and leaves
+  human-review boundaries explicit without changing Workflow Outcome v1.
 - M8 remediation round 3 closes stale Plan epoch-open, receipt-scope narrowing,
   confirmed-artifact retry, and terminal timestamp gaps; carries predecessor M6
   state through successor explain/simulate/run APIs and CLI; and makes the
@@ -28,7 +40,8 @@ The GitHub release body was reconciled with the tracked publication record on
 - A side-effect-free deterministic integrated planner and independently
   recomputed explainer; one-tick resumable M6 workflow projection; fresh-output
   recovery; protected-effect, ambiguity, Gate, completion-profile, and handoff
-  composition; and typed host intents that the core never dispatches.
+  composition; and typed host intents that remain inert unless a caller
+  explicitly supplies the filesystem outbox bridge.
 - Additive `workflow validate`, `plan`, `explain`, `simulate`, `run`, `resume`,
   `supersede`, `status`, `recover`, and `outcome` CLI paths; five synthetic public artifacts;
   twelve fixed-clock offline scenarios; nine non-aggregate measurement groups;

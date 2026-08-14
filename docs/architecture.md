@@ -327,8 +327,9 @@ M6 preserves the existing layered boundary. Frozen scheduler values and enums
 live in `domain/scheduler.py`; five host/store/clock/artifact protocols live in
 `ports/scheduler.py`; strict contracts and deterministic services live in
 `application/scheduler*.py`; and `adapters/scheduler.py` supplies the local
-SQLite store, UTC clock, exclusive JSON publisher, and explicitly unsupported
-real-host adapters.
+SQLite store, UTC clock, exclusive JSON publisher, an idempotent filesystem
+intent-outbox adapter, and explicitly unsupported execution and worktree
+adapters.
 
 The Task Graph binds full digests for the current M2 Agent Registry, Tool
 Registry, Orchestration Request, optional Worktree Plan, and one or more exact
@@ -473,7 +474,10 @@ approval, evidence, review, handoff, Gate, measurement, and ambiguity truth.
 
 M6 SQLite v2 remains the sole mutable workflow-epoch authority. One M8 transition performs
 at most one native scheduler tick, derives one Workflow Event and one Workflow
-State, and returns typed host-intent identities without dispatch. Every Event
+State, and returns typed host-intent identities. If the caller supplies the
+filesystem `AgentHostPort` adapter, the runtime offers exact durable pending
+dispatch or cancellation messages only after Event and State confirmation;
+this transports intents but does not launch Codex, an LLM, or a process. Every Event
 and adopted State is semantically reconstructed from exact M6/M3/M7 artifacts.
 M6 input/output State identities resolve to immutable sidecars, and historical
 State validation rebuilds the corresponding SQLite projection from immutable

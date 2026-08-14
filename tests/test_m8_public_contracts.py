@@ -160,6 +160,8 @@ def test_workflow_cli_surface_matches_the_exact_owner_approved_amendment() -> No
             "predecessor_scheduler_state",
             "output_state",
             "output_event",
+            "message",
+            "host_outbox",
             "json",
         ),
         "resume": (
@@ -170,6 +172,8 @@ def test_workflow_cli_surface_matches_the_exact_owner_approved_amendment() -> No
             "predecessor_scheduler_state",
             "output_state",
             "output_event",
+            "message",
+            "host_outbox",
             "json",
         ),
         "supersede": (
@@ -210,6 +214,14 @@ def test_workflow_cli_surface_matches_the_exact_owner_approved_amendment() -> No
             "output",
             "output_event",
             "output_state",
+            "json",
+        ),
+        "report": (
+            "outcome",
+            "state",
+            "plan",
+            "root",
+            "scheduler_state",
             "json",
         ),
     }

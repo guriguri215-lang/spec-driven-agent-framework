@@ -1,17 +1,35 @@
-"""Small deterministic validators for the repository sample contracts."""
+"""Runtime validation for the repository sample-project contract."""
 
 from __future__ import annotations
 
-import json
-import re
+import sysconfig
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from sdaqf.application.baselines import (
+    BaselineContractError,
+    requirement_records_from_list,
+)
+from sdaqf.application.contracts import ContractError, parse_json_bytes
+from sdaqf.application.schema_validation import (
+    LocalSchemaValidator,
+    SchemaValidationError,
+)
+from sdaqf.application.ui_validation import parse_manifest_ui
 from sdaqf.application.workspace import is_reparse_point
 
-_ID_PATTERN = re.compile(r"^[A-Z][A-Z0-9-]*$")
-_SHA256_PATTERN = re.compile(r"^[0-9a-fA-F]{64}$")
+_MAX_SAMPLE_BYTES = 1_000_000
+_SCHEMA_BY_FILE = {
+    "manifest.json": "project-manifest.schema.json",
+    "requirements.json": "requirement.schema.json",
+    "evidence.json": "evidence.schema.json",
+    "approval.json": "approval.schema.json",
+    "execution-attempt.json": "execution-attempt.schema.json",
+    "handoff.json": "handoff.schema.json",
+    "tool-registry.json": "tool-registry.schema.json",
+    "agent-registry.json": "agent-registry.schema.json",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,18 +51,12 @@ class ValidationReport:
 
 
 class ProjectValidator:
-    """Validate the project manifest and supporting sample shapes."""
+    """Apply the published schemas and existing semantic manifest contract."""
 
-    _FILES = (
-        "manifest.json",
-        "requirements.json",
-        "evidence.json",
-        "approval.json",
-        "execution-attempt.json",
-        "handoff.json",
-        "tool-registry.json",
-        "agent-registry.json",
-    )
+    _FILES = tuple(_SCHEMA_BY_FILE)
+
+    def __init__(self, schemas_dir: Path | None = None) -> None:
+        self._schemas_dir = _published_schemas_dir() if schemas_dir is None else schemas_dir
 
     def validate(self, project_dir: Path) -> ValidationReport:
         """Validate every required sample without following unsafe paths."""
@@ -53,73 +65,67 @@ class ProjectValidator:
         checked: list[str] = []
         if is_reparse_point(project_dir) or not project_dir.is_dir():
             return ValidationReport(False, ("Project path must be a regular directory.",), ())
+        if is_reparse_point(self._schemas_dir) or not self._schemas_dir.is_dir():
+            return ValidationReport(False, ("Published schema directory is unavailable.",), ())
 
+        validator = LocalSchemaValidator(self._schemas_dir)
         payloads: dict[str, Any] = {}
+        schema_valid: set[str] = set()
         for filename in self._FILES:
             path = project_dir / filename
-            if not path.is_file() or is_reparse_point(path):
+            if not path.is_file() or path.is_symlink() or is_reparse_point(path):
                 errors.append(f"{filename}: required regular file is missing.")
                 continue
             try:
-                payloads[filename] = json.loads(path.read_text(encoding="utf-8"))
-            except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-                errors.append(f"{filename}: invalid JSON ({type(exc).__name__}).")
+                if path.stat().st_size > _MAX_SAMPLE_BYTES:
+                    raise ContractError("file exceeds the size limit")
+                payload = _load_strict_json(path)
+            except (ContractError, OSError) as exc:
+                errors.append(f"{filename}: invalid JSON ({exc}).")
                 continue
+            payloads[filename] = payload
             checked.append(filename)
+            try:
+                validator.validate(_SCHEMA_BY_FILE[filename], payload)
+            except SchemaValidationError as exc:
+                errors.append(f"{filename}: schema validation failed ({exc}).")
+            except (AssertionError, OSError, UnicodeError, ValueError) as exc:
+                errors.append(f"{filename}: published schema is unavailable ({exc}).")
+            else:
+                schema_valid.add(filename)
 
-        if "manifest.json" in payloads:
-            errors.extend(self._validate_manifest(payloads["manifest.json"]))
-        if "requirements.json" in payloads:
-            errors.extend(self._validate_requirements(payloads["requirements.json"]))
-        for filename in self._FILES[2:]:
-            if filename in payloads and not isinstance(payloads[filename], dict):
-                errors.append(f"{filename}: top-level value must be an object.")
+        if "manifest.json" in schema_valid:
+            try:
+                parse_manifest_ui(payloads["manifest.json"], legacy_syntax=True)
+            except ContractError as exc:
+                errors.append(f"manifest.json: semantic validation failed ({exc}).")
+        if "requirements.json" in schema_valid:
+            try:
+                requirement_records_from_list(payloads["requirements.json"])
+            except BaselineContractError as exc:
+                errors.append(f"requirements.json: semantic validation failed ({exc}).")
 
         return ValidationReport(not errors, tuple(errors), tuple(checked))
 
-    @staticmethod
-    def _validate_manifest(payload: Any) -> list[str]:
-        if not isinstance(payload, dict):
-            return ["manifest.json: top-level value must be an object."]
-        errors: list[str] = []
-        for key in ("schema_version", "project_id", "title", "source_spec"):
-            if key not in payload:
-                errors.append(f"manifest.json: missing {key}.")
-        project_id = payload.get("project_id")
-        if not isinstance(project_id, str) or not re.fullmatch(r"[a-z0-9-]+", project_id):
-            errors.append("manifest.json: project_id must use lowercase ASCII words.")
-        source_spec = payload.get("source_spec")
-        if not isinstance(source_spec, dict):
-            errors.append("manifest.json: source_spec must be an object.")
-        elif not isinstance(source_spec.get("sha256"), str) or not _SHA256_PATTERN.fullmatch(
-            source_spec["sha256"]
-        ):
-            errors.append("manifest.json: source_spec.sha256 must be a SHA-256 digest.")
-        return errors
 
-    @staticmethod
-    def _validate_requirements(payload: Any) -> list[str]:
-        if not isinstance(payload, list):
-            return ["requirements.json: top-level value must be an array."]
-        errors: list[str] = []
-        identifiers: list[str] = []
-        for index, requirement in enumerate(payload):
-            prefix = f"requirements.json[{index}]"
-            if not isinstance(requirement, dict):
-                errors.append(f"{prefix}: item must be an object.")
-                continue
-            identifier = requirement.get("id")
-            if not isinstance(identifier, str) or not _ID_PATTERN.fullmatch(identifier):
-                errors.append(f"{prefix}: id must be an uppercase stable identifier.")
-            else:
-                identifiers.append(identifier)
-            if not isinstance(requirement.get("statement"), str) or not requirement[
-                "statement"
-            ].strip():
-                errors.append(f"{prefix}: statement must not be empty.")
-            criteria = requirement.get("acceptance_criteria")
-            if not isinstance(criteria, list) or not criteria:
-                errors.append(f"{prefix}: acceptance_criteria must not be empty.")
-        if len(set(identifiers)) != len(identifiers):
-            errors.append("requirements.json: requirement identifiers must be unique.")
-        return errors
+def _load_strict_json(path: Path) -> object:
+    """Decode one instance while rejecting duplicate keys and non-finite numbers."""
+
+    return parse_json_bytes(
+        path.read_bytes(),
+        path.name,
+        maximum_bytes=_MAX_SAMPLE_BYTES,
+    )
+
+
+def _published_schemas_dir() -> Path:
+    """Resolve the one published schema set in checkout or installed layouts."""
+
+    module = Path(__file__).resolve()
+    checkout = module.parents[3]
+    if (checkout / "pyproject.toml").is_file() and module.parent.parent.parent.name == "src":
+        return checkout / "schemas"
+    target_install = module.parents[2] / "share" / "sdaqf" / "schemas"
+    if target_install.exists() or is_reparse_point(target_install):
+        return target_install
+    return Path(sysconfig.get_path("data")) / "share" / "sdaqf" / "schemas"

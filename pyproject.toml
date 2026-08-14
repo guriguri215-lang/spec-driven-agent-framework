@@ -18,6 +18,9 @@ sdaqf = "sdaqf.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.data-files]
+"share/sdaqf/schemas" = ["schemas/*.json"]
+
 [tool.pytest.ini_options]
 addopts = "-ra --strict-config --strict-markers"
 testpaths = ["tests"]

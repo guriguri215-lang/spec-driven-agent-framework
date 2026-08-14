@@ -1,14 +1,21 @@
 from pathlib import Path
+from typing import cast
 
 import pytest
 
+import sdaqf.application.skills as skills_module
 from sdaqf.application.skills import (
     LifecycleState,
+    ResolvedSkill,
     SkillContractError,
+    SkillLifecycle,
     evaluate_templates,
     load_template_registry,
+    resolve_skill_capabilities,
+    skill_capability_token,
     validate_skills,
 )
+from sdaqf.domain.quality import ArtifactReference
 from tests.m2_helpers import load_example, m2_example, repository_root, write_json
 
 
@@ -46,6 +53,142 @@ def test_skill_and_template_lifecycle_is_explicit_and_deterministic() -> None:
         LifecycleState.SELECTED,
     )
     assert evaluated[0].state is LifecycleState.SELECTED
+
+
+def test_skill_capability_resolves_exact_repository_reference(tmp_path: Path) -> None:
+    repository = tmp_path / "project"
+    skill = repository / ".agents" / "skills" / "bounded-skill"
+    skill.mkdir(parents=True)
+    skill_file = skill / "SKILL.md"
+    skill_file.write_text(valid_skill_text("bounded-skill"), encoding="utf-8")
+    record = validate_skills(repository / ".agents" / "skills")[0]
+    capability = skill_capability_token(record)
+
+    resolved = resolve_skill_capabilities(
+        repository,
+        ("python", capability),
+    )
+
+    assert capability == f"m2-skill-v1-{record.digest.lower()}"
+    assert resolved == (
+        ResolvedSkill(
+            name="bounded-skill",
+            digest=record.digest,
+            path=skill_file.resolve(strict=True),
+            capability=capability,
+            reference=ArtifactReference(
+                ".agents/skills/bounded-skill/SKILL.md",
+                record.digest,
+            ),
+        ),
+    )
+    assert resolved[0].reference.to_dict() == {
+        "path": ".agents/skills/bounded-skill/SKILL.md",
+        "sha256": record.digest,
+    }
+
+
+def test_skill_capability_rejects_malformed_duplicate_and_stale_tokens(
+    tmp_path: Path,
+) -> None:
+    repository = tmp_path / "project"
+    skill = repository / ".agents" / "skills" / "bounded-skill"
+    skill.mkdir(parents=True)
+    skill_file = skill / "SKILL.md"
+    skill_file.write_text(valid_skill_text("bounded-skill"), encoding="utf-8")
+    capability = skill_capability_token(
+        validate_skills(repository / ".agents" / "skills")[0]
+    )
+
+    with pytest.raises(SkillContractError, match="invalid"):
+        resolve_skill_capabilities(
+            repository,
+            ("m2-skill-v1-" + "A" * 64,),
+        )
+    with pytest.raises(SkillContractError, match="unique"):
+        resolve_skill_capabilities(repository, (capability, capability))
+
+    skill_file.write_text(
+        valid_skill_text("bounded-skill") + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(SkillContractError, match="unavailable or stale"):
+        resolve_skill_capabilities(repository, (capability,))
+
+
+@pytest.mark.parametrize(
+    ("skill", "message"),
+    (
+        (
+            SkillLifecycle("INVALID", "A" * 64, (LifecycleState.COMPATIBLE,)),
+            "identity",
+        ),
+        (
+            SkillLifecycle("bounded-skill", "not-a-digest", (LifecycleState.COMPATIBLE,)),
+            "identity",
+        ),
+        (SkillLifecycle("bounded-skill", "A" * 64, ()), "not compatible"),
+        (
+            SkillLifecycle("bounded-skill", "A" * 64, (LifecycleState.BLOCKED,)),
+            "not compatible",
+        ),
+    ),
+)
+def test_skill_capability_token_rejects_unusable_lifecycle(
+    skill: SkillLifecycle,
+    message: str,
+) -> None:
+    with pytest.raises(SkillContractError, match=message):
+        skill_capability_token(skill)
+
+
+def test_skill_capability_resolution_fails_closed_at_repository_boundaries(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    token = "m2-skill-v1-" + "a" * 64
+    missing = tmp_path / "missing"
+
+    assert resolve_skill_capabilities(missing, ("python",)) == ()
+    with pytest.raises(SkillContractError, match="must be strings"):
+        resolve_skill_capabilities(missing, cast(tuple[str, ...], (object(),)))
+    with pytest.raises(SkillContractError, match="unavailable"):
+        resolve_skill_capabilities(missing, (token,))
+
+    file_root = tmp_path / "file-root"
+    file_root.write_text("not a repository", encoding="utf-8")
+    with pytest.raises(SkillContractError, match="must be a directory"):
+        resolve_skill_capabilities(file_root, (token,))
+
+    repository = tmp_path / "project"
+    repository.mkdir()
+    with pytest.raises(SkillContractError, match="Skill root"):
+        resolve_skill_capabilities(repository, (token,))
+
+    monkeypatch.setattr(
+        skills_module,
+        "is_reparse_point",
+        lambda path: path == repository,
+    )
+    with pytest.raises(SkillContractError, match="regular and unlinked"):
+        resolve_skill_capabilities(repository, (token,))
+
+
+def test_skill_capability_resolution_rejects_duplicate_validated_digests(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = tmp_path / "project"
+    (repository / ".agents" / "skills").mkdir(parents=True)
+    digest = "A" * 64
+    records = (
+        SkillLifecycle("first-skill", digest, (LifecycleState.COMPATIBLE,)),
+        SkillLifecycle("second-skill", digest, (LifecycleState.COMPATIBLE,)),
+    )
+    monkeypatch.setattr(skills_module, "validate_skills", lambda _root: records)
+
+    with pytest.raises(SkillContractError, match="digests must be unique"):
+        resolve_skill_capabilities(repository, ("m2-skill-v1-" + digest.lower(),))
 
 
 def test_skill_name_must_match_directory(tmp_path: Path) -> None:

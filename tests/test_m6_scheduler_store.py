@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 import sqlite3
 import subprocess
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import replace
 from pathlib import Path
 
@@ -25,19 +27,33 @@ from sdaqf.adapters.scheduler import (
 from sdaqf.application.context_contracts import canonical_json_bytes
 from sdaqf.application.scheduler import _existing_under_root
 from sdaqf.application.scheduler_contracts import (
+    MAX_TASKS,
     SchedulerContractError,
     artifact_from_value,
     load_scheduler_artifact,
 )
 from sdaqf.domain.scheduler import (
+    BudgetLedger,
     Lease,
     MailboxMessage,
+    MessageType,
     SchedulerArtifactType,
+    SchedulerEvent,
     SchedulerState,
     WorkflowEpochEvent,
     WorkflowEpochPhase,
+    WorktreeLease,
 )
-from tests.m6_scheduler_helpers import FIXED_TIME, ROOT, create_store, graph_artifact
+from tests.m6_scheduler_helpers import (
+    FIXED_TIME,
+    ROOT,
+    create_store,
+    first_dispatch,
+    graph_artifact,
+    host_message,
+    result_message,
+    worktree_graph,
+)
 
 
 def test_initial_database_has_exact_identity_shape_and_projection(tmp_path: Path) -> None:
@@ -61,6 +77,167 @@ def test_initial_database_has_exact_identity_shape_and_projection(tmp_path: Path
     assert state.event_sequence == 1
     assert state.ready_order == ("TSK-M6-DEMO",)
     assert store.graph_artifact() == graph_artifact()
+
+
+def test_historical_status_requires_one_exact_existing_event_prefix(tmp_path: Path) -> None:
+    store = create_store(tmp_path)
+    current = store.status()
+    state = current.value
+    assert isinstance(state, SchedulerState)
+    assert store.historical_status(state.event_sequence) == current
+    with pytest.raises(SchedulerAdapterError, match="prefix is unavailable"):
+        store.historical_status(state.event_sequence + 1)
+    with pytest.raises(SchedulerAdapterError, match="sequence is invalid"):
+        store.historical_status(0)
+
+
+def test_evidence_history_is_not_truncated_to_a_portable_export_page(
+    tmp_path: Path,
+) -> None:
+    store = create_store(tmp_path)
+    dispatch = first_dispatch(store)
+    heartbeats = tuple(
+        host_message(
+            dispatch,
+            MessageType.HEARTBEAT,
+            {"progress": f"bounded-history-{index:04d}"},
+        )
+        for index in range(3)
+    )
+    tick = store.tick(ROOT, "HST-TEST", heartbeats, FIXED_TIME)
+    assert len(tick.accepted_message_ids) == 3
+    state = tick.state.value
+    assert isinstance(state, SchedulerState)
+    portable_page = store.export("events", limit=2)
+    complete = store.evidence_history(
+        "events",
+        through_event_sequence=state.event_sequence,
+    )
+    assert len(portable_page) == 2
+    assert len(complete) == state.event_sequence
+    assert len(complete) > len(portable_page)
+    assert complete[-1].artifact_id == store.current_event_head_id
+
+
+def test_evidence_history_covers_every_kind_and_rejects_invalid_bounds(
+    tmp_path: Path,
+) -> None:
+    store = create_store(tmp_path)
+    first_dispatch(store)
+    state = store.status().value
+    assert isinstance(state, SchedulerState)
+
+    expected_types = {
+        "leases": Lease,
+        "messages": MailboxMessage,
+        "events": SchedulerEvent,
+        "budget": BudgetLedger,
+    }
+    for kind, expected_type in expected_types.items():
+        history = store.evidence_history(
+            kind,
+            through_event_sequence=state.event_sequence,
+        )
+        assert history
+        assert all(isinstance(item.value, expected_type) for item in history)
+    assert (
+        store.evidence_history(
+            "messages",
+            through_event_sequence=1,
+        )
+        == ()
+    )
+    assert (
+        store.evidence_history(
+            "worktrees",
+            through_event_sequence=state.event_sequence,
+        )
+        == ()
+    )
+
+    worktree_root = tmp_path / "worktree-case"
+    worktree_root.mkdir()
+    worktree_store = create_store(worktree_root, graph=worktree_graph())
+    first_dispatch(worktree_store)
+    worktree_state = worktree_store.status().value
+    assert isinstance(worktree_state, SchedulerState)
+    worktrees = worktree_store.evidence_history(
+        "worktrees",
+        through_event_sequence=worktree_state.event_sequence,
+    )
+    assert worktrees
+    assert all(isinstance(item.value, WorktreeLease) for item in worktrees)
+
+    with pytest.raises(SchedulerAdapterError, match="kind is unsupported"):
+        store.evidence_history("unknown", through_event_sequence=0)
+    with pytest.raises(SchedulerAdapterError, match="bound is invalid"):
+        store.evidence_history("events", through_event_sequence=-1)
+    with pytest.raises(SchedulerAdapterError, match="beyond the current event head"):
+        store.evidence_history(
+            "events",
+            through_event_sequence=state.event_sequence + 1,
+        )
+
+
+@pytest.mark.parametrize("corruption", ["missing", "wrong-type", "over-bound"])
+def test_completed_result_history_fails_closed_on_corrupt_evidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    corruption: str,
+) -> None:
+    store = create_store(tmp_path)
+    dispatch = first_dispatch(store)
+    result = result_message(dispatch)
+    store.tick(ROOT, "HST-TEST", (result,), FIXED_TIME)
+    completed = store.completed_task_result_messages()
+    assert tuple(item.artifact_id for item in completed) == (result.artifact_id,)
+    verification = next(
+        item
+        for item in store.export("events")
+        if isinstance(item.value, SchedulerEvent)
+        and item.value.cause == "verification-completed"
+    )
+
+    connection = sqlite3.connect(":memory:")
+    connection.row_factory = sqlite3.Row
+    connection.execute(
+        "CREATE TABLE events(sequence INTEGER, artifact_json TEXT NOT NULL)"
+    )
+    connection.execute(
+        "CREATE TABLE messages(artifact_id TEXT, artifact_json TEXT NOT NULL)"
+    )
+    event_count = MAX_TASKS + 1 if corruption == "over-bound" else 1
+    connection.executemany(
+        "INSERT INTO events(sequence, artifact_json) VALUES (?, ?)",
+        (
+            (sequence, canonical_json_bytes(verification.to_dict()).decode("ascii"))
+            for sequence in range(1, event_count + 1)
+        ),
+    )
+    if corruption == "wrong-type":
+        connection.execute(
+            "INSERT INTO messages(artifact_id, artifact_json) VALUES (?, ?)",
+            (
+                result.artifact_id,
+                canonical_json_bytes(dispatch.to_dict()).decode("ascii"),
+            ),
+        )
+
+    @contextmanager
+    def corrupted_read_connection() -> Iterator[sqlite3.Connection]:
+        yield connection
+
+    monkeypatch.setattr(store, "_read_connection", corrupted_read_connection)
+    expected = {
+        "missing": "evidence is missing",
+        "wrong-type": "not a Task Result",
+        "over-bound": "exceed the graph bound",
+    }[corruption]
+    try:
+        with pytest.raises(SchedulerAdapterError, match=expected):
+            store.completed_task_result_messages()
+    finally:
+        connection.close()
 
 
 def test_v2_workflow_epoch_terminal_reserve_confirm_and_replay(tmp_path: Path) -> None:

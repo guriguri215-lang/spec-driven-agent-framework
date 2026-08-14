@@ -770,7 +770,8 @@ def main_smoke() -> int:
         examples = root / "examples"
         m2 = examples / "m2-orchestration"
         smoke_state = _prepare_smoke_state(root)
-        temporary = smoke_state / "cli-smoke"
+        # Keep the owned build root short enough for legacy Windows path limits.
+        temporary = smoke_state / "c"
         temporary.mkdir()
         baseline = temporary / "baseline.json"
         m3_spec: Path | None = None
@@ -992,6 +993,7 @@ def main_smoke() -> int:
             repo_digest = git.repository_digest
             claim_id = "CLM-FR-SMOKE-001"
             relative_temp = temporary.relative_to(root).as_posix()
+            install_target = f"{relative_temp}/i"
             diff_content = b"diff review passed\n"
             conformance_content = b"conformance review passed\n"
             install_command = [
@@ -1007,8 +1009,8 @@ def main_smoke() -> int:
                 "--no-build-isolation",
                 "--no-deps",
                 "--target",
-                f"{relative_temp}/install-target",
-                source_target_for(f"{relative_temp}/install-target"),
+                install_target,
+                source_target_for(install_target),
             ]
             diff_path = temporary / "diff.txt"
             conformance_path = temporary / "conformance.txt"
@@ -1021,7 +1023,7 @@ def main_smoke() -> int:
                     root,
                     command=install_command,
                     execution_module="sdaqf",
-                    target_relative=f"{relative_temp}/install-target",
+                    target_relative=install_target,
                     git_head=head,
                     repository_digest=repo_digest,
                     publication_paths=git.publication_paths,
@@ -1272,10 +1274,10 @@ def main_smoke() -> int:
                     "schema_version": "1.0",
                     "install_evidence_id": "EV-INSTALL-SMOKE",
                     "execution_module": "sdaqf",
-                    "install_target": f"{relative_temp}/install-target",
+                    "install_target": install_target,
                     "rollback_guidance": (
-                        f"Remove only the owned {relative_temp}/install-target and "
-                        f"{relative_temp}/install-target-source directories."
+                        f"Remove only the owned {install_target} and "
+                        f"{source_target_for(install_target)} directories."
                     ),
                     "documentation_paths": [
                         "CHANGELOG.md",

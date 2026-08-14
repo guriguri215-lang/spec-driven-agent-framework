@@ -11,6 +11,7 @@ from pathlib import Path, PurePosixPath
 from typing import cast
 
 from sdaqf.application.workspace import is_reparse_point
+from sdaqf.domain.quality import ArtifactReference
 from sdaqf.domain.tooling import TemplateDefinition
 
 _MAX_SKILL_BYTES = 64 * 1024
@@ -18,6 +19,9 @@ _MAX_TEMPLATE_BYTES = 1_000_000
 _MAX_ITEMS = 64
 _SLUG = re.compile(r"^[a-z][a-z0-9-]{0,63}$")
 _VERSION = re.compile(r"^[0-9]+\.[0-9]+(?:\.[0-9]+)?$")
+_SKILL_DIGEST = re.compile(r"^[0-9A-F]{64}$")
+_SKILL_CAPABILITY = re.compile(r"^m2-skill-v1-([0-9a-f]{64})$")
+_SKILL_CAPABILITY_PREFIX = "m2-skill-v1-"
 _REQUIRED_HEADINGS = (
     "## Trigger",
     "## Do not use",
@@ -90,6 +94,17 @@ class SkillLifecycle:
             "transitions": [item.value for item in self.transitions],
             "state": self.state.value,
         }
+
+
+@dataclass(frozen=True, slots=True)
+class ResolvedSkill:
+    """One exact validated repository Skill capability binding."""
+
+    name: str
+    digest: str
+    path: Path
+    capability: str
+    reference: ArtifactReference
 
 
 @dataclass(frozen=True, slots=True)
@@ -201,6 +216,69 @@ def validate_skills(
     return tuple(records)
 
 
+def skill_capability_token(skill: SkillLifecycle) -> str:
+    """Return the canonical M2 capability token for one validated Skill digest."""
+
+    if not _SLUG.fullmatch(skill.name) or not _SKILL_DIGEST.fullmatch(skill.digest):
+        raise SkillContractError("Skill lifecycle identity is invalid.")
+    if not skill.transitions or skill.state not in {
+        LifecycleState.COMPATIBLE,
+        LifecycleState.SELECTED,
+    }:
+        raise SkillContractError("Skill lifecycle is not compatible.")
+    return f"{_SKILL_CAPABILITY_PREFIX}{skill.digest.lower()}"
+
+
+def resolve_skill_capabilities(
+    root: Path,
+    capabilities: tuple[str, ...],
+) -> tuple[ResolvedSkill, ...]:
+    """Resolve exact Skill digest tokens below ``.agents/skills``."""
+
+    skill_capabilities: list[str] = []
+    for capability in capabilities:
+        if not isinstance(capability, str):
+            raise SkillContractError("Skill capabilities must be strings.")
+        if capability.startswith(_SKILL_CAPABILITY_PREFIX):
+            skill_capabilities.append(capability)
+    if not skill_capabilities:
+        return ()
+    resolved_root = _regular_repository_root(root)
+    skill_root = _regular_skill_root(resolved_root)
+    records = validate_skills(skill_root)
+    by_digest: dict[str, SkillLifecycle] = {}
+    for record in records:
+        digest = record.digest.lower()
+        if digest in by_digest:
+            raise SkillContractError("Validated Skill digests must be unique.")
+        by_digest[digest] = record
+
+    selected: list[ResolvedSkill] = []
+    seen: set[str] = set()
+    for capability in skill_capabilities:
+        match = _SKILL_CAPABILITY.fullmatch(capability)
+        if match is None:
+            raise SkillContractError("Skill capability token is invalid.")
+        if capability in seen:
+            raise SkillContractError("Skill capability tokens must be unique.")
+        seen.add(capability)
+        digest = match.group(1)
+        matched_record = by_digest.get(digest)
+        if matched_record is None:
+            raise SkillContractError("Skill capability is unavailable or stale.")
+        relative = Path(".agents") / "skills" / matched_record.name / "SKILL.md"
+        selected.append(
+            ResolvedSkill(
+                name=matched_record.name,
+                digest=matched_record.digest,
+                path=resolved_root / relative,
+                capability=capability,
+                reference=ArtifactReference(relative.as_posix(), matched_record.digest),
+            )
+        )
+    return tuple(selected)
+
+
 def load_template_registry(path: Path) -> tuple[TemplateDefinition, ...]:
     """Load strict template metadata without selecting a license."""
 
@@ -288,6 +366,27 @@ def _frontmatter(text: str) -> dict[str, str]:
             raise SkillContractError("Skill front matter keys must be unique.")
         values[key] = value.strip()
     return values
+
+
+def _regular_repository_root(root: Path) -> Path:
+    try:
+        if root.is_symlink() or is_reparse_point(root):
+            raise SkillContractError("Repository root must be regular and unlinked.")
+        resolved = root.resolve(strict=True)
+    except OSError as exc:
+        raise SkillContractError("Repository root is unavailable.") from exc
+    if not resolved.is_dir():
+        raise SkillContractError("Repository root must be a directory.")
+    return resolved
+
+
+def _regular_skill_root(root: Path) -> Path:
+    current = root
+    for part in (".agents", "skills"):
+        current = current / part
+        if not current.is_dir() or current.is_symlink() or is_reparse_point(current):
+            raise SkillContractError("Repository Skill root is unavailable or linked.")
+    return current
 
 
 def _parse_template(value: object, where: str) -> TemplateDefinition:

@@ -31,6 +31,19 @@ def test_validate_and_status_emit_json(capsys: pytest.CaptureFixture[str]) -> No
     assert status["state"] == "ready"
 
 
+def test_validate_and_status_fail_closed_for_invalid_project(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["validate", str(tmp_path), "--json"]) == 2
+    validation = json.loads(capsys.readouterr().out)
+    assert validation["valid"] is False
+
+    assert main(["status", str(tmp_path), "--json"]) == 2
+    status = json.loads(capsys.readouterr().out)
+    assert status["state"] == "blocked"
+
+
 def test_doctor_emits_current_session_without_nested_codex(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
