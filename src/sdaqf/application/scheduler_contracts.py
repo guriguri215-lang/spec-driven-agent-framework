@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -41,11 +42,12 @@ from sdaqf.application.orchestration import (
     load_worktree_plan,
     validate_agent_tool_references,
 )
+from sdaqf.application.skills import SkillContractError, resolve_skill_capabilities
 from sdaqf.application.tooling import ToolContractError, load_tool_registry
 from sdaqf.application.workspace import is_reparse_point
 from sdaqf.domain.context import ContextArtifactType, ContextSnapshot, Sensitivity
 from sdaqf.domain.orchestration import AgentResult, AgentResultStatus, ReasoningEffort
-from sdaqf.domain.quality import ArtifactReference
+from sdaqf.domain.quality import ArtifactReference, IndependentReview
 from sdaqf.domain.scheduler import (
     Blocker,
     BudgetLedger,
@@ -371,6 +373,14 @@ def validate_task_graph_inputs(artifact: LoadedSchedulerArtifact, root: Path) ->
             raise SchedulerContractError("Task references an unknown Context Snapshot.")
         if not set(task.required_tools).issubset(role.tools):
             raise SchedulerContractError("Task requires a tool not granted to its role.")
+        try:
+            resolved_skills = resolve_skill_capabilities(root, task.required_capabilities)
+        except SkillContractError as exc:
+            raise SchedulerContractError("Task Skill capability is invalid.") from exc
+        if len(resolved_skills) >= MAX_REFERENCES:
+            raise SchedulerContractError(
+                "A task may bind at most 63 exact Skills because provenance also binds context."
+            )
         if task.kind is TaskKind.REVIEW and not role.independent_reviewer:
             raise SchedulerContractError("Review task requires an independent reviewer role.")
         if task.kind is TaskKind.INTEGRATION and (
@@ -402,29 +412,15 @@ def validate_task_result_reference(
 
     if message.message_type is not MessageType.TASK_RESULT:
         return None
-    current_graph_id = scheduler_identity(
-        SchedulerArtifactType.TASK_GRAPH,
-        graph.to_dict(),
-    )
-    if message.graph_id != current_graph_id:
-        raise SchedulerContractError("Task Result does not match the current Task Graph.")
+    result, _result_reference = load_task_agent_result(root, graph, message)
     payload = message.to_dict()["payload"]
     assert isinstance(payload, dict)
-    result_reference = parse_artifact_reference(
-        payload.get("agent_result"),
-        "payload.agent_result",
+    task = next(
+        (item for item in graph.tasks if item.task_id == message.task_id),
+        None,
     )
-    resolved_root = _validated_root(root)
-    try:
-        registry = load_agent_registry(_verified_path(resolved_root, graph.agent_registry))
-        result = load_agent_result(_verified_path(resolved_root, result_reference), registry)
-    except (OrchestrationContractError, OSError) as exc:
-        raise SchedulerContractError("Wrapped Agent Result is invalid.") from exc
-    task = next(item for item in graph.tasks if item.task_id == message.task_id)
-    if result.role_id != task.role_id:
-        raise SchedulerContractError("Wrapped Agent Result role does not match the task.")
-    if payload.get("outcome") == "succeeded" and result.status is not AgentResultStatus.COMPLETED:
-        raise SchedulerContractError("Wrapped Agent Result status contradicts the task outcome.")
+    if task is None:
+        raise SchedulerContractError("Task Result references an unknown task.")
     evidence = tuple(
         parse_artifact_reference(item, f"payload.evidence_refs[{index}]")
         for index, item in enumerate(
@@ -435,6 +431,7 @@ def validate_task_result_reference(
             )
         )
     )
+    resolved_root = _validated_root(root)
     for reference in evidence:
         _verified_path(resolved_root, reference)
     if task.kind is TaskKind.SOLVER:
@@ -456,13 +453,161 @@ def validate_task_result_reference(
                 resolved_root,
                 payload,
                 solver_lease_evidence,
-                expected_graph_id=current_graph_id,
+                expected_graph_id=scheduler_identity(
+                    SchedulerArtifactType.TASK_GRAPH,
+                    graph.to_dict(),
+                ),
                 expected_task_id=task.task_id,
                 expected_solver_capability=solver_capabilities[0],
             )
         except (ContractError, OSError) as exc:
             raise SchedulerContractError("Solver task result evidence is invalid.") from exc
     return result
+
+
+def load_task_agent_result(
+    root: Path,
+    graph: TaskGraph,
+    message: MailboxMessage,
+) -> tuple[AgentResult, ArtifactReference]:
+    """Load the exact M2 Agent Result wrapped by one Task Result message."""
+
+    if message.message_type is not MessageType.TASK_RESULT:
+        raise SchedulerContractError("Message is not a Task Result.")
+    current_graph_id = scheduler_identity(
+        SchedulerArtifactType.TASK_GRAPH,
+        graph.to_dict(),
+    )
+    if message.graph_id != current_graph_id:
+        raise SchedulerContractError("Task Result does not match the current Task Graph.")
+    payload = message.to_dict()["payload"]
+    assert isinstance(payload, dict)
+    result_reference = parse_artifact_reference(
+        payload.get("agent_result"),
+        "payload.agent_result",
+    )
+    resolved_root = _validated_root(root)
+    try:
+        registry = load_agent_registry(_verified_path(resolved_root, graph.agent_registry))
+        result = load_agent_result(_verified_path(resolved_root, result_reference), registry)
+    except (OrchestrationContractError, OSError) as exc:
+        raise SchedulerContractError("Wrapped Agent Result is invalid.") from exc
+    task = next(
+        (item for item in graph.tasks if item.task_id == message.task_id),
+        None,
+    )
+    if task is None:
+        raise SchedulerContractError("Task Result references an unknown task.")
+    if result.role_id != task.role_id:
+        raise SchedulerContractError("Wrapped Agent Result role does not match the task.")
+    if payload.get("outcome") == "succeeded" and result.status is not AgentResultStatus.COMPLETED:
+        raise SchedulerContractError("Wrapped Agent Result status contradicts the task outcome.")
+    expected_provenance = task_input_provenance(root, graph, task)
+    if message.provenance != expected_provenance:
+        raise SchedulerContractError(
+            "Task Result provenance does not bind its context and exact Skills."
+        )
+    return result, result_reference
+
+
+def bind_review_task_result_evidence(
+    graph: TaskGraph,
+    message: MailboxMessage,
+    accepted_result_references: Mapping[str, ArtifactReference],
+) -> ArtifactReference:
+    """Bind one review to the exact accepted Agent Results it claims to review.
+
+    IndependentReview keeps its stable public contract.  The containing M6 Task
+    Result supplies the content-addressed lineage: one review artifact plus the
+    exact Agent Result reference for every declared review target.
+    """
+
+    if message.message_type is not MessageType.TASK_RESULT or message.task_id is None:
+        raise SchedulerContractError("Independent Review requires a Task Result message.")
+    task = next((item for item in graph.tasks if item.task_id == message.task_id), None)
+    if task is None or task.kind is not TaskKind.REVIEW:
+        raise SchedulerContractError("Independent Review evidence requires a Review task.")
+    if len(task.review_targets) >= MAX_REFERENCES:
+        raise SchedulerContractError(
+            "A Review task may bind at most 63 targets plus its review artifact."
+        )
+    try:
+        target_references = tuple(
+            accepted_result_references[target] for target in task.review_targets
+        )
+    except KeyError as exc:
+        raise SchedulerContractError(
+            "Independent Review target Agent Result is not accepted."
+        ) from exc
+    if len(set(target_references)) != len(target_references):
+        raise SchedulerContractError(
+            "Independent Review targets must have distinct Agent Results."
+        )
+    payload = message.to_dict()["payload"]
+    assert isinstance(payload, dict)
+    references = _artifact_references(
+        payload.get("evidence_refs"),
+        "payload.evidence_refs",
+    )
+    target_set = set(target_references)
+    review_references = tuple(item for item in references if item not in target_set)
+    if (
+        not target_set.issubset(references)
+        or len(references) != len(target_references) + 1
+        or len(review_references) != 1
+    ):
+        raise SchedulerContractError(
+            "Independent Review must bind its artifact and every exact target Agent Result."
+        )
+    return review_references[0]
+
+
+def validate_reviewed_agent_identities(
+    task: SchedulerTask,
+    reviewer_result: AgentResult,
+    review: IndependentReview,
+    accepted_results: Mapping[str, AgentResult],
+) -> None:
+    """Match review identities without inventing ordering or one-agent-per-task rules."""
+
+    if task.kind is not TaskKind.REVIEW:
+        raise SchedulerContractError("Independent Review identity requires a Review task.")
+    try:
+        expected_agent_ids = {
+            accepted_results[target].agent_id for target in task.review_targets
+        }
+    except KeyError as exc:
+        raise SchedulerContractError(
+            "Independent Review target Agent Result is not accepted."
+        ) from exc
+    if (
+        review.reviewer_id != reviewer_result.agent_id
+        or set(review.reviewed_agent_ids) != set(reviewer_result.reviewed_agent_ids)
+        or set(review.reviewed_agent_ids) != expected_agent_ids
+    ):
+        raise SchedulerContractError(
+            "Independent Review does not match completed target agents."
+        )
+
+
+def task_input_provenance(
+    root: Path,
+    graph: TaskGraph,
+    task: SchedulerTask,
+) -> tuple[ArtifactReference, ...]:
+    """Resolve the exact context and Skill inputs supplied to one scheduled task."""
+
+    context = next(
+        (item for item in graph.contexts if item.artifact_id == task.context_snapshot_id),
+        None,
+    )
+    if context is None:
+        raise SchedulerContractError("Task input context binding is unavailable.")
+    try:
+        skills = resolve_skill_capabilities(root, task.required_capabilities)
+    except SkillContractError as exc:
+        raise SchedulerContractError("Task input Skill capability is invalid.") from exc
+    return (context.reference, *(item.reference for item in skills))
 
 
 def verified_reference_size(root: Path, reference: ArtifactReference) -> int:
@@ -631,6 +776,13 @@ def _parse_task_graph(value: dict[str, object]) -> TaskGraph:
     )
     if not tasks or tasks != tuple(sorted(tasks, key=lambda item: item.task_id)):
         raise SchedulerContractError("tasks must be non-empty and sorted by task_id.")
+    if any(
+        task.kind is TaskKind.REVIEW and len(task.review_targets) >= MAX_REFERENCES
+        for task in tasks
+    ):
+        raise SchedulerContractError(
+            "Review tasks may bind at most 63 targets plus one review artifact."
+        )
     _validate_dag(tasks)
     _validate_path_ownership(tasks)
     return TaskGraph(

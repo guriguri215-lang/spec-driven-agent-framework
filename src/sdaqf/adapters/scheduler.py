@@ -17,6 +17,7 @@ from typing import Any
 from sdaqf.application.context_contracts import canonical_json_bytes
 from sdaqf.application.scheduler_contracts import (
     EVENT_CAUSES,
+    MAX_TASKS,
     LoadedSchedulerArtifact,
     SchedulerContractError,
     artifact_from_value,
@@ -25,8 +26,10 @@ from sdaqf.application.scheduler_contracts import (
     format_utc,
     parse_scheduler_artifact_bytes,
     parse_utc,
+    serialize_scheduler_artifact,
     strict_host_id,
     strict_reason,
+    task_input_provenance,
     topological_ranks,
     validate_task_graph_inputs,
     validate_task_result_reference,
@@ -554,6 +557,47 @@ class UnsupportedAgentHost:
     def cancel(self, message: MailboxMessage) -> None:
         del message
         raise SchedulerAdapterError("Agent cancellation is host-owned and unsupported here.")
+
+
+class FilesystemAgentHost:
+    """Publish exact scheduler-to-host messages to a confined outbox."""
+
+    def __init__(self, root: Path, outbox: Path) -> None:
+        self._root = _regular_root(root)
+        self._outbox = _regular_directory_under_root(self._root, outbox)
+        self._artifacts = ExclusiveSchedulerArtifactStore(self._root)
+
+    def dispatch(self, message: MailboxMessage) -> None:
+        """Idempotently publish one exact dispatch intent."""
+
+        self._publish(message, MessageType.DISPATCH_INTENT)
+
+    def cancel(self, message: MailboxMessage) -> None:
+        """Idempotently publish one exact cooperative cancellation request."""
+
+        self._publish(message, MessageType.CANCEL_REQUEST)
+
+    def _publish(self, message: MailboxMessage, expected: MessageType) -> None:
+        if message.message_type is not expected:
+            raise SchedulerAdapterError(
+                f"Agent host expected a {expected.value} mailbox message."
+            )
+        if message.direction is not MessageDirection.SCHEDULER_TO_HOST:
+            raise SchedulerAdapterError(
+                "Agent host accepts only scheduler-to-host mailbox messages."
+            )
+        artifact = artifact_from_value(SchedulerArtifactType.MAILBOX_MESSAGE, message)
+        content = serialize_scheduler_artifact(artifact)
+        current_outbox = _regular_directory_under_root(self._root, self._outbox)
+        target = current_outbox / f"{artifact.artifact_id}.json"
+        if _matching_host_artifact(target, content):
+            return
+        try:
+            self._artifacts.publish(target, content)
+        except SchedulerAdapterError:
+            if _matching_host_artifact(target, content):
+                return
+            raise
 
 
 class UnsupportedWorktreeHost:
@@ -1196,6 +1240,88 @@ class SQLiteSchedulerStore:
         with self._read_connection() as connection:
             return self._status(connection)
 
+    def historical_status(self, event_sequence: int) -> LoadedSchedulerArtifact:
+        """Derive one exact Scheduler State from an immutable event prefix."""
+
+        if event_sequence < 1:
+            raise SchedulerAdapterError("Historical event sequence is invalid.")
+        with self._read_connection() as connection:
+            return _historical_scheduler_state(
+                connection,
+                self._graph(connection),
+                event_sequence,
+            )
+
+    def evidence_history(
+        self,
+        kind: str,
+        *,
+        through_event_sequence: int,
+    ) -> tuple[LoadedSchedulerArtifact, ...]:
+        """Return complete validated evidence through one exact Scheduler event."""
+
+        if kind not in {"leases", "messages", "events", "budget", "worktrees"}:
+            raise SchedulerAdapterError("Scheduler evidence history kind is unsupported.")
+        if through_event_sequence < 0:
+            raise SchedulerAdapterError("Scheduler evidence history bound is invalid.")
+        queries = {
+            "leases": (
+                "SELECT artifact_json FROM lease_history WHERE event_sequence <= ? "
+                "ORDER BY event_sequence, artifact_id",
+                SchedulerArtifactType.LEASE,
+            ),
+            "events": (
+                "SELECT artifact_json FROM events WHERE sequence <= ? ORDER BY sequence",
+                SchedulerArtifactType.SCHEDULER_EVENT,
+            ),
+            "budget": (
+                "SELECT artifact_json FROM budget_entries WHERE event_sequence <= ? "
+                "ORDER BY event_sequence",
+                SchedulerArtifactType.BUDGET_LEDGER,
+            ),
+            "worktrees": (
+                "SELECT artifact_json FROM worktree_lease_history "
+                "WHERE event_sequence <= ? ORDER BY event_sequence, artifact_id",
+                SchedulerArtifactType.WORKTREE_LEASE,
+            ),
+        }
+        with self._read_connection() as connection:
+            latest = int(
+                connection.execute("SELECT COALESCE(MAX(sequence), 0) FROM events").fetchone()[0]
+            )
+            if through_event_sequence > latest:
+                raise SchedulerAdapterError(
+                    "Scheduler evidence history extends beyond the current event head."
+                )
+            if kind == "messages":
+                message_ids: set[str] = set()
+                for row in connection.execute(
+                    "SELECT artifact_json FROM events WHERE sequence <= ? ORDER BY sequence",
+                    (through_event_sequence,),
+                ).fetchall():
+                    event_artifact = _parse_artifact_json(
+                        row["artifact_json"],
+                        SchedulerArtifactType.SCHEDULER_EVENT,
+                    )
+                    event = event_artifact.value
+                    assert isinstance(event, SchedulerEvent)
+                    if event.message_id is not None:
+                        message_ids.add(event.message_id)
+                rows = connection.execute(
+                    "SELECT artifact_id, artifact_json FROM messages ORDER BY sequence"
+                ).fetchall()
+                return tuple(
+                    _parse_artifact_json(
+                        row["artifact_json"],
+                        SchedulerArtifactType.MAILBOX_MESSAGE,
+                    )
+                    for row in rows
+                    if str(row["artifact_id"]) in message_ids
+                )
+            statement, expected = queries[kind]
+            rows = connection.execute(statement, (through_event_sequence,)).fetchall()
+        return tuple(_parse_artifact_json(row["artifact_json"], expected) for row in rows)
+
     def wait_for_projection(self) -> dict[str, tuple[str, ...]]:
         """Return typed wait edges projected from the validated durable store."""
 
@@ -1602,6 +1728,44 @@ class SQLiteSchedulerStore:
         return tuple(
             _parse_artifact_json(row[0], SchedulerArtifactType.MAILBOX_MESSAGE) for row in rows
         )
+
+    def completed_task_result_messages(self) -> tuple[LoadedSchedulerArtifact, ...]:
+        """Return every replay-validated Task Result accepted as completed."""
+
+        with self._read_connection() as connection:
+            result_ids: list[str] = []
+            for row in connection.execute(
+                "SELECT artifact_json FROM events ORDER BY sequence"
+            ).fetchall():
+                artifact = _parse_artifact_json(
+                    row["artifact_json"],
+                    SchedulerArtifactType.SCHEDULER_EVENT,
+                )
+                event = artifact.value
+                assert isinstance(event, SchedulerEvent)
+                if event.cause == "verification-completed" and event.result_id is not None:
+                    result_ids.append(event.result_id)
+            if len(result_ids) > MAX_TASKS:
+                raise SchedulerAdapterError("Completed Task Results exceed the graph bound.")
+            results: list[LoadedSchedulerArtifact] = []
+            for result_id in result_ids:
+                row = connection.execute(
+                    "SELECT artifact_json FROM messages WHERE artifact_id = ?",
+                    (result_id,),
+                ).fetchone()
+                if row is None:
+                    raise SchedulerAdapterError("Completed Task Result evidence is missing.")
+                artifact = _parse_artifact_json(
+                    row["artifact_json"],
+                    SchedulerArtifactType.MAILBOX_MESSAGE,
+                )
+                message = artifact.value
+                if not isinstance(message, MailboxMessage) or (
+                    message.message_type is not MessageType.TASK_RESULT
+                ):
+                    raise SchedulerAdapterError("Completed result is not a Task Result.")
+                results.append(artifact)
+            return tuple(results)
 
     @contextmanager
     def _workflow_transaction(
@@ -3706,12 +3870,17 @@ class SQLiteSchedulerStore:
         message_row = connection.execute(
             "SELECT sequence FROM messages WHERE artifact_id = ?", (event.message_id,)
         ).fetchone()
+        expected_provenance = (
+            task_input_provenance(self._root, graph, task)
+            if event.cause == "dispatch-intent"
+            else (binding.reference,)
+        )
         if message_row is None or (
             message.direction is not MessageDirection.SCHEDULER_TO_HOST
             or message.sender != "HST-SCHEDULER"
             or message.recorded_at != event.recorded_at
             or message.sensitivity != binding.sensitivity
-            or message.provenance != (binding.reference,)
+            or message.provenance != expected_provenance
         ):
             raise SchedulerAdapterError("Scheduler egress envelope evidence drifted.")
         message_sequence = int(message_row["sequence"])
@@ -6053,7 +6222,7 @@ class SQLiteSchedulerStore:
             fence=current["fence"],
             idempotency_key=current["idempotency_key"],
             sensitivity=binding.sensitivity,
-            provenance=(binding.reference,),
+            provenance=task_input_provenance(self._root, graph, task),
             causal_parent_message_ids=(causal_parent,),
             recorded_at=timestamp,
             payload={
@@ -6778,7 +6947,7 @@ class SQLiteSchedulerStore:
                 fence=fence,
                 idempotency_key=idem,
                 sensitivity=context_binding.sensitivity,
-                provenance=(context_binding.reference,),
+                provenance=task_input_provenance(self._root, graph, task),
                 causal_parent_message_ids=(),
                 recorded_at=timestamp,
                 payload={
@@ -8681,6 +8850,43 @@ def _regular_root(root: Path) -> Path:
     if not resolved.is_dir():
         raise SchedulerAdapterError("Scheduler root must be a directory.")
     return resolved
+
+
+def _regular_directory_under_root(root: Path, path: Path) -> Path:
+    candidate = path if path.is_absolute() else root / path
+    try:
+        lexical = Path(os.path.abspath(candidate))
+        if ".." in candidate.parts or not lexical.is_relative_to(root):
+            raise SchedulerAdapterError("Agent host outbox escapes its explicit root.")
+        current = root
+        for part in lexical.relative_to(root).parts:
+            current = current / part
+            if not current.is_dir() or current.is_symlink() or is_reparse_point(current):
+                raise SchedulerAdapterError("Agent host outbox is linked or irregular.")
+        resolved = current.resolve(strict=True)
+    except OSError as exc:
+        raise SchedulerAdapterError("Agent host outbox is unavailable.") from exc
+    if not resolved.is_relative_to(root):
+        raise SchedulerAdapterError("Agent host outbox escapes its explicit root.")
+    return resolved
+
+
+def _matching_host_artifact(target: Path, expected: bytes) -> bool:
+    if target.is_symlink() or is_reparse_point(target):
+        raise SchedulerAdapterError("Agent host output is linked or irregular.")
+    try:
+        if not target.exists():
+            return False
+        if not target.is_file() or target.stat().st_size != len(expected):
+            raise SchedulerAdapterError("Agent host output conflicts with prior publication.")
+        observed = target.read_bytes()
+    except SchedulerAdapterError:
+        raise
+    except OSError as exc:
+        raise SchedulerAdapterError("Agent host output is indeterminate.") from exc
+    if observed != expected:
+        raise SchedulerAdapterError("Agent host output conflicts with prior publication.")
+    return True
 
 
 def _path_under_root(root: Path, path: Path, *, suffix: str, existing: bool) -> Path:

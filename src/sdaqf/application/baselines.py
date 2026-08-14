@@ -80,15 +80,8 @@ def baseline_from_dict(payload: object) -> RequirementBaseline:
     source = _parse_source(root.get("source"))
     if baseline_id != f"RB-{source.sha256[:16]}":
         raise BaselineContractError("baseline_id must match the source digest.")
-    requirements_raw = _array(root.get("requirements"), "requirements")
-    requirements = tuple(
-        _parse_requirement(item, index) for index, item in enumerate(requirements_raw)
-    )
-    if not requirements:
-        raise BaselineContractError("requirements must not be empty.")
+    requirements = requirement_records_from_list(root.get("requirements"))
     requirement_ids = [item.requirement_id for item in requirements]
-    if len(requirement_ids) != len(set(requirement_ids)):
-        raise BaselineContractError("requirement identifiers must be unique.")
     criteria_raw = _array(
         root.get("source_acceptance_criteria"), "source_acceptance_criteria"
     )
@@ -145,6 +138,30 @@ def baseline_from_dict(payload: object) -> RequirementBaseline:
         approval_granted=granted,
         schema_version=schema_version,
     )
+
+
+def requirement_records_from_list(payload: object) -> tuple[RequirementRecord, ...]:
+    """Validate a decoded legacy requirement list with the M1 record contract."""
+
+    requirements_raw = _array(payload, "requirements")
+    requirements = tuple(
+        _parse_requirement(item, index) for index, item in enumerate(requirements_raw)
+    )
+    if not requirements:
+        raise BaselineContractError("requirements must not be empty.")
+    requirement_ids = [item.requirement_id for item in requirements]
+    if len(requirement_ids) != len(set(requirement_ids)):
+        raise BaselineContractError("requirement identifiers must be unique.")
+    criterion_ids = [
+        criterion.criterion_id
+        for requirement in requirements
+        for criterion in requirement.acceptance_criteria
+    ]
+    if len(criterion_ids) != len(set(criterion_ids)):
+        raise BaselineContractError(
+            "acceptance criterion identifiers must be globally unique."
+        )
+    return requirements
 
 
 def _parse_source(value: object) -> SourceMetadata:

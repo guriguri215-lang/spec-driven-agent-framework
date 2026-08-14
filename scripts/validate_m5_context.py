@@ -16,7 +16,6 @@ if str(_REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPOSITORY_ROOT))
 
 from tests.m5_context_helpers import PinnedContextCandidateVerifier
-from tests.schema_validation import LocalSchemaValidator, SchemaValidationError
 
 from sdaqf.adapters.context import (
     CanonicalUTF8ByteEstimator,
@@ -45,6 +44,7 @@ from sdaqf.application.context_selection import (
     ContextSelector,
     ContextSnapshotService,
 )
+from sdaqf.application.schema_validation import LocalSchemaValidator, SchemaValidationError
 from sdaqf.domain.context import (
     AuthorityClass,
     ContextArtifactType,

@@ -29,7 +29,6 @@ from tests.m7_solver_helpers import (
     solver_task_result,
     start_solver_lease,
 )
-from tests.schema_validation import LocalSchemaValidator, SchemaValidationError
 
 import sdaqf
 from sdaqf.adapters.scheduler import recover_scheduler_database
@@ -43,6 +42,7 @@ from sdaqf.application.scheduler_contracts import (
     SchedulerContractError,
     load_scheduler_artifact,
 )
+from sdaqf.application.schema_validation import LocalSchemaValidator, SchemaValidationError
 from sdaqf.application.solver import SolverService
 from sdaqf.application.solver_contracts import (
     SolverContractError,

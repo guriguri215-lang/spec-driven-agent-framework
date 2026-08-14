@@ -22,7 +22,9 @@ The observable result is an additive `workflow` CLI, five schema `1.0`
 contracts and examples, a fixed-clock twelve-scenario simulator, the named
 `M8-WORKFLOW-INTEGRATION` validator, focused regression coverage, CI coverage
 enforcement, and truthful documentation. It never dispatches a host or
-executes its own generated action.
+executes its own generated action by default. The closeout amendment permits an
+explicit filesystem host adapter to transport exact durable intents after
+State confirmation; it still does not launch an agent, LLM, or process.
 
 ## Exact contract
 
@@ -42,7 +44,8 @@ Plan derivation is pure; the public Plan command authenticates M6 v2 and
 reserves/confirms the exclusive Plan publication. Explanation independently recomputes selection, exclusion,
 uncertainty, budget, approval, evidence, Gate, and completion reasons from a
 closed vocabulary. Runtime publishes Event then State exclusively and returns
-typed host intents without dispatch. Recovery creates fresh artifacts and
+typed host intents. When explicitly configured, the filesystem host adapter
+idempotently transports the exact durable intent without executing it. Recovery creates fresh artifacts and
 never edits its sources. Protected effects require immediate native policy,
 Lease, fence, idempotency, budget, actor, and exact approval revalidation.
 Ambiguous effects remain blocked and are never automatically retried.
@@ -345,7 +348,8 @@ exact later action has separate Owner approval.
   exact at-least-once finalization, one M6 tick per transition, and
   evidence-preserving v2 recovery.
 - M8-D5: existing approval authority, immediate protected-effect revalidation,
-  typed intent without dispatch, and no ambiguous-effect retry.
+  typed intent with optional idempotent filesystem transport but no core agent
+  execution, and no ambiguous-effect retry.
 - M8-D6: four completion profiles and four Outcome dispositions composing
   existing Gates and Automated Handoff without status upgrade.
 - M8-D7: twelve fixed-clock real-Outcome scenarios over three exact fixture

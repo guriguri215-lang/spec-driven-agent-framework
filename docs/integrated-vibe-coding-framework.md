@@ -129,8 +129,11 @@ Workflow statuses are `planned`, `ready`, `running`, `blocked`,
 `plan-superseded`, `handoff-revalidated`, and `outcome-produced`.
 
 One `run` or `resume` call performs at most one M6 scheduler tick and one M8
-transition. It returns typed outgoing intent identities but does not dispatch
-them. Each Event records a one-based sequence, previous Event ID, exact prior
+transition. By default it only returns typed outgoing intent identities. When
+an explicit filesystem host is supplied, it idempotently publishes the exact
+pending dispatch or cancellation messages after the M8 Event and State are
+confirmed; it does not launch an LLM or agent process. Each Event records a
+one-based sequence, previous Event ID, exact prior
 State binding, Plan and candidate, actor, cause, before/after status, M6 event heads,
 referenced artifacts, reason codes, effect disposition, and UTC time. It omits
 the new State ID to avoid circular identity.
@@ -249,13 +252,22 @@ sdaqf workflow validate ARTIFACT --json
 sdaqf workflow plan INTENT --root ROOT --scheduler-state SUCCESSOR_DB --predecessor-scheduler-state PREDECESSOR_DB --output PLAN --json
 sdaqf workflow explain PLAN --root ROOT --scheduler-state SUCCESSOR_DB [--predecessor-scheduler-state PREDECESSOR_DB] --json
 sdaqf workflow simulate PLAN --root ROOT --scheduler-state SUCCESSOR_DB [--predecessor-scheduler-state PREDECESSOR_DB] --scenario SCENARIO --json
-sdaqf workflow run PLAN --root ROOT --scheduler-state SUCCESSOR_DB [--predecessor-scheduler-state PREDECESSOR_DB] --output-state STATE --output-event EVENT --json
-sdaqf workflow resume STATE --plan PLAN --root ROOT --scheduler-state SUCCESSOR_DB [--predecessor-scheduler-state PREDECESSOR_DB] --output-state NEXT_STATE --output-event EVENT --json
+sdaqf workflow run PLAN --root ROOT --scheduler-state SUCCESSOR_DB [--predecessor-scheduler-state PREDECESSOR_DB] --output-state STATE --output-event EVENT [--message HOST_MESSAGE]... [--host-outbox OUTBOX] --json
+sdaqf workflow resume STATE --plan PLAN --root ROOT --scheduler-state SUCCESSOR_DB [--predecessor-scheduler-state PREDECESSOR_DB] --output-state NEXT_STATE --output-event EVENT [--message HOST_MESSAGE]... [--host-outbox OUTBOX] --json
 sdaqf workflow supersede STATE --plan PLAN --successor-intent INTENT --root ROOT --scheduler-state DB --output-state SUPERSEDED_STATE --output-event EVENT --output-outcome OUTCOME --json
 sdaqf workflow status STATE --plan PLAN --root ROOT --scheduler-state SUCCESSOR_DB [--predecessor-scheduler-state PREDECESSOR_DB] --json
 sdaqf workflow recover STATE --plan PLAN --root ROOT --scheduler-state SUCCESSOR_DB [--predecessor-scheduler-state PREDECESSOR_DB] --event EVENT [--event EVENT]... --output-state RECOVERED_STATE --output-event RECOVERY_EVENT --json
 sdaqf workflow outcome STATE --plan PLAN --root ROOT --scheduler-state DB --output OUTCOME --output-event EVENT --output-state CLOSURE_STATE --json
+sdaqf workflow report OUTCOME --state CLOSURE_STATE --plan PLAN --root ROOT --scheduler-state DB --json
 ```
+
+The optional filesystem host publishes exact scheduler-to-host messages into
+an existing directory under `ROOT`; it does not launch an LLM or agent process.
+Accepted results must return the exact Context and any digest-bound Skill
+references in their provenance. `workflow report` is a transient, read-only
+view over confirmed terminal receipts. It distinguishes `FACT`, `INFERENCE`,
+`ASSUMPTION`, and `UNKNOWN` without changing the strict Workflow Outcome v1
+artifact or treating agent/Skill assertions as machine facts.
 
 `--predecessor-scheduler-state` is forbidden when all predecessor fields are
 null and required when they are all present. Genesis plan, explain, simulate,

@@ -61,6 +61,23 @@ def test_unresolved_blocking_diagnostic_fails_gate(tmp_path: Path) -> None:
     assert "G1-DIAGNOSTICS" in result.hard_blockers
 
 
+def test_unrecognized_normative_list_item_reaches_the_g1_blocker(tmp_path: Path) -> None:
+    baseline = ingest_spec(
+        tmp_path,
+        """# Contract
+## Functional requirements
+- `FR-APP-001`: The app must retain records.
+## Security requirements
+- Rotate the audit key daily.
+""",
+    )
+
+    result = RequirementsGateService().evaluate(baseline)
+
+    assert not result.passed
+    assert "G1-DIAGNOSTICS" in result.hard_blockers
+
+
 def test_removal_requires_approval_before_gate_can_pass(tmp_path: Path) -> None:
     previous = ingest_spec(tmp_path)
     current = replace(

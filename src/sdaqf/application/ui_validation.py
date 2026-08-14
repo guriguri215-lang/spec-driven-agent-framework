@@ -95,35 +95,56 @@ class ProjectManifestIdentity:
 def load_manifest_ui(path: Path) -> ProjectManifestIdentity:
     """Load and validate the full canonical project manifest."""
 
-    root = load_json_object(path, "Project manifest", maximum_bytes=64 * 1024)
-    only_keys(
-        root,
-        {
-            "schema_version",
-            "project_id",
-            "title",
-            "release_level",
-            "source_spec",
-            "platforms",
-            "ui",
-            "network_policy",
-            "api_required",
-        },
-        "manifest",
+    return parse_manifest_ui(
+        load_json_object(path, "Project manifest", maximum_bytes=64 * 1024)
     )
+
+
+def parse_manifest_ui(
+    payload: object,
+    *,
+    legacy_syntax: bool = False,
+) -> ProjectManifestIdentity:
+    """Validate one decoded canonical project manifest snapshot."""
+
+    root = object_value(payload, "Project manifest")
+    manifest_fields = {
+        "schema_version",
+        "project_id",
+        "title",
+        "release_level",
+        "source_spec",
+        "platforms",
+        "ui",
+        "network_policy",
+        "api_required",
+    }
+    required_fields = (
+        manifest_fields - {"release_level"} if legacy_syntax else manifest_fields
+    )
+    missing = required_fields - root.keys()
+    extra = root.keys() - manifest_fields
+    if missing:
+        raise ContractError(f"manifest is missing {sorted(missing)[0]}.")
+    if extra:
+        raise ContractError(f"manifest contains unsupported field {sorted(extra)[0]}.")
     if string_value(root.get("schema_version"), "schema_version", maximum=10) != "1.0":
         raise ContractError("Manifest schema_version must be 1.0.")
     project_id = string_value(root.get("project_id"), "project_id", maximum=100)
     if not _PROJECT_ID.fullmatch(project_id):
         raise ContractError("project_id must use lowercase ASCII words.")
     path_free_text(root.get("title"), "title", maximum=200)
-    path_free_text(root.get("release_level"), "release_level", maximum=100)
+    if not legacy_syntax or "release_level" in root:
+        path_free_text(root.get("release_level"), "release_level", maximum=100)
     source = object_value(root.get("source_spec"), "source_spec")
     only_keys(source, {"filename", "sha256", "imported_at"}, "source_spec")
     filename = safe_relative_path(source.get("filename"), "source_spec.filename")
     if "/" in filename:
         raise ContractError("source_spec.filename must be a filename.")
-    source_digest = sha256(source.get("sha256"), "source_spec.sha256")
+    raw_digest = source.get("sha256")
+    if legacy_syntax and isinstance(raw_digest, str):
+        raw_digest = raw_digest.upper()
+    source_digest = sha256(raw_digest, "source_spec.sha256")
     timestamp(source.get("imported_at"), "source_spec.imported_at")
     platforms = object_value(root.get("platforms"), "platforms")
     only_keys(platforms, {"required", "optional"}, "platforms")

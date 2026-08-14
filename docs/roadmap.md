@@ -430,3 +430,29 @@ select a version or authorize a tag or release.
 Roadmap approval does not authorize implementation, dependencies, schema
 publication, staging, commit, push, release, deployment, hosted access, or
 repository settings.
+
+## Framework closeout and maintenance mode
+
+Status: the current closeout candidate is `READY_TO_FREEZE`; maintenance mode
+begins after it is merged to `main`.
+
+The bounded required path now connects specification intake, strict schema and
+semantic validation, distinct agent-result role evaluation, exact Skill
+provenance, deterministic program verification, disagreement-preserving
+integration, epistemic classification, terminal Outcome, and a reproducible
+final report. Further feature work is not implied by the remaining milestone
+history.
+
+Feature development may reopen only when at least one of the following is
+demonstrated:
+
+- a reproducible defect in real use;
+- failure on a new representative use case within the intended product scope;
+- loss of compatibility caused by an external specification or dependency;
+- a security finding;
+- an unacceptable bounded benchmark error or failure rate; or
+- repeated reports from multiple users of the same missing capability.
+
+An unfinished roadmap item, a possible new manifest or status field, additional
+hashes, or the fact that development was recently active is not sufficient.
+Version selection, tag, release, and deployment remain separately Owner-gated.

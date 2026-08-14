@@ -10,6 +10,7 @@ from sdaqf.adapters.context import (
 from sdaqf.adapters.process import SubprocessRunner
 from sdaqf.adapters.scheduler import (
     ExclusiveSchedulerArtifactStore,
+    FilesystemAgentHost,
     SQLiteSchedulerStore,
     SystemSchedulerClock,
     UnsupportedAgentHost,
@@ -31,6 +32,7 @@ __all__ = [
     "ExclusiveJSONPublisher",
     "ExclusiveSchedulerArtifactStore",
     "ExclusiveWorkflowArtifactStore",
+    "FilesystemAgentHost",
     "FiniteDomainReferenceAdapter",
     "LocalContextCandidateVerifier",
     "LocalContextSourceReader",

@@ -26,7 +26,7 @@
     },
     {
       "case_id": "M8-02",
-      "current_event_head_id": "M6-WORKFLOW-EPOCH-EVENT-FBF50F956F4D1FD974E89AA8AB7E47E42059170E033751776DF6994736B95D3B",
+      "current_event_head_id": "M6-WORKFLOW-EPOCH-EVENT-84F7A9D2961FBBF9169FF836D523597597F95C04546A4A358323F95808E9AA70",
       "fixture_bundle_id": "M8-FIXTURE-BUNDLE-56E7495AB88356529E665C4D9D5AB04A1046465F2BDB91FA645D1C052C0F9C8A",
       "measurement_groups": [
         "approval",
@@ -43,12 +43,12 @@
         "ui-evidence-unavailable"
       ],
       "observed_outcome": "blocked",
-      "outcome_artifact_id": "M8-WORKFLOW-OUTCOME-3F1F497996383721F18B456A92A96E3A611E23747D2D83C0E7A298BD52261461",
+      "outcome_artifact_id": "M8-WORKFLOW-OUTCOME-57DF6D79B391A17207FBA034EB9CB12CB921FFC1471E4759A951C9F892E46635",
       "passed": true,
       "project_fixture": "ui-issue-tracker",
       "project_fixture_root": "evals/projects/ui-issue-tracker",
       "scenario": "ui-observation-unavailable",
-      "terminal_state_id": "M8-WORKFLOW-STATE-1F0E19C611FC68E6D622F2ED95360D42FEAA4D084A4AB56E7A2B0EE2A3DC2FFF"
+      "terminal_state_id": "M8-WORKFLOW-STATE-0A4153A111C15C23972132DCE8103361DD843F88E3E1C5ADD92F4B391DA4F53F"
     },
     {
       "case_id": "M8-03",

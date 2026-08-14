@@ -26,7 +26,6 @@ from tests.m6_scheduler_helpers import (
     materialize_scheduler_root,
     worktree_graph,
 )
-from tests.schema_validation import LocalSchemaValidator
 
 import sdaqf
 from sdaqf.adapters.scheduler import (
@@ -58,6 +57,7 @@ from sdaqf.application.scheduler_simulation import (
     SCENARIOS,
     run_all_scenarios,
 )
+from sdaqf.application.schema_validation import LocalSchemaValidator
 from sdaqf.domain.context import Sensitivity
 from sdaqf.domain.scheduler import (
     BudgetLedger,

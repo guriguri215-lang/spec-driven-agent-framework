@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -20,6 +20,7 @@ from sdaqf.application.workflow_planning import artifact_reference_for
 from sdaqf.application.workflow_runtime import WorkflowRuntimeError
 from sdaqf.domain.scheduler import (
     Blocker,
+    MailboxMessage,
     SchedulerState,
     TaskOutcome,
     TaskState,
@@ -82,6 +83,107 @@ def test_runtime_publishes_event_before_state_and_never_dispatches(
     assert state.status is TaskState.COMPLETED
 
 
+def test_runtime_offers_exact_dispatch_only_to_explicit_agent_host(
+    tmp_path: Path,
+) -> None:
+    root = create_workspace(tmp_path)
+    plan, _ = create_plan(root)
+    scheduler = create_scheduler(root)
+
+    class RecordingHost:
+        def __init__(self) -> None:
+            self.dispatched: list[MailboxMessage] = []
+            self.cancelled: list[MailboxMessage] = []
+
+        def dispatch(self, message: MailboxMessage) -> None:
+            self.dispatched.append(message)
+
+        def cancel(self, message: MailboxMessage) -> None:
+            self.cancelled.append(message)
+
+    host = RecordingHost()
+    transition = create_runtime(FixedClock()).run(
+        plan,
+        root,
+        scheduler,
+        root / "workflow/host-state.json",
+        root / "workflow/host-event.json",
+        agent_host=host,
+    )
+
+    assert transition.host_dispatch_performed is True
+    assert len(host.dispatched) == 1
+    assert host.cancelled == []
+    assert transition.outgoing_intent_ids == (
+        next(
+            artifact.artifact_id
+            for artifact in SQLiteSchedulerStore(scheduler, root).export("messages")
+            if artifact.value == host.dispatched[0]
+        ),
+    )
+
+
+def test_host_failure_returns_committed_transition_and_resume_reoffers_exact_intent(
+    tmp_path: Path,
+) -> None:
+    root = create_workspace(tmp_path)
+    plan, _ = create_plan(root)
+    scheduler = create_scheduler(root)
+
+    class FailingOnceHost:
+        def __init__(self) -> None:
+            self.attempted: list[MailboxMessage] = []
+
+        def dispatch(self, message: MailboxMessage) -> None:
+            self.attempted.append(message)
+            if len(self.attempted) == 1:
+                raise RuntimeError("injected post-publication host failure")
+
+        def cancel(self, message: MailboxMessage) -> None:
+            raise AssertionError(f"unexpected cancellation: {message}")
+
+    runtime = create_runtime(FixedClock())
+    host = FailingOnceHost()
+    first_state_path = root / "workflow/host-retry-state-1.json"
+    first_event_path = root / "workflow/host-retry-event-1.json"
+    first = runtime.run(
+        plan,
+        root,
+        scheduler,
+        first_state_path,
+        first_event_path,
+        agent_host=host,
+    )
+
+    assert first.host_dispatch_performed is False
+    assert first_state_path.is_file() and first_event_path.is_file()
+    head = SQLiteSchedulerStore(scheduler, root).workflow_head(plan.artifact_id)
+    assert head is not None
+    assert head.workflow_state_id == first.state.artifact_id
+
+    second = runtime.resume(
+        first.state,
+        workflow_binding(root, first_state_path, first.state),
+        plan,
+        root,
+        scheduler,
+        root / "workflow/host-retry-state-2.json",
+        root / "workflow/host-retry-event-2.json",
+        agent_host=host,
+    )
+
+    assert second.host_dispatch_performed is True
+    assert second.outgoing_intent_ids == ()
+    assert len(host.attempted) == 2
+    assert host.attempted[0] == host.attempted[1]
+    persisted_id = next(
+        artifact.artifact_id
+        for artifact in SQLiteSchedulerStore(scheduler, root).export("messages")
+        if artifact.value == host.attempted[1]
+    )
+    assert first.outgoing_intent_ids == (persisted_id,)
+
+
 def test_runtime_finalizes_authenticated_native_observation_with_exact_blocker(
     tmp_path: Path,
 ) -> None:
@@ -142,6 +244,85 @@ def test_runtime_finalizes_authenticated_native_observation_with_exact_blocker(
     assert retried.state.artifact_id == transition.state.artifact_id
     assert retried.outcome is not None
     assert retried.outcome.artifact_id == transition.outcome.artifact_id
+
+    advanced = store.tick(
+        root,
+        "HST-HISTORICAL-OBSERVATION",
+        (),
+        FixedClock().now() + timedelta(seconds=1),
+    ).state.value
+    assert isinstance(advanced, SchedulerState)
+    assert advanced.event_sequence > state.scheduler_event_sequence
+    status = runtime.status(transition.state, plan, root, scheduler)
+    assert status["valid"] is True
+    assert status["scheduler_advanced"] is True
+    assert status["authoritative_state_id"] == transition.state.artifact_id
+
+    validated_plan, _, publication_observation = runtime._validate_inputs(
+        plan,
+        transition.state,
+        root,
+        scheduler,
+    )
+    current_artifact = store.status()
+    current = current_artifact.value
+    assert isinstance(current, SchedulerState)
+    future_state = replace(
+        state,
+        scheduler_event_sequence=current.event_sequence + 1,
+    )
+    future_artifact = artifact_from_value(
+        WorkflowArtifactType.WORKFLOW_STATE,
+        future_state,
+    )
+    with pytest.raises(WorkflowRuntimeError, match="extends beyond"):
+        runtime._require_exact_state(
+            plan.artifact_id,
+            validated_plan,
+            future_artifact,
+            future_state,
+            current,
+            store,
+            root,
+            publication_observation,
+        )
+
+    replay_mismatch = replace(
+        state,
+        scheduler_state_id="M6-SCHEDULER-STATE-" + "A" * 64,
+    )
+    replay_mismatch_artifact = artifact_from_value(
+        WorkflowArtifactType.WORKFLOW_STATE,
+        replay_mismatch,
+    )
+    with pytest.raises(WorkflowRuntimeError, match="does not match M6 event replay"):
+        runtime._require_exact_state(
+            plan.artifact_id,
+            validated_plan,
+            replay_mismatch_artifact,
+            replay_mismatch,
+            current,
+            store,
+            root,
+            publication_observation,
+        )
+
+    projection_mismatch = replace(state, status=TaskState.REJECTED)
+    projection_mismatch_artifact = artifact_from_value(
+        WorkflowArtifactType.WORKFLOW_STATE,
+        projection_mismatch,
+    )
+    with pytest.raises(WorkflowRuntimeError, match="exact native-derived projection"):
+        runtime._require_exact_state(
+            plan.artifact_id,
+            validated_plan,
+            projection_mismatch_artifact,
+            projection_mismatch,
+            current,
+            store,
+            root,
+            publication_observation,
+        )
 
 
 def test_every_rehashed_event_field_is_rederived_from_native_chain(
@@ -598,7 +779,7 @@ def test_unobservable_attempt_measurements_are_not_fabricated(tmp_path: Path) ->
         assert measurement.unit is None
 
 
-def test_historical_native_replay_uses_messages_and_fails_closed_on_rebuild_error(
+def test_historical_native_replay_uses_adapter_authority_and_fails_closed(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -621,7 +802,7 @@ def test_historical_native_replay_uses_messages_and_fails_closed_on_rebuild_erro
     def _fail_rebuild(*_args: object) -> None:
         raise scheduler_module.SchedulerAdapterError("injected rebuild failure")
 
-    monkeypatch.setattr(scheduler_module, "_rebuild_from_evidence", _fail_rebuild)
+    monkeypatch.setattr(store, "historical_status", _fail_rebuild)
     with pytest.raises(WorkflowRuntimeError, match="replay failed closed"):
         runtime_module._replay_scheduler_state(store, native.event_sequence)
 

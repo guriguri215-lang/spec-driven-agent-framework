@@ -49,6 +49,7 @@ from sdaqf.domain.context import (
     Sensitivity,
 )
 from sdaqf.domain.quality import ArtifactReference, CandidateIdentity, GitObservation
+from sdaqf.domain.requirements import RequirementType, generated_requirement_id
 from sdaqf.domain.scheduler import (
     EffectKind,
     SchedulerArtifactType,
@@ -69,6 +70,12 @@ from sdaqf.domain.workflow import (
 ROOT = Path(__file__).resolve().parents[1]
 FIXED_TIME = datetime(2026, 8, 1, 0, 0, 0, tzinfo=UTC)
 SOURCE_DIGEST = "050EA855693A9DD43303872934824E4B116A9210CECBD3CAA6F24F9EB9823FF4"
+SOURCE_REQUIREMENT = "The framework must validate context."
+REQUIREMENT_ID = generated_requirement_id(
+    SOURCE_REQUIREMENT,
+    RequirementType.FUNCTIONAL,
+)
+ACCEPTANCE_ID = f"AC-{REQUIREMENT_ID}-01"
 CANDIDATE = CandidateIdentity(
     source_spec_sha256=SOURCE_DIGEST,
     git_head="b" * 40,
@@ -314,24 +321,26 @@ def create_workspace(tmp_path: Path) -> Path:
         },
         "requirements": [
             {
-                "id": "FR-M8-DEMO",
-                "title": "Validate one offline workflow",
+                "id": REQUIREMENT_ID,
+                "title": "Validate context",
                 "type": "functional",
                 "priority": "must",
                 "status": "baselined",
                 "source": {
                     "document": "specification.md",
-                    "section": "Accepted Contract",
-                    "line_start": 1,
-                    "line_end": 1,
-                    "excerpt": "The demo uses a deterministic accepted contract.",
-                    "derivation_basis": "Preserved from the public synthetic fixture.",
+                    "section": "Specification",
+                    "line_start": 3,
+                    "line_end": 3,
+                    "excerpt": SOURCE_REQUIREMENT,
+                    "derivation_basis": "Normalized from the exact source sentence.",
                 },
-                "statement": "The workflow shall validate one offline deterministic plan.",
+                "statement": SOURCE_REQUIREMENT,
                 "acceptance_criteria": [
                     {
-                        "id": "AC-FR-M8-DEMO-01",
-                        "statement": "The plan validates without a network or hosted adapter.",
+                        "id": ACCEPTANCE_ID,
+                        "statement": (
+                            "The bound context validation completes with exact local evidence."
+                        ),
                         "verification_methods": ["test"],
                     }
                 ],
@@ -345,7 +354,7 @@ def create_workspace(tmp_path: Path) -> Path:
                     "evidence": [],
                     "releases": [],
                 },
-                "identifier_source": "explicit",
+                "identifier_source": "generated",
             }
         ],
         "source_acceptance_criteria": [],
@@ -405,8 +414,8 @@ def create_intent(root: Path) -> tuple[LoadedWorkflowArtifact, Path]:
         requirement_baseline=baseline,
         allowed_paths=("src/sdaqf",),
         prohibited_paths=("state",),
-        required_requirement_ids=("FR-M8-DEMO",),
-        required_acceptance_ids=("AC-FR-M8-DEMO-01",),
+        required_requirement_ids=(REQUIREMENT_ID,),
+        required_acceptance_ids=(ACCEPTANCE_ID,),
         requested_effects=(EffectKind.READ_ONLY,),
         risk=IntentRisk.LOW,
         clearance=Sensitivity.PUBLIC,
@@ -423,8 +432,8 @@ def create_intent(root: Path) -> tuple[LoadedWorkflowArtifact, Path]:
         task_links=(
             IntentTaskLink(
                 task_id="TSK-M6-DEMO",
-                requirement_ids=("FR-M8-DEMO",),
-                acceptance_ids=("AC-FR-M8-DEMO-01",),
+                requirement_ids=(REQUIREMENT_ID,),
+                acceptance_ids=(ACCEPTANCE_ID,),
                 context_node_ids=(node_id,),
                 solver_request_ids=(),
             ),

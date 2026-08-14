@@ -11,11 +11,16 @@ results for Codex-assisted software projects.
 > [`v1.0.0-rc.1`](https://github.com/guriguri215-lang/spec-driven-agent-framework/releases/tag/v1.0.0-rc.1)
 > prerelease contains the M0-M4 baseline. The current `main` branch adds the
 > M5-M8 context, scheduling, solver, and integrated workflow frameworks; all
-> four remain Experimental and unreleased. The current dispositions are
+> four remain Experimental and unreleased. The closeout candidate also adds
+> strict runtime use of the published project schemas, an optional filesystem
+> host-intent bridge with exact Skill provenance, and a receipt-authenticated
+> final claim report. Its bounded core flow is `READY_TO_FREEZE` for feature
+> development after local validation; this is not release GO or production
+> readiness. The current milestone dispositions are
 > independent: M5 GO, M6 GO, M7 GO, and M8 successor lifecycle GO. The latest
 > M8 successor lifecycle compatibility review maintained F1 through F11 and
-> left zero unresolved scope findings. The reviewed M6 state completed pull
-> request #4: exact-head
+> left zero unresolved scope findings. The reviewed M6 state completed pull request #4:
+> exact-head
 > [run 31558960113](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/runs/31558960113)
 > and post-merge `main`
 > [run 31563987706](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/runs/31563987706)
@@ -209,8 +214,40 @@ status, and recover. It remains optional for backward-compatible genesis calls.
 
 Plan, explanation, and simulation authenticate the same M6 v2 workflow
 authority. Simulation uses a fresh isolated v2 store after authentication.
-Planning, explanation, simulation, Outcome, and generated handoff content do
-not dispatch a host action.
+Planning, explanation, simulation, Outcome, report generation, and generated
+handoff content do not dispatch a host action.
+
+`workflow run` and `workflow resume` can bridge the durable scheduler to a
+separate agent host without embedding a model provider. Supply an existing
+directory under `ROOT` with `--host-outbox`; the command publishes each exact
+dispatch or cancellation message there. Supply returned host-to-scheduler
+messages with repeatable `--message` arguments. The external host still owns
+agent execution, and retries may deliver the same idempotent request again.
+
+```text
+python -m sdaqf workflow run PLAN --root ROOT --scheduler-state DB --output-state STATE --output-event EVENT --message CAPABILITY_OBSERVATION --host-outbox OUTBOX --json
+python -m sdaqf workflow resume STATE --plan PLAN --root ROOT --scheduler-state DB --output-state NEXT_STATE --output-event NEXT_EVENT --message TASK_RESULT --host-outbox OUTBOX --json
+```
+
+`skills validate --json` now returns an exact digest-bound `capability` token
+for each compatible Skill. Put that token in the Task Graph's
+`required_capabilities`; an accepted Task Result must bind both its Context and
+the exact Skill file in `provenance`. This proves selection and byte identity,
+not that an agent followed the Skill cognitively.
+
+After `workflow outcome` confirms terminal receipts, render the transient
+claim report without changing the Outcome or scheduler database:
+
+```text
+python -m sdaqf workflow report OUTCOME --state CLOSURE_STATE --plan PLAN --root ROOT --scheduler-state DB --json
+```
+
+The report keeps program, agent, Skill, review, and user sources distinct and
+labels propositions as `FACT`, `INFERENCE`, `ASSUMPTION`, or `UNKNOWN`.
+`FACT` is limited to exact, independently checked solver verification on its
+bound lineage. A ledger that merely records a machine-test PASS remains
+`INFERENCE` until independently replayed. No label is a general correctness or
+safety guarantee.
 
 ## Use cases
 
@@ -222,11 +259,14 @@ not dispatch a host action.
   explicit repository sources.
 - Simulate and inspect host-agnostic multi-agent scheduling failure modes
   without launching agents.
+- Exchange exact intents/results with multiple separately operated agents via
+  the filesystem host boundary while preserving role, Context, Skill, and
+  independent-review provenance.
 - Solve and independently verify small exact-integer finite-domain feasibility
   or optimization requests with the reference adapter.
 - Validate and explain one exact cross-framework Plan, project native M6 truth
-  into immutable workflow records, and exercise recovery paths offline without
-  launching a host.
+  into immutable workflow records, exercise recovery paths offline, and render
+  a receipt-authenticated claim report.
 
 ## Validation and evidence
 
@@ -237,14 +277,22 @@ input models.
 
 | Check | Current evidence |
 |---|---|
-| Automated tests | The latest M6 schema remediation passes 65 public-contract tests and 145 related M6 contract/public/migration tests. The prior M8 review passed 28 focused compatibility/CLI tests, 120 complete M8 tests, and 9 round-three regression tests; it did not rerun full pytest. The recorded 87-test M5, 102-test M6, 14-test integration, and 1,241-test full-run results remain historical evidence |
+| Automated tests | The 2026-08-14 closeout candidate passed the clean-candidate project Gate: 1,387 passed, 4 skipped because this Windows environment could not create symlinks or directory links, and 0 failed |
+| Connected closeout | One automated production-path test completes input, validation, distinct agent-result roles, exact Skill provenance, finite-domain program verification, independent review, handoff, terminal Outcome, and final report |
 | Pull request #5 merged-state CI | [Run 31594557932](https://github.com/guriguri215-lang/spec-driven-agent-framework/actions/runs/31594557932) passed the exact pull request #5 merge-commit state on Windows/Linux and Python 3.12/3.13 after exact-head run `31586128196` passed the same matrix |
-| Static checks | That exact pull request #5 merged state passes Ruff and strict mypy |
-| Coverage | That exact pull request #5 merged state passes the project and M1-through-M8 critical coverage thresholds |
-| Named validators | M5 context integrity, M6 scheduler safety, M7 solver evidence, and M8 workflow integration pass for that exact pull request #5 merged state |
-| CLI smoke | The offline M0-through-M8 smoke passes for that exact pull request #5 merged state without network access or persistent Git configuration changes |
-| Independent review | The historical M5 and M6 final NO-GO reviews remain recorded. The latest M5 disposition is GO for the reviewed repository state; three fresh independent reviewers ACCEPTED the M6 remediation with no unresolved Critical, High, or Medium finding, and that state was merged by pull request #4; M7 and M8 retain their separate GO dispositions |
+| Static checks | The closeout candidate passes Ruff and strict mypy over 187 source files; remote exact-SHA CI remains a separate publication Gate |
+| Coverage | The 2026-08-14 closeout candidate passes total and M1-through-M8 critical coverage thresholds; total/M6/M7/M8 are 90/90/91/91 percent |
+| Named validators | M5 context integrity, M6 scheduler safety, M7 solver evidence, and M8 workflow integration pass for the closeout candidate |
+| CLI smoke | The offline M0-through-M8 smoke passes for the closeout candidate without network access or persistent Git configuration changes |
+| Independent review | Core-flow, verification, redundancy, and user-value reviews initially required three bounded fixes. Post-fix review found no feature-freeze blocker; assurance duplication remains a maintenance-cost finding rather than a correctness claim |
 | External validation | No independent production deployment, macOS run, hosted-agent evaluation, or third-party solver validation |
+
+The historical M8 successor lifecycle review covered the 28-test focused
+compatibility selection, the 120-test complete M8 selection, and the 9-test
+round-three regression selection. It did not rerun full pytest or coverage;
+that evidence remains scoped to the earlier reviewed state. The closeout
+candidate's later clean-candidate full pytest result is a separate observation
+and does not retroactively broaden the historical review.
 
 The exact local gate commands are in the
 [Release Contract](docs/release-contract.md). Historical and milestone-specific
@@ -254,14 +302,21 @@ evidence is under `docs/evidence/` and `docs/exec-plans/`.
 
 - The release is a prerelease and the post-RC M5-M8 changes on `main` are
   unreleased.
-- The M6 scheduler provides durable state and host intents, not an agent
-  runtime; delivery is at-least-once and exactly-once execution is not claimed.
+- The M6 scheduler and optional filesystem outbox provide durable state and
+  host-intent delivery, not an agent runtime; delivery is at-least-once, host
+  execution remains caller-owned, and exactly-once execution is not claimed.
 - Context selection is deterministic lexical and graph retrieval, not semantic
   embedding search or model-based ranking.
 - The reference solver enumerates bounded finite domains and is unsuitable for
   large or continuous problems. External solver entries are descriptive only.
 - Model-generated, browser-generated, tool-generated, and solver-generated
   records remain untrusted until their applicable validators pass.
+- Skill provenance confirms an exact selected file, not compliance with its
+  instructions. Agent-only conclusions remain inference or unknown in the
+  final report.
+- Bounded mailbox references limit one task to 63 exact Skills because Context
+  reserves one provenance slot, and one review Task Result to 63 target Agent
+  Results because the Independent Review reserves one evidence slot.
 - Scalability is bounded by explicit input, byte, graph, scheduler, and solver
   limits; this repository does not publish throughput or latency guarantees.
 - No security audit or independent production validation has been performed.
@@ -306,6 +361,12 @@ GO. The current dispositions are independent: M5 GO, M6 GO, M7 GO, and M8
 successor lifecycle GO. Release GO, production readiness, version, tag, release,
 and deployment remain separately gated. See the
 [Roadmap](docs/roadmap.md) for scope, exclusions, risks, and completion criteria.
+After the closeout candidate is merged, feature development is frozen and the
+repository moves to maintenance mode. Reopening requires a reproducible user
+defect, a failed representative use case, a compatibility or dependency
+change, a security finding, an unacceptable benchmark result, or repeated
+reports of the same missing capability; an unfinished roadmap item alone is
+not sufficient.
 
 ## Contributing, security, and support
 

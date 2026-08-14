@@ -313,10 +313,13 @@ without reserving or invoking a tool.
 
 ## Host boundary
 
-The packaged `AgentHostPort` and `WorktreeHostPort` have no real implementation.
-Their default adapters raise an unsupported-operation error. `schedule tick`
-commits state and returns outbound typed intents; it does not invoke a process,
-Codex CLI, API, network, or Git command.
+The packaged `UnsupportedAgentHost` and `UnsupportedWorktreeHost` raise an
+unsupported-operation error. The optional `FilesystemAgentHost` only publishes
+exact scheduler-to-host dispatch or cancellation messages idempotently into an
+existing root-confined outbox; it does not invoke an agent, process, Codex CLI,
+API, network, or Git command. `schedule tick` itself commits state and returns
+outbound typed intents; `workflow run` and `workflow resume` can explicitly
+bridge durable pending intents to the filesystem outbox.
 
 A host that adopts these ports must deduplicate idempotency keys, preserve
 message size and sensitivity, return typed observations, and treat the current

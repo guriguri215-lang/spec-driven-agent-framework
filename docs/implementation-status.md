@@ -14,19 +14,36 @@ working behavior.
 - **Not verified**: implementation may exist, but the named environment or
   independent validation has not been observed for the current candidate.
 
+## Framework closeout disposition
+
+The current closeout candidate is `READY_TO_FREEZE` for feature development
+within the documented bounded input models. A connected synthetic run exercised
+specification intake, strict validation, distinct agent-result roles, exact
+Skill provenance, deterministic program verification, independent review,
+handoff, terminal Outcome, and the final epistemic report. The clean-candidate
+project Gate passed 1,387 tests with four environment-only link skips and no
+failures; Ruff, strict mypy, the M5-through-M8 named validators, and the offline
+M0-through-M8 CLI smoke also pass.
+
+This disposition starts maintenance mode after merge. It does not claim that
+human error is eliminated, that arbitrary inputs are correct, that Skill
+instructions were cognitively followed, or that the project is production
+ready. Version selection, tag, release, deployment, and exact-SHA remote CI
+remain separate Gates.
+
 ## Milestone summary
 
 | Milestone | State | Released in `v1.0.0-rc.1` | Current validation boundary |
 |---|---|---:|---|
 | M0 Bootstrap Foundation | Implemented | Yes | Automated tests and current CI |
 | M1 Requirements and Planning | Implemented | Yes | Automated tests and current CI |
-| M2 Agent, Skill, and Tool Orchestration | Implemented | Yes | Plans roles and tool calls; does not dispatch agents |
+| M2 Agent, Skill, and Tool Orchestration | Implemented | Yes | Plans roles and tool calls; the optional filesystem bridge transports intents but does not launch agents |
 | M3 Evidence, UI, and Release QA | Implemented | Yes | Validates host observations; does not launch a browser or publish |
 | M4 Public Beta Hardening | Implemented | Yes | Authored evaluation is nonempirical and noncausal |
 | M5 Context Framework | Experimental | No | Latest disposition is GO for the reviewed repository state; historical NO-GO remains recorded; release remains separately gated |
 | M6 Multi-Agent Control Framework | Experimental | No | Latest disposition is GO for the reviewed state merged by pull request #4; historical NO-GO and later pre-publication stop remain recorded; exact pull-request and post-merge `main` CI passed |
 | M7 Mathematical Solver Framework | Experimental | No | Bounded local reference adapter; independent milestone GO and current CI |
-| M8 Integrated Workflow | Experimental | No | Latest successor lifecycle compatibility review is GO with F1-F11 maintained and zero unresolved scope findings; the reviewed M8 state was merged to `main`, whose exact-triggering-SHA Actions run `31497539609` passed; release remains separately gated |
+| M8 Integrated Workflow | Experimental | No | Closeout candidate connects accepted AgentResult and Skill provenance to terminal Outcome and final report; release remains separately gated |
 
 ## M0: bootstrap and repository safety
 
@@ -198,7 +215,8 @@ Experimentally implemented:
 - A side-effect-free deterministic planner and exact explainer that invoke
   native requirement, Context, Registry, scheduler, and solver validators.
 - One-tick resumable runtime projections over the existing M6 SQLite store,
-  immediate protected-effect revalidation, typed intents without dispatch,
+  immediate protected-effect revalidation, typed intents, optional idempotent
+  filesystem outbox delivery,
   fresh-output recovery, ambiguity preservation, and truthful Outcomes.
 - Four completion profiles composing existing G1-G4 and Automated Handoff,
   plus twelve fixed-clock offline simulations and nine separate measurement
@@ -206,8 +224,11 @@ Experimentally implemented:
 
 Limits:
 
-- The core does not launch an agent, host, worktree, browser, real UI, process,
-  network call, hosted adapter, or external solver.
+- The optional filesystem host only transports exact scheduler messages; the
+  core does not launch an agent or LLM, create a worktree, open a browser or
+  real UI, invoke a hosted agent adapter, or execute an external solver. This
+  does not describe the separately bounded local subprocess probes used by
+  repository and tool inspection.
 - Workflow JSON is an immutable integration read model, not another scheduler,
   approval, evidence, review, Gate, solver, candidate, or handoff authority.
 - The earlier round-three independent review accepted F1 through F11 but
@@ -237,3 +258,9 @@ The current dispositions are independent: M5 GO, M6 GO, M7 GO, and M8
 successor lifecycle GO.
 
 See [Integrated Vibe-Coding Framework](integrated-vibe-coding-framework.md).
+
+After the closeout candidate is merged, normal work is limited to reproducible
+bugs, security, compatibility, dependency changes, and problems demonstrated by
+real use or bounded benchmarks. Additional manifests, status taxonomies,
+qualification layers, hashes, or roadmap entries are not feature progress by
+themselves.

@@ -500,6 +500,28 @@ def test_workflow_run_status_and_outcome_cli(
         == 0
     )
     assert json.loads(capsys.readouterr().out)["outcome"]["artifact_type"] == "workflow-outcome"
+    assert (
+        main(
+            [
+                "workflow",
+                "report",
+                str(root / "workflow/outcome.json"),
+                "--state",
+                str(root / "workflow/outcome-state.json"),
+                "--plan",
+                str(plan_path),
+                "--root",
+                str(root),
+                "--scheduler-state",
+                str(scheduler),
+                "--json",
+            ]
+        )
+        == 0
+    )
+    report = json.loads(capsys.readouterr().out)
+    assert report["side_effect_free"] is True
+    assert report["outcome_id"].startswith("M8-WORKFLOW-OUTCOME-")
 
 
 def test_workflow_supersede_cli_closes_only_the_old_candidate_epoch(

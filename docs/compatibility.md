@@ -30,6 +30,14 @@ management UI.
 Published schema versions remain immutable. Consumers must select and validate
 the exact schema version they use.
 
+The public `sdaqf validate` runtime now fails closed across all eight project
+bundle schemas and the manifest/requirements semantic contracts. Duplicate or
+non-finite JSON, linked or non-regular inputs, and oversized sample files are
+rejected instead of receiving the earlier shallow shape acceptance. Separately,
+specification intake turns unrecognized normative or stable-ID Markdown into
+blocking diagnostics. These are semantic compatibility tightenings within the
+existing published contracts, not new schema versions.
+
 `release-candidate.schema.json` remains historical schema 1.0 and represents
 only the explicit `not-selected` project-license state.
 `release-candidate-v1.1.schema.json` adds the exact selected Apache-2.0
@@ -64,6 +72,11 @@ compatible only with the exact referenced M2/M5 bytes and candidate identity.
 Mailbox and result adoption additionally requires the exact graph, task,
 Context Snapshot, attempt, lease, fence, idempotency key, sensitivity, and
 causal parent identities.
+The bounded 64-reference mailbox contracts reserve one provenance entry for
+Context and one review-evidence entry for the Independent Review. Runtime
+semantic validation therefore accepts at most 63 exact Skills per task and 63
+exact target Agent Results per review Task Result; larger Task Graph arrays are
+not execution-compatible even when their shared structural array shape parses.
 
 The SQLite database is a local implementation detail, not a portable public
 schema. Both supported versions use application ID `0x53444151`. M6-only v1
@@ -200,6 +213,15 @@ genesis CLI and Python call shapes. Python `finalize_observation` accepts the
 same optional authority for successor terminal closure. Terminal retries preserve the
 reservation timestamp and accept only exact receipt-bound existing artifacts;
 these are semantic tightening rules within schema `1.0`, not artifact migration.
+
+`workflow run` and `workflow resume` also add repeatable `--message` inputs and
+an optional `--host-outbox`. Omitting them preserves the existing host-agnostic
+behavior. Supplying an outbox transports exact durable scheduler messages but
+the bridge does not launch an agent, LLM, network call, or worktree operation
+and does not execute the transported intent.
+The additive `workflow report` command reads confirmed terminal receipts and
+returns a transient epistemic view; it does not change Workflow Outcome v1 or
+publish another artifact contract.
 
 The latest independent successor lifecycle compatibility review returned GO for
 this exact boundary, maintained every F1-through-F11 ACCEPT result, and left zero
